@@ -49,11 +49,17 @@ Validate configuration on server initialization and in release checks. Invalid d
 | AI_MAX_ATTEMPTS | Default 2 |
 | AI_EXECUTION_DEADLINE_MS | Default 75000, must leave headroom under function maxDuration |
 | AI_SUMMARY_SAMPLE_SIZE | Default and initial maximum 20 |
+| AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; eligibility checked in daily sweep |
+| AI_SUMMARY_MAX_MOVIES_PER_RUN | Initial maximum 1; increase only after runtime/capacity validation and spec revision |
+| CRON_SECRET | High-entropy server-only scheduler secret, distinct per environment; protects both recovery and summary sweeps |
+| AI_MODERATION_MAX_EXECUTIONS | Default 3 per content revision before manual review; at most 2 provider attempts per execution |
+| AI_MODERATION_RECOVERY_MAX_REVIEWS | Initial maximum 1 per daily recovery invocation; revise only after runtime/capacity validation |
+| REPORT_SUSPENSION_THRESHOLD | Default 3 distinct accepted incidents per strike cycle; positive integer, changes require policy review |
 | AI_INPUT_TOKEN_LIMIT | Maximum 8000, reduced if verified model context requires it |
 | LOG_LEVEL | info by default; no sensitive payloads |
 | VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID | Trusted deployment workflow configuration only; token is secret and not application runtime config |
 
-Use the Node.js runtime for API/database/authentication/AI routes. Enable Vercel Fluid compute and export maxDuration = 120 on AI Route Handlers; verify that this configuration is effective on the deployed Hobby project. It is a route setting, not an arbitrary environment variable. Ordinary routes should have smaller deadlines.
+Use the Node.js runtime for API/database/authentication/AI routes. Enable Vercel Fluid compute and export maxDuration = 120 on AI cron and review mutation Route Handlers; verify that this configuration is effective on the deployed Hobby project. It is a route setting, not an arbitrary environment variable. Non-screening routes should have smaller deadlines.
 
 No Supabase publishable/service-role key is needed for direct server-side PostgreSQL access. Do not add NEXT_PUBLIC_ database/provider secrets. The database driver uses TLS, a small per-instance pool and transaction-pooler-compatible prepared-statement settings. Keep quota reservations in short transactions, outside provider calls.
 
@@ -75,4 +81,6 @@ DEP-07: Target zero hosting/database subscription cost. Monitor Vercel usage, Su
 
 DEP-08: Establish encrypted off-site database exports daily and before migrations, plus a tested restore command. Keep backups outside Git and public CI artifacts. Select a private storage location and verify any CI/storage allowance before enabling automation. Proposed RPO 24 hours/RTO 4 hours remain team targets, not Supabase Free guarantees.
 
-DEP-09: Monitor Supabase pause warnings and inspect/resume development and production before demonstrations and peer testing. Daily maintenance may handle retention cleanup; interactive AI execution must not depend on cron. No minute-by-minute Vercel Hobby cron or long-running worker is required.
+DEP-09: Monitor Supabase pause warnings and resume before demonstrations. Configure one daily production Vercel cron (for example 0 0 * * *, UTC; approximate 08:00 SGT) to GET /api/v1/internal/cron/summaries with CRON_SECRET bearer authentication. The handler awaits at most one bounded generation, using durable pending markers, backoff and leases; no detached work. Hobby daily timing is approximate, not a deadline. Verify missing/invalid secret rejection, overlap handling, missed-run recovery and backlog monitoring. Preview/local tests invoke the same handler with isolated development secrets and a fake provider; do not assume production cron runs on Preview. See [cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing) and [cron management](https://vercel.com/docs/cron-jobs/manage-cron-jobs), checked 9 October 2026.
+
+DEP-10: Configure a separate daily GET /api/v1/internal/cron/review-moderation (for example 0 1 * * *, UTC), authenticated with CRON_SECRET and isolated from the summary sweep by its own lease. Most screening starts automatically inside review mutation handlers; this sweep recovers due durable work after contention, transient failure or crashes. Initially attempt one Review per invocation, preserve remaining work, and stop retrying a revision after 3 failed executions. Validate normal and outage-backlog throughput before release; sustained backlog requires greater validated recovery capacity or a revised execution host, not silent publication. Admins resolve needs_manual_review/flagged items without requesting AI. Tests use synthetic Reviews and a fake provider.

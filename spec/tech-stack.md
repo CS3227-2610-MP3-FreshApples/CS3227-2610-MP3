@@ -19,12 +19,6 @@ Pin compatible stable dependency versions during implementation and commit a loc
 
 Supabase is selected as the PostgreSQL host. Its Auth, Storage and Realtime services are not automatically added to the architecture. Existing account/session contracts remain in effect; choose a maintained authentication library before implementation. Adopting Supabase Auth later requires an explicit update to those contracts and tests.
 
-## Assessment
-
-This is a good fit for a small, non-commercial course application: one TypeScript codebase contains the UI and backend, relational transactions suit reviews/moderation, and managed hosting avoids server administration. The text-only design keeps storage demand low. No provider change is recommended for the starting scope.
-
-The target is zero hosting/database subscription cost within free allocations, not unlimited capacity or guaranteed availability. SoC LLM access and quota are separate course resources. Use supplied platform domains; do not require a purchased domain or paid add-ons.
-
 ## Free-tier constraints and responses
 
 | Constraint | Project response |
@@ -34,7 +28,7 @@ The target is zero hosting/database subscription cost within free allocations, n
 | Supabase Free provides two active projects and 500 MB database storage per project | Allocate one to development and one to production, subject to the account's existing allocations. Monitor indexes, audit data and AI snapshots as well as reviews. Use local PostgreSQL for isolated tests. [Billing](https://supabase.com/docs/guides/platform/billing-on-supabase) |
 | Free Supabase projects with low activity over seven days can pause | Check dashboard warnings and resume before demos/peer testing; document cold-start/unavailable behaviour. Free hosting is not an always-on SLA. [Project pausing](https://supabase.com/docs/guides/platform/free-project-pausing) |
 | Free database backups require a team-managed export plan | Export encrypted off-site backups and demonstrate restoration; do not assume paid backup/PITR features. [Backups](https://supabase.com/docs/guides/platform/backups) |
-| Vercel Functions have bounded lifetimes; Hobby cron runs at most daily | Execute AI inside a bounded request with persistent deduplication/status records. Do not deploy an always-running worker or depend on minute-by-minute Vercel cron. Enable Fluid compute and verify the configured function duration. [Function limits](https://vercel.com/docs/functions/limitations), [Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing) |
+| Vercel Functions have bounded lifetimes; Hobby cron runs at most daily | Use one authenticated daily sweep for pending summaries, initially one Movie per run; keep work within the invocation and retain deferred markers. Enable Fluid compute and verify duration. Daily timing is approximate; monitor backlog. [Function limits](https://vercel.com/docs/functions/limitations), [Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing) (cron documentation checked 9 October 2026) |
 | Serverless instances can open many database connections | Use the shared transaction pooler, TLS, a small per-instance connection pool and compatible driver settings. [Database connections](https://supabase.com/docs/guides/database/connecting-to-postgres) |
 
 ## Implementation simplifications
@@ -43,7 +37,7 @@ Use a single Next.js project with src/app for pages/Route Handlers, src/componen
 
 Use dynamic rendering/no-store for private or changing data in the initial release to avoid accidental cross-user caching and stale moderation visibility. Public caching is an optimization only after invalidation tests exist. Route Handlers implement the [API contract](api.md); see [Next.js documentation](https://nextjs.org/docs/app/getting-started/route-handlers).
 
-AI generation starts only after explicit User/Admin requests. The initiating request awaits a bounded result. Concurrent duplicate requests receive a running-job reference and poll; no job waits for a separate worker. Capacity exhaustion returns a retryable response. See [ai.md](ai.md).
+Summary generation starts only in the authenticated daily changed-Movie sweep. Every new Review/resubmission/body edit automatically triggers profanity screening after durable pending state is saved. The review handler awaits bounded execution; a separate daily recovery sweep processes deferred work. Both share quotas and leases. Pending/flagged Reviews remain unpublished until automatic clearance or human approval. No Admin requests or retries AI. Validate recovery capacity before release; see [ai.md](ai.md).
 
 ## Conditions that would warrant a change
 

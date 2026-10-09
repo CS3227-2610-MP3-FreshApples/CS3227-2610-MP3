@@ -15,8 +15,8 @@ Untrusted inputs include browser requests, reviews, report explanations, announc
 | SEC-05 | Validate lengths/types/enums, parameterize database access, escape text, enforce restrictive CSP | SQL injection, stored XSS and malformed input cases |
 | SEC-06 | Login throttling by normalized account and IP, proposed 5 failures/15 min; generic credential errors | Throttling and enumeration tests |
 | SEC-07 | Keys only in Vercel server-only environment variables; no frontend, repository or log exposure | Secret scan and built-asset inspection |
-| SEC-08 | AI has no action tools; bounded input/output, schema checks, prompt/data separation | Injection and malformed-output suite |
-| SEC-09 | Every report remains visible; human Admin authorizes final actions through normal protected API | Fake model decision cannot close report or mutate User |
+| SEC-08 | AI has no action tools; bounded input/output, schema checks, prompt/data separation and guarded publication | Injection and malformed-output suite |
+| SEC-09 | All reports/reviews remain accessible to Admins; human acceptance drives deterministic threshold suspension; AI has no direct action tools | Model cannot accept a report, add a strike, clear an admin hide or mutate an account; only validated current output can trigger the fixed clearance rule |
 | SEC-10 | Snapshot evidence and audit moderation atomically; stale concurrent decisions rejected | Transaction rollback and concurrency tests |
 | SEC-11 | Shared quotas, request throttles and bounded concurrency/retries | Flood/429/timeout tests |
 | SEC-12 | Limit development-agent filesystem/network/command access; protect credentials and production | Workflow configuration and reviewed interaction summaries |
@@ -45,8 +45,20 @@ Private pages, API results and per-user data must not enter shared Next.js/Verce
 
 ## 9.4 Privacy
 
-Public content: movie metadata, published announcements, visible Reviews and display names. Private content: email, password hash, session state, report ownership/details, snapshots, admin reasons, report analysis and audit logs. Each User sees only their own report status; Admin access is limited to moderation needs.
+Public content: movie metadata, published announcements, visible Reviews, valid generated summaries and display names. Private content: email, password hash, session state, report ownership/details, snapshots, admin reasons, review profanity assessments, received-report/strike information and audit logs. A User sees only reports they submitted, never reports received. Account status may be shown without report details/counts; Admin access is limited to moderation needs.
 
-Provider inputs use pseudonymous IDs and minimal relevant text. Free-text content may itself contain personal data; disclose that selected review/report text may be processed by the course LLM and discourage sensitive submissions. Do not promise anonymization from ID replacement alone.
+Provider inputs use pseudonymous IDs and minimal relevant text. Free-text content may itself contain personal data; disclose that selected review text may be processed by the course LLM and discourage sensitive submissions. Do not promise anonymization from ID replacement alone.
 
 No production data or credentials may be copied into development fixtures or agent prompts. Logs omit raw prompts/responses by default. Verify SoC provider retention, permitted data and access terms before production. Retention defaults are in [data-model.md](data-model.md); a documented operator process must address data deletion requests and retained moderation evidence. This spec does not assert regulatory compliance.
+
+### Scheduled AI and report privacy controls
+
+Authenticate the cron endpoint using a server-only environment-specific CRON_SECRET before queries/provider work. Browser cookies, Admin role, guessed job IDs and public GETs cannot initiate summary generation. Use scheduler/execution leases and shared quotas against replay/overlap. Keep internal execution records private; public summary responses contain only validated output and safe provenance.
+
+Received-report counts, allegations, strike ledgers and reporter identities never enter target-facing APIs, notifications or caches. Reporter endpoints filter by reporter_id, not target_user_id. Admin acceptance locks the target account and atomically records a distinct strike and threshold suspension with session revocation. Reinstatement advances the cycle with an audit entry. AI flags cannot count as accepted reports. Direct review approval/hiding requires Admin authorization, reason and current Review version. Pending/flagged text is private to its author and Admins and excluded from summaries/aggregates. Every create/resubmission/body edit resets clearance atomically; fail closed on AI outage. Late output cannot override a human decision or publish obsolete/deleted/hidden text.
+
+### User management and health access
+
+Manual suspend/unsuspend requires an active Admin, a USER target, CSRF protection, a current version and an audited reason. It works without a Report or AI result. Session revocation and status/audit updates commit together; same-status requests cannot reset strike counts. Suspended-to-active transitions permit only new sessions.
+
+Minimal liveness/readiness endpoints are intentionally public for automated monitoring; no Admin login is required. They expose only generic status, with no-store responses, bounded read-only readiness checks and no dependency call for liveness. Sensitive diagnostic detail stays in restricted logs. This project choice follows the principle of limiting health endpoint disclosure; access restrictions should be revisited if richer diagnostics are introduced. See [health endpoint monitoring guidance](https://learn.microsoft.com/en-us/azure/architecture/patterns/health-endpoint-monitoring).

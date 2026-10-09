@@ -1,6 +1,6 @@
 # Project Specification
 
-Status: starting specification, version 0.2, 8 October 2026. Working product name: Movie Review Site.
+Status: starting specification, version 0.2, 8 October 2026. Working product name: FreshApples.
 
 This set defines intended behaviour, not an implemented system. "Must" denotes an acceptance requirement. Numerical limits and technology choices are proposed defaults unless explicitly identified as course constraints. Resolve blocking questions before the relevant implementation begins. The course requirements take precedence; record product changes here before changing code and tests.
 
@@ -25,6 +25,6 @@ Read product, architecture and data model first. API contracts must follow the p
 
 ## Initial scope
 
-Deliver text-only movie listings, movie details, reviews, user reports, announcements, separate User and Admin interfaces, User AI review summaries, and Admin AI report analysis. Watchlists and other enhancements are optional. Build one Next.js/TypeScript application on Vercel with clear module boundaries, Supabase-hosted PostgreSQL, and bounded request-driven AI execution.
+Deliver text-only movie listings, movie details, reviews, user reports, announcements, separate User and Admin interfaces, public scheduled AI review summaries, and automatic AI profanity moderation for every new Review. Watchlists and other enhancements are optional. Build one Next.js/TypeScript application on Vercel with clear module boundaries, Supabase-hosted PostgreSQL, and bounded scheduled-summary and submission-triggered moderation with automatic recovery.
 
 Next.js on Vercel and PostgreSQL on Supabase are selected. The target is free-tier hosting with the operational constraints recorded in [tech-stack.md](tech-stack.md). SoC provider-specific facts remain open. The SoC LLM guide could not be retrieved during drafting; no quota or supported model is claimed as verified.

@@ -4,7 +4,7 @@
 
 ### 1.1 Problem / Purpose
 
-Provide a moderated movie-review community where users can discover movies and discuss them, and administrators maintain the catalogue and handle abuse reports. Review summaries help users digest community opinions; report analysis helps admins inspect evidence and relevant history.
+Provide a moderated movie-review community where users can discover movies and discuss them, and administrators maintain the catalogue and handle abuse reports. Review summaries help users digest community opinions; automatic AI profanity screening checks every new Review and sends flagged content to admins.
 
 ### 1.2 Product Scope
 
@@ -23,7 +23,7 @@ Optional after core acceptance: private watchlists, spoiler flags, genre filters
 
 ### 1.4 Non-Goals / Out of Scope
 
-Streaming, ticket sales, payments, image storage, social messaging, recommendation engines, external catalogue scraping, autonomous moderation, public report histories, and a general-purpose AI chat interface. Production-scale distributed services are outside the initial scope.
+Streaming, ticket sales, payments, image storage, social messaging, recommendation engines, external catalogue scraping, AI-imposed account sanctions, public report histories, and a general-purpose AI chat interface. Production-scale distributed services are outside the initial scope.
 
 ## 2. Users and Roles
 
@@ -35,9 +35,10 @@ An account has exactly one role: USER or ADMIN. Anonymous browsing is an access 
 | Register / sign in | Yes | Yes | Yes |
 | Create, edit or delete own review | No | Yes | No |
 | Report another user through their visible review | No | Yes | No |
-| Request and read User AI summaries | No | Yes | No |
+| Read automatically generated movie review summaries | Yes | Yes | Yes |
 | Manage movies and announcements | No | No | Yes |
-| View reports, request AI analysis, decide outcomes | No | No | Yes |
+| List Users and manually suspend/unsuspend them | No | No | Yes |
+| View reports and automatic moderation results, decide outcomes | No | No | Yes |
 | Maintain private watchlist (optional) | No | Own only | No |
 
 Registration always creates USER accounts. Admin accounts are provisioned through a controlled operator procedure, never a public request field. Suspended Users may browse public pages and sign out but cannot perform authenticated feature operations.
@@ -52,16 +53,16 @@ Registration always creates USER accounts. Admin accounts are provisioned throug
 - Decision: an Admin's recorded disposition of a Report, distinct from AI assessment.
 - Announcement: text published by an Admin, optionally associated with a Movie.
 - Summary: AI-generated overview of a bounded sample of eligible Reviews.
-- Report analysis: private AI assessment of a Report and a bounded history.
+- Review moderation: private AI profanity assessment of one Review version.
 - AI job: persisted work item with status, input provenance and validated output.
 
 ### 3.2 Entities / Concepts
 
-Account, Session, Movie, Review, Report, ModerationDecision, Announcement, AIJob, ReviewSummary, ReportAnalysis and AuditEntry. WatchlistEntry is optional. Field definitions and ownership are in [data-model.md](data-model.md).
+Account, Session, Movie, Review, Report, ModerationDecision, Announcement, AIJob, ReviewSummary, ReviewModeration, ModerationWork, ModerationStrike, SchedulerLease and AuditEntry. WatchlistEntry is optional. Field definitions and ownership are in [data-model.md](data-model.md).
 
 ### 3.3 Important Relationships
 
-A Movie has many Reviews; a User has at most one Review per Movie. A Report identifies its reporter, reported User and evidence Review. A Report has at most one final Decision but may have multiple analysis attempts. Summaries belong to Movies; analysis belongs to Reports. AI jobs never replace source records or Decisions.
+A Movie has many Reviews; a User has at most one Review per Movie. A Report identifies its reporter, reported User and evidence Review. A Report has at most one final Decision. Summaries belong to Movies; profanity assessments belong to Review versions. AI jobs never replace source records or Decisions.
 
 ### 3.4 Domain Invariants
 
@@ -70,9 +71,9 @@ A Movie has many Reviews; a User has at most one Review per Movie. A Report iden
 - INV-03: One Review per User/Movie pair, including soft-deleted rows; re-submission restores that row, unless hidden by moderation.
 - INV-04: A User cannot report themself. The reported User must be the evidence Review's author. At most one open Report per reporter/evidence Review.
 - INV-05: Archiving a Movie hides it publicly and blocks new reviews/reports for it; retained history remains available to admins.
-- INV-06: Only human Admin actions can close Reports, hide Reviews or suspend Users.
+- INV-06: Human Admins close Reports and apply explicit hide actions. Automatic profanity screening gates Review publication. Accepting Reports applies the deterministic suspension threshold in FR-06; AI never creates strikes or imposes account sanctions.
 - INV-07: Review deletion or editing never rewrites the evidence snapshot already captured by a Report.
-- INV-08: AI labels never remove Reports from the queue. A filter must be reversible; unanalysed and failed-analysis Reports remain accessible.
+- INV-08: AI labels never remove Reviews or Reports from admin access. Unchecked Reviews and failed checks remain accessible. Received Reports and strike counts are admin-only.
 - INV-09: Public aggregates and summary eligibility change atomically with review visibility or content changes.
 
 ## 4. Functional Requirements
@@ -109,7 +110,7 @@ Duplicate titles are allowed; IDs distinguish remakes. Unknown or archived IDs r
 
 #### Requirements
 
-An active User may create, edit and delete their own Review on an active Movie. Require a 1–10 integer rating and trimmed plain-text body of 10–2,000 characters. Show author display name, rating and edited timestamp. Admin-hidden reviews cannot be restored by their author.
+An active User may create, edit and delete their own Review on an active Movie. Require a 1–10 integer rating and trimmed plain-text body of 10–2,000 characters. New Reviews, resubmissions and body edits automatically enter pending moderation before publication. Rating-only edits retain the existing text clearance. Show author display name, rating and edited timestamp. Admin-hidden reviews cannot be restored by their author.
 
 #### Acceptance Criteria
 
@@ -117,17 +118,17 @@ A second create on an existing non-deleted Review returns conflict. Another User
 
 #### Edge Cases
 
-Concurrent creates preserve uniqueness. Stale updates return conflict. An archived Movie blocks User mutations. Deleted and hidden Reviews are excluded from public lists and AI samples.
+Concurrent creates preserve uniqueness. Stale updates return conflict. An archived Movie blocks User mutations. Deleted, hidden, pending and flagged Reviews are excluded from public lists, aggregates and summary samples. Authors can privately view/edit their own pending or flagged text, without seeing private AI output or received reports.
 
 ### 4.4 User Reports (FR-04)
 
 #### Requirements
 
-Offer "Report user" on another User's visible Review. Collect category (harassment, hate, spam, other) and plain-text explanation of 10–1,000 characters. Capture evidence at submission. The User can see their own report status and final disposition, but not admin notes, AI analysis, reporter identities from other reports or private history.
+Offer "Report user" on another User's visible Review. Collect category (profanity, harassment, hate, spam, other) and plain-text explanation of 10–1,000 characters. Capture evidence at submission. A reporter sees only reports they submitted and their final dispositions. A reported User cannot see whether they received a Report, its count, evidence, reporter or decision. Do not send received-report notifications. Admin notes and AI assessments remain private.
 
 #### Acceptance Criteria
 
-Submission enters the open admin queue immediately, independently of AI availability. Self-reporting and duplicate open reports are rejected. The target author is derived server-side. Users see open, dismissed or action_taken status.
+Submission enters the open admin queue immediately, independently of AI availability. Self-reporting and duplicate open reports are rejected. The target author is derived server-side. Reporters see open, dismissed or accepted status for their own submissions only. Target-facing responses never expose received reports or strike counts.
 
 #### Edge Cases
 
@@ -151,15 +152,19 @@ Archiving while a User submits a Review must serialize so that the invariant hol
 
 #### Requirements
 
-List all Reports with status, date, category and optional AI priority filters. Show evidence snapshot, current Review state, relevant bounded history and any AI analysis. Admins may dismiss or take action; actions are hide evidence Review and/or suspend reported User. Require a human reason of 10–1,000 characters. Support explicit audited restore-review and unsuspend-user actions.
+List all Reports by status, date and category; show immutable evidence and current Review state. Admins accept or dismiss allegations with a reason of 10-1,000 characters. An accepted Report records a strike for its target; hiding the evidence Review is optional. Dismissal records no strike or action. Direct review moderation can hide a Review with a reason without creating a Report or strike.
+
+Default threshold: 3 distinct accepted review incidents since the last reinstatement change status from active to suspended, revoke all sessions, and block sign-in and authenticated operations. Recommend reversible suspension rather than permanent banning; there is no banned status. Suspension remains until an Admin explicitly reinstates the account after review. Admins can manually suspend any active USER account or unsuspend any suspended USER account from the admin user-management screen, independently of Reports, strike count or AI availability. Require a reason of 10-1,000 characters and confirmation naming the User. These controls cannot target ADMIN accounts. Manual suspension revokes all sessions immediately; unsuspension permits a fresh login and starts a new strike cycle without restoring old sessions or deleting history. Neither action creates or accepts a Report.
+
+Count at most one strike per target/review for the lifetime of that Review, regardless of reporter count, resubmission or edits. Only human-accepted Reports count; pending, dismissed and AI-flagged content do not. A previously counted Review cannot add another strike after reinstatement. Retain the incident ledger; reinstatement starts a new strike cycle without erasing prior decisions. Strike counts and received-report information are admin-only. A User may receive a generic account-suspended notice, never a received-report notification or count. Login errors remain generic.
 
 #### Acceptance Criteria
 
-One transactional decision closes the Report and applies selected actions. Dismissal applies none. action_taken requires at least one action. A repeated or stale decision conflicts. Hidden/deleted evidence can still be assessed; an already-applied action is recorded without duplicate side effects.
+Report closure, unique strike insertion, threshold evaluation, optional Review hiding, session revocation and audit commit atomically while locking the target account. Acceptance below threshold need not hide a Review or suspend the account. Simultaneous acceptances cannot lose increments, double-count an incident or apply suspension twice. Repeated/stale decisions conflict. Admin UI previews strike and suspension effects before confirmation. Manual status changes use the same account lock, optimistic version check and atomic audit/session rules as report-triggered suspension. A request for the existing status is a no-op and must not advance the strike cycle; a stale version returns 409. Only a suspended-to-active transition advances the cycle.
 
 #### Edge Cases
 
-An AI failure never blocks manual review. Conflicting admin updates return 409. Suspension alone does not hide all past reviews; hiding is explicit. Reversing an action does not erase or reopen the original Report decision.
+AI failure never blocks manual decisions. Suspension alone does not hide prior reviews. Restore does not undo author deletion. Reinstatement resets the active cycle, leaves old sessions revoked and preserves history; old strikes do not immediately re-suspend the account. Correcting a mistaken suspension uses audited reinstatement with a reason referencing the original decision; Reports are not silently rewritten or reopened.
 
 ### 4.7 Announcements (FR-07)
 
@@ -175,33 +180,37 @@ Drafts never appear through public APIs. Publishing exposes the approved content
 
 Archived associated Movies do not break the announcement. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
 
-### 4.8 User AI Review Summary (FR-08)
+### 4.8 Public AI Review Summary (FR-08)
 
 #### Requirements
 
-Active Users request a summary from a Movie detail page. Summarize up to 20 randomly sampled eligible Reviews, with at least 3 required. Show sample size, eligible review count, generation time, strengths, criticisms, mixed opinions and a sampling disclaimer. Use only source opinions; do not invent Movie facts.
+Automatically check daily for Movies whose eligible reviews changed since the last successful summary. Generate only for changed Movies with at least 3 eligible Reviews; summarize up to 20 randomly sampled Reviews from the current eligible set, not just new Reviews. Creation, editing, deletion, hiding and restoration count as changes. Missed or budget-deferred updates remain pending even without further changes.
+
+Anonymous visitors, Users and Admins read the same summary on Movie details. No role can request, regenerate or retry a summary through the UI or a public API. Show sample size, eligible count, generation time, strengths, criticisms, mixed opinions and a sampling disclaimer. Summaries describe review opinions, not invented Movie facts.
 
 #### Acceptance Criteria
 
-Sampling is without replacement; the same movie/revision shares a cached job/result. Zero to two Reviews yield insufficient_reviews without an LLM call. New/edited/removed Reviews invalidate current output. Invalid or unavailable AI output leaves normal browsing operational.
+Unchanged Movies make no provider call. Sampling is without replacement with Movie/revision deduplication. Zero to two eligible Reviews cause no LLM call. Changes invalidate displayed output immediately; show awaiting scheduled update until a current result exists. Daily scheduling is a target, not a per-movie daily completion guarantee; quotas and bounded runtime may defer work. Unchanged valid summaries remain readable without daily expiry.
 
 #### Edge Cases
 
-Biased samples, contradictory opinions and prompt injection are covered in [ai.md](ai.md). A summary is not the numerical average rating or an endorsement.
+Start with a daily change-driven check, token limits and fair processing of pending Movies. If measured usage is excessive, configure a 7-day minimum refresh interval while retaining pending changes. Do not enable per-click generation. See [ai.md](ai.md) for capacity, recovery and sampling. Normal browsing works when AI is unavailable.
 
-### 4.9 Admin AI Report Analysis (FR-09)
+### 4.9 Automatic AI Review Profanity Moderation (FR-09)
 
 #### Requirements
 
-Admins request bounded evidence analysis from report details. Return possible policy concerns, source references, counter-evidence, uncertainty and suggested priority. Use suspected_violation, insufficient_evidence or no_clear_violation as advisory assessments. Keep human moderation controls separate.
+Automatically screen every new Review on submission, without an Admin request or a Report. Re-submissions and body edits trigger screening again so edits cannot bypass moderation. Send only complete bounded review text and the versioned profanity policy, never user history or reports. There is no check, regenerate or retry button or admin generation endpoint.
+
+Save the Review as pending before any provider call. The server attempts screening automatically during the submission request when capacity is available. A validated no_profanity_detected result clears the current text for publication. suspected_profanity or uncertain keeps it unpublished as flagged for Admin review. Provider failure, disabled AI or exhausted capacity leaves it pending with automatic recovery; it must never silently publish unchecked text.
 
 #### Acceptance Criteria
 
-The output refers only to supplied evidence IDs and does not make final validity decisions. Admins can view all Reports regardless of assessment. History distinguishes past upheld decisions from unproven reports.
+Admins see automatic assessments beside source text and can approve a held Review or explicitly hide it with an audited reason. Manual approval is an explicit human override for the current text version, including during AI outages. AI cannot edit text, clear an admin hide, accept Reports, create strikes or suspend accounts. Only cleared, non-deleted, non-hidden Reviews on active Movies appear publicly, contribute to ratings or enter summaries. New visibility changes update these derived values atomically.
 
 #### Edge Cases
 
-Missing history, deleted content, hostile instructions and conflicting evidence produce qualified output or failure. New relevant history makes the previous analysis stale.
+Check the whole body without truncation; oversize model inputs remain held for manual review. Cover obfuscation, benign substrings, quotations, unsupported languages and prompt injection. Use version guards so stale AI results cannot publish an edited/deleted/hidden Review or override a later human decision. Screening can miss profanity; Admins retain manual controls. Authors see saved/pending, held for review or published state, without private AI details or received-report information. Editing published text removes that Review from public view until the new text clears. Rating-only changes cannot clear pending/flagged state.
 
 ### 4.10 Private Watchlist (FR-10, Optional)
 
@@ -221,9 +230,9 @@ Archived Movies show as unavailable in the owner's list; links to public details
 
 ### 5.1 User Flows
 
-User: browse/search → detail → read reviews → sign in → write/edit review or report author → receive confirmation. On detail: request summary → pending indicator → summary or actionable failure.
+User: browse/search, read Movie details and reviews, then sign in to write/edit a review or report another author. Movie details show the latest valid scheduled summary or an awaiting-update/insufficient-reviews state, including for anonymous visitors. There is no generate or retry control. Saving new or edited review text shows its pending, held or published state; no moderation request is needed.
 
-Admin: sign in → separate dashboard → manage catalogue/announcements or open report queue → inspect evidence → optionally request AI analysis → make explicit human decision → confirmation and audit reference.
+Admin: sign in, open the separate dashboard, manage catalogue/announcements, inspect Reports or open Reviews. Inspect automatically screened Reviews and flagged text, then make a human decision with confirmation and audit reference. Accepting a third distinct report incident suspends the target atomically.
 
 ### 5.2 UI Requirements
 

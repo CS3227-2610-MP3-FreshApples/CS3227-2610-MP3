@@ -37,7 +37,7 @@ The brief states the submission deadline as 23 October (Friday), 2 pm SGT. In th
 | Owner | Role features | Substantial shared responsibilities |
 | --- | --- | --- |
 | Developer A | User UI, discovery, reviews, reporting, summary, optional watchlist | Identity/session implementation, public API contracts, User security tests, user guide |
-| Developer B | Admin UI, Movie CRUD, moderation, announcements, report analysis | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
+| Developer B | Admin UI, Movie CRUD, moderation, announcements, review profanity moderation | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
 | Both | Cross-review and end-to-end integration | Architecture, provider adapter contract, threat model, acceptance tests, reflections, logs, product website and release |
 
 Names and final allocation remain to be filled in. Shared foundations must have clear owners without splitting a role's features between developers.
@@ -67,7 +67,7 @@ Suggested future artifacts:
 
 | ID | Starting assumption |
 | --- | --- |
-| ASM-01 | Anonymous visitors can browse; authenticated Users author reviews/reports and use summaries |
+| ASM-01 | Anonymous visitors can browse and read scheduled summaries; authenticated Users author reviews/reports |
 | ASM-02 | Reports target users through a specific Review; profile-only reports are deferred |
 | ASM-03 | One account has one role; admins do not post reviews as admins |
 | ASM-04 | One editable Review per User/Movie, rated on a 1–10 integer scale |
@@ -75,7 +75,7 @@ Suggested future artifacts:
 | ASM-06 | No email delivery, social sign-in or self-service password reset in the first release |
 | ASM-07 | Selected: Next.js/TypeScript frontend and backend on Vercel; PostgreSQL on Supabase. Target free tiers; eligibility and operational limits require deployment checks |
 | ASM-08 | English is the initial UI/evaluation language; text may contain Unicode |
-| ASM-09 | AI uses sampled/bounded evidence and human oversight, never automatic sanctions |
+| ASM-09 | AI uses bounded review text and cannot sanction; human-accepted reports trigger deterministic threshold suspension |
 | ASM-10 | Numeric performance, retention and application-rate limits are initial design targets |
 
 ## 14. Open Questions / Approved Exceptions
@@ -84,8 +84,8 @@ Suggested future artifacts:
 | --- | --- | --- |
 | OQ-01 | Verify SoC endpoint/authentication, models, context, quotas, retention and permitted data | Before provider integration and production enablement |
 | OQ-02 | Verify Vercel Hobby eligibility/repository deployment, Supabase project allocation, regions, and environment-specific SoC quota partitioning; stack selection is resolved | Before infrastructure implementation |
-| OQ-03 | Confirm user-report scope, anonymous access and proposed account recovery scope | Before respective product flows |
-| OQ-04 | Approve moderation policy, suspension/restoration rules and handling of contested decisions | Before moderation/AI acceptance |
+| OQ-03 | Confirm proposed account recovery scope; report privacy and anonymous summary access are resolved | Before respective product flows |
+| OQ-04 | Finalize profanity policy and contested-decision process; default three-incident suspension and reinstatement cycle are specified | Before moderation/AI acceptance |
 | OQ-05 | Confirm retention, operator deletion process and privacy notice | Before production |
 | OQ-06 | Assign developer names; confirm shared ownership and tester accounts | Before task allocation/release |
 | OQ-07 | Select optional watchlist, spoiler handling, filters or admin statistics | Only after core scope is on track |
@@ -94,13 +94,15 @@ Suggested future artifacts:
 
 Approved exceptions: none.
 
-Design decision D-01: AI may prioritise reports but never silently exclude them from admin access. This is the proposed treatment of the user's optional AI-valid-only view, because incomplete or mistaken analysis must not prevent human inspection.
+Design decision D-01: Automatically screen every new Review and changed/resubmitted body for profanity. No Admin request initiates screening. Save pending, publish only current clean output, and hold suspected/uncertain content for human review. Admins can approve/hide with an audited reason. AI does not accept Reports or apply account sanctions.
 
-Design decision D-02: Use reproducible random sampling of at most 20 Reviews, minimum 3, with revision-based invalidation and a 24-hour cache. These are starting defaults, not course-imposed numbers.
+Design decision D-02: Public summaries use reproducible sampling of at most 20 Reviews, minimum 3. Check daily and generate only after review changes; retain pending changes across deferrals. No request-summary feature. Valid unchanged output has no daily expiry. Use shared budgets and optionally a 7-day interval when measured usage warrants it.
 
 Design decision D-03: Use Next.js for frontend/backend on Vercel and PostgreSQL in Supabase, targeting the free tiers. See [tech-stack.md](tech-stack.md) for assessment and verified documentation links.
 
-Design decision D-04: Replace the originally proposed persistent AI worker with bounded request-driven execution and persisted deduplication/status records. No background queue or frequent cron is required for the initial release. This keeps deployment within the chosen stack.
+Design decision D-04: Use bounded daily cron for summaries and immediate submission-triggered review moderation, with durable pending work and daily automatic recovery. Initially process one item per sweep and validate backlog capacity before release. No persistent worker is required; AI-request/retry controls are absent.
+
+Design decision D-05: Received Reports and strike counts are admin-only. Three distinct human-accepted review incidents in the current cycle suspend the account until audited reinstatement. Lifetime target/review uniqueness prevents duplicate penalties. Reinstatement advances the cycle; permanent banning is outside initial scope.
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
