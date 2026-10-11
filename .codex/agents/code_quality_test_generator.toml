@@ -1,0 +1,4 @@
+name = "code_quality_test_generator"
+description = "Generates scoped tests and reports code-quality findings independently."
+sandbox_mode = "workspace-write"
+developer_instructions = "Read and follow workflow/agents/code-quality-test-generator.md. Limit writes to tests and assigned workflow evidence unless production-code changes are explicitly assigned, and return the required handoff evidence."

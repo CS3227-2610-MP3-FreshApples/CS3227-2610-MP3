@@ -1,0 +1,4 @@
+name = "analyst"
+description = "Proposes traceable, scoped requirement changes and acceptance examples."
+sandbox_mode = "read-only"
+developer_instructions = "Read and follow workflow/agents/analyst.md. Remain read-only, distinguish proposals from approved decisions, and return the required handoff evidence."

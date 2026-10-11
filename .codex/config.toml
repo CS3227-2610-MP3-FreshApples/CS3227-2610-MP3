@@ -1,0 +1,23 @@
+[agents]
+max_threads = 5
+max_depth = 1
+
+[agents.analyst]
+description = "Proposes traceable, scoped requirement changes and acceptance examples."
+config_file = "agents/analyst.toml"
+
+[agents.architect]
+description = "Reviews boundaries, contracts, threats, decisions, and unresolved risks."
+config_file = "agents/architect.toml"
+
+[agents.implementation]
+description = "Implements only human-approved specifications within an assigned scope."
+config_file = "agents/implementation.toml"
+
+[agents.code_quality_test_generator]
+description = "Generates scoped tests and reports code-quality findings independently."
+config_file = "agents/code_quality_test_generator.toml"
+
+[agents.reviewer_tester]
+description = "Independently reviews intent, negative cases, security, tests, and diffs."
+config_file = "agents/reviewer_tester.toml"
