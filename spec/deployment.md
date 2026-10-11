@@ -34,6 +34,7 @@ Validate configuration on server initialization and in release checks. Invalid d
 | PUBLIC_APP_URL | Absolute application origin; HTTPS in hosted environments |
 | PORT | Local Next.js listener only; default 3000 |
 | DATABASE_URL | Server-only Supabase transaction-pooler URL using least-privilege runtime role |
+| DATABASE_CA_CERT | Server-only PEM CA certificate of the environment's Supabase project, used to verify TLS |
 | MIGRATION_DATABASE_URL | Direct/session-pooled privileged connection; CI/operator only |
 | SESSION_SECRET | High-entropy environment-specific secret for session/CSRF signing |
 | SESSION_TTL_SECONDS | Default 28800 |
@@ -61,7 +62,7 @@ Validate configuration on server initialization and in release checks. Invalid d
 
 Use the Node.js runtime for API/database/authentication/AI routes. Enable Vercel Fluid compute and export maxDuration = 120 on AI cron and review mutation Route Handlers; verify that this configuration is effective on the deployed Hobby project. It is a route setting, not an arbitrary environment variable. Non-screening routes should have smaller deadlines.
 
-No Supabase publishable/service-role key is needed for direct server-side PostgreSQL access. Do not add NEXT_PUBLIC_ database/provider secrets. The database driver uses TLS, a small per-instance pool and transaction-pooler-compatible prepared-statement settings. Keep quota reservations in short transactions, outside provider calls.
+No Supabase publishable/service-role key is needed for direct server-side PostgreSQL access. Do not add NEXT_PUBLIC_ database/provider secrets. The database driver (`pg`) uses CA-verified TLS, a small per-instance pool and no named prepared statements; see [tech-stack.md](tech-stack.md). Keep quota reservations in short transactions, outside provider calls.
 
 ### 10.4 Infrastructure constraints
 

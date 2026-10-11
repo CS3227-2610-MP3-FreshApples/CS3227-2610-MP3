@@ -10,7 +10,7 @@ Status: selected on 8 October 2026. This supplements sections 6, 10 and 14.
 | Backend | Next.js Route Handlers under /api/v1, Node.js runtime |
 | Application hosting | Vercel Hobby, subject to account/repository eligibility |
 | Database | PostgreSQL hosted in Supabase Free |
-| Database access | Server-only PostgreSQL driver/repository layer via Supabase transaction pooler |
+| Database access | `pg` (node-postgres) driver behind a server-only repository layer, via Supabase transaction pooler |
 | Runtime AI | SoC LLM, called only from Next.js server code |
 | CI/CD | GitHub Actions checks and team-managed Vercel deployment |
 | Product information website | GitHub Pages, as required by the course |
@@ -34,6 +34,19 @@ Supabase is selected as the PostgreSQL host. Its Auth, Storage and Realtime serv
 ## Implementation simplifications
 
 Use a single Next.js project with src/app for pages/Route Handlers, src/components for reusable UI and src/server for domain services, repositories, authentication and the SoC adapter. Keep sensitive modules server-only. Do not fetch the application's own HTTP endpoints from Server Components when the same authorized domain service can be called directly.
+
+### Database driver
+
+Use `pg` (node-postgres), pinned exactly in `package.json`, only from server-only repository modules in src/server. It is a plain PostgreSQL client, not an ORM; repositories write parameterized SQL. Settings required by the transaction pooler and existing contracts:
+
+- One pool per server instance with at most 1 connection (see [architecture.md](architecture.md) 6.5).
+- Never set a query `name`. Named prepared statements are not supported through the transaction pooler; unnamed parameterized queries (`$1`, `$2`, …) remain mandatory (SEC-05).
+- TLS with certificate verification against the Supabase project CA (`DATABASE_CA_CERT`); never disable `rejectUnauthorized`. Do not put `sslmode` in `DATABASE_URL`, because it overrides the driver's TLS options.
+- Return PostgreSQL `date` values as `YYYY-MM-DD` strings rather than JavaScript `Date`, so calendar dates such as release_date are not shifted by time zone. Configure this per pool through the `types` option, not the global `pg.types` registry.
+- Bound statement time; the readiness probe uses 2 seconds (see [api.md](api.md) health contract).
+- Session state does not persist between transactions through the pooler. Use transaction-scoped settings (`SET LOCAL`) and table-based leases, not session-level settings, session advisory locks or `LISTEN`/`NOTIFY`.
+
+`pg` does not provide migrations; migration tooling is not selected by this decision. Feasibility evidence: `logs/2026-10-11-supabase-feasibility-smoke-test.md`.
 
 Use dynamic rendering/no-store for private or changing data in the initial release to avoid accidental cross-user caching and stale moderation visibility. Public caching is an optimization only after invalidation tests exist. Route Handlers implement the [API contract](api.md); see [Next.js documentation](https://nextjs.org/docs/app/getting-started/route-handlers).
 

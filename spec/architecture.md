@@ -38,7 +38,7 @@ Each module owns writes to its tables. Cross-module operations use explicit serv
 
 Browser/API use versioned JSON over HTTPS, same origin in production. Public summary GETs only read stored output. Daily cron generates changed-Movie summaries. Every review submission/body edit saves durable moderation work and automatically attempts screening inside its mutation handler; another daily cron recovers deferred checks. Each invocation awaits bounded work, without detached continuation. Admins read results and resolve held content; no AI-request endpoint exists. No persistent worker or external broker is required.
 
-Use Supabase's shared transaction pooler for runtime database connections, with TLS and a small per-instance pool (initially 1 connection). Disable named prepared statements where required by the chosen driver; parameterized SQL remains mandatory. Do not hold a database transaction open during an LLM network call. Use a direct or session-pooled connection for migrations. Connection details and rationale: [Supabase guidance](https://supabase.com/docs/guides/database/connecting-to-postgres).
+Use Supabase's shared transaction pooler for runtime database connections, with TLS and a small per-instance pool (initially 1 connection). The driver is `pg` (see [tech-stack.md](tech-stack.md)); never use named prepared statements, which the transaction pooler does not support. Parameterized SQL remains mandatory. Do not hold a database transaction open during an LLM network call. Use a direct or session-pooled connection for migrations. Connection details and rationale: [Supabase guidance](https://supabase.com/docs/guides/database/connecting-to-postgres).
 
 ### 6.6 Dependency Rules
 
