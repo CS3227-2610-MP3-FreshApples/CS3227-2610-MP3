@@ -1,0 +1,48 @@
+{
+  "baseUrl": "/CS3227-2610-MP3",
+  "titlePrefix": "FreshApples",
+  "style": {
+    "bootstrapTheme": "bootswatch-minty",
+    "codeTheme": "light"
+  },
+  "pages": [
+    {
+      "src": "index.md",
+      "title": "Product Website"
+    },
+    {
+      "src": "UserGuide.md",
+      "title": "User Guide"
+    },
+    {
+      "src": "DeveloperGuide.md",
+      "title": "Developer Guide"
+    },
+    {
+      "src": "releases.md",
+      "title": "Release Information"
+    },
+    {
+      "src": "Reflections.md",
+      "title": "Reflections"
+    },
+    {
+      "src": "Lim-ZY_Reflection.md",
+      "title": "Zi Yang's Reflections"
+    },
+    {
+      "src": "thegrimbee_Reflection.md",
+      "title": "Gabriel's Reflections"
+    }
+  ],
+  "ignore": [
+    "_site/**",
+    "node_modules/**",
+    "package.json",
+    "package-lock.json"
+  ],
+  "deploy": {
+    "message": "Deploy FreshApples product website",
+    "branch": "gh-pages"
+  }
+}

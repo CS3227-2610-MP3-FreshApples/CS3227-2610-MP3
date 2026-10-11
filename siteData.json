@@ -1,0 +1,60 @@
+{
+  "enableSearch": true,
+  "pages": [
+    {
+      "src": "index.md",
+      "title": "Product Website",
+      "headings": {
+        "freshapples": "FreshApples",
+        "documentation": "Documentation",
+        "project-links": "Project links"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "UserGuide.md",
+      "title": "User Guide",
+      "headings": {
+        "user-guide": "User Guide"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "DeveloperGuide.md",
+      "title": "Developer Guide",
+      "headings": {
+        "developer-guide": "Developer Guide"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "releases.md",
+      "title": "Release Information",
+      "headings": {
+        "release-information": "Release Information",
+        "current-status": "Current status"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "Reflections.md",
+      "title": "Reflections",
+      "headings": {
+        "reflections": "Reflections"
+      },
+      "headingKeywords": {}
+    },
+    {
+      "src": "Lim-ZY_Reflection.md",
+      "title": "Zi Yang's Reflections",
+      "headings": {},
+      "headingKeywords": {}
+    },
+    {
+      "src": "thegrimbee_Reflection.md",
+      "title": "Gabriel's Reflections",
+      "headings": {},
+      "headingKeywords": {}
+    }
+  ]
+}

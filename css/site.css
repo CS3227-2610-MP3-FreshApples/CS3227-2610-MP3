@@ -1,0 +1,16 @@
+:root {
+  --freshapples-red: #c92a2a;
+}
+
+.navbar {
+  background-color: var(--freshapples-red);
+}
+
+main.container {
+  max-width: 960px;
+}
+
+h1,
+h2 {
+  color: #7f1d1d;
+}
