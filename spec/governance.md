@@ -89,7 +89,7 @@ Suggested future artifacts:
 | OQ-05 | Confirm retention, operator deletion process and privacy notice | Before production |
 | OQ-06 | Assign developer names; confirm shared ownership and tester accounts | Before task allocation/release |
 | OQ-07 | Select optional watchlist, spoiler handling, filters or admin statistics | Only after core scope is on track |
-| OQ-08 | Confirm product name, repo naming requirement and official deadline | Before release |
+| OQ-08 | Confirm repo naming requirement and official deadline; the product name is resolved as FreshApples | Before release |
 | OQ-09 | Verify host meets backup, restore and performance targets | Before production acceptance |
 
 Approved exceptions: none.
@@ -103,6 +103,8 @@ Design decision D-03: Use Next.js for frontend/backend on Vercel and PostgreSQL 
 Design decision D-04: Use bounded daily cron for summaries and immediate submission-triggered review moderation, with durable pending work and daily automatic recovery. Initially process one item per sweep and validate backlog capacity before release. No persistent worker is required; AI-request/retry controls are absent.
 
 Design decision D-05: Received Reports and strike counts are admin-only. Three distinct human-accepted review incidents in the current cycle suspend the account until audited reinstatement. Lifetime target/review uniqueness prevents duplicate penalties. Reinstatement advances the cycle; permanent banning is outside initial scope.
+
+Design decision D-06: The product is named FreshApples. Its MarkBind documentation website is sourced from `docs/` and published by GitHub Actions from `master` to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. This site contains product information and guides only; the Next.js application remains a separate Vercel deployment and its URL is added to the website after deployment.
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 

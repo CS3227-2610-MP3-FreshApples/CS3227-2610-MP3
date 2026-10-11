@@ -14,6 +14,9 @@
 
 # production
 /build
+/docs/_site/
+/docs/_markbind/logs/
+/docs/node_modules/
 
 # misc
 .DS_Store

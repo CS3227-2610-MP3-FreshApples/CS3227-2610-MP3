@@ -16,7 +16,7 @@ Supabase's two free-project allocation is intended for development and productio
 
 If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. Verify that the SoC endpoint permits access from Vercel; campus/VPN-only access would require revisiting the runtime placement.
 
-GitHub Pages remains the separate course-required product website with guides, release information and the live application link. It does not host the application API. Use free supplied domains initially.
+GitHub Pages remains the separate course-required product website with guides, release information and, after the application is deployed, the live application link. It does not host the Next.js application or its API. The MarkBind source lives in `docs/` and GitHub Actions publishes it to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. The Next.js application uses a separate free Vercel domain that must be recorded after deployment.
 
 ### 10.2 Ports
 
