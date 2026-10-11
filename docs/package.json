@@ -1,0 +1,13 @@
+{
+  "name": "freshapples-product-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "markbind build",
+    "serve": "markbind serve",
+    "deploy": "markbind deploy"
+  },
+  "devDependencies": {
+    "markbind-cli": "7.2.1"
+  }
+}

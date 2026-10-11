@@ -1,6 +1,6 @@
 # Project Specification
 
-Status: starting specification, version 0.2, 8 October 2026. Working product name: FreshApples.
+Status: starting specification, version 0.2, 8 October 2026. Product name: FreshApples.
 
 This set defines intended behaviour, not an implemented system. "Must" denotes an acceptance requirement. Numerical limits and technology choices are proposed defaults unless explicitly identified as course constraints. Resolve blocking questions before the relevant implementation begins. The course requirements take precedence; record product changes here before changing code and tests.
 
