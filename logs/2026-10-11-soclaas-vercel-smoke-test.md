@@ -61,6 +61,7 @@
 | --- | --- |
 | `src/app/api/smoke/soclaas/route.ts` | New temporary route: calls `GET /v1/models` and one 5-token chat completion; returns only status, latency, model IDs and whether a reply was received |
 | `.env.template` | Added `SMOKE_TEST_TOKEN` placeholder |
+| `README.md` | Added short section describing how to run and remove the smoke test |
 | `logs/2026-10-11-soclaas-vercel-smoke-test.md` | This summary |
 
 - Dependencies added or changed: none.
