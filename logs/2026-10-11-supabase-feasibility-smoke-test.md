@@ -44,6 +44,7 @@
 | 8 | Human | Add Supabase smoke test instructions to README like SoCLaaS | Added README section | This log |
 | 9 | Human | Check specs for issues with `pg`; if none, update specs to use it | No conflicts found; recorded D-07 and `pg` settings in specs | This log |
 | 10 | Human | Renamed `.env.template` to `.env.example` | Updated README reference | This log |
+| 11 | Human | `curl` returns "Redirecting..."; switch README smoke tests to browser console | Replaced `curl` with same-origin `fetch` snippets for both smoke tests; explained Vercel Deployment Protection redirect | This log |
 
 ## 5. Decisions, Assumptions, and Conflicts
 

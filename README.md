@@ -3,11 +3,17 @@
 ## SoCLaaS reachability smoke test (temporary)
 
 1. Copy `.env.example` to `.env.local` (locally) or add the same variables to Vercel (**Project → Settings → Environment Variables**): `SOCLAAS_BASE_URL`, `SOCLAAS_API_KEY`, `SOCLAAS_MODEL` (an `id` from `/models`) and `SMOKE_TEST_TOKEN` (a long random string).
-2. Call it from outside the university network/VPN:
+2. From outside the university network/VPN, open `https://<deployment-url>` in a browser signed in to Vercel, open the DevTools console (F12) on that tab and run:
 
-   ```sh
-   curl -H "Authorization: Bearer <SMOKE_TEST_TOKEN>" https://<deployment-url>/api/smoke/soclaas
+   ```js
+   const res = await fetch("/api/smoke/soclaas", {
+     headers: { Authorization: "Bearer <SMOKE_TEST_TOKEN>" },
+     cache: "no-store",
+   });
+   console.log(res.status, await res.json());
    ```
+
+   `curl` returns "Redirecting..." because Vercel Deployment Protection sends unauthenticated requests to the Vercel login page; the browser tab already carries your Vercel login. If the console blocks pasting, type `allow pasting` first. Do not share screenshots that show the token.
 
 3. `models.ok: true` and `chat.replied: true` mean SoCLaaS is reachable. `status: null` with a `TimeoutError`/`TypeError` usually means a network or IP restriction.
 
@@ -27,11 +33,14 @@ Record the result in `logs/`, then remove `src/app/api/smoke/soclaas/`.
    | `.env.local`, Vercel Preview | dev |
    | Vercel Production | prod |
 
-2. Call it (in PowerShell use `curl.exe`):
+2. Open `http://localhost:3000` (local) or `https://<deployment-url>` (Preview or Production, signed in to Vercel) in a browser, open the DevTools console on that tab and run:
 
-   ```sh
-   curl -H "Authorization: Bearer <SMOKE_TEST_TOKEN>" http://localhost:3000/api/smoke/supabase
-   curl -H "Authorization: Bearer <SMOKE_TEST_TOKEN>" https://<deployment-url>/api/smoke/supabase
+   ```js
+   const res = await fetch("/api/smoke/supabase", {
+     headers: { Authorization: "Bearer <SMOKE_TEST_TOKEN>" },
+     cache: "no-store",
+   });
+   console.log(res.status, await res.json());
    ```
 
 3. A pass is `session.role: "app_runtime"`, `session.ssl: true`, `transaction.ok: true`, `leastPrivilege.ddlDenied` and `authSchemaDenied` both `true`, no `error`, and `database` of `["dev"]` locally and on Preview or `["prod"]` on Production. Common errors: `28P01` wrong password or user, `42P01` missing table, `ENOTFOUND`/`ETIMEDOUT` wrong host or port, `SELF_SIGNED_CERT_IN_CHAIN` wrong or truncated CA certificate.
