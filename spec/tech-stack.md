@@ -58,4 +58,4 @@ Retain this stack unless deployment testing exposes a blocker. If Hobby eligibil
 
 If future requirements need durable background processing, add a separately selected managed job service or worker host and revise the job contract. If uninterrupted availability or managed recovery becomes mandatory, a paid/course-funded allocation may be necessary; this specification does not promise a permanently free production SLA.
 
-The SoC endpoint must be reachable from Vercel without university-only VPN/IP requirements. Verify this with a synthetic-data smoke test before building around the provider. Confirmed on 11 October 2026 by a human-run smoke test from Vercel; see `logs/2026-10-11-soclaas-vercel-smoke-test.md`.
+The SoC endpoint must be reachable from Vercel without university-only VPN/IP requirements. Confirmed on 11 October 2026 by a human-run smoke test from Vercel; see `logs/2026-10-11-soclaas-vercel-smoke-test.md`.

@@ -14,7 +14,7 @@ Use Next.js App Router/TypeScript for both UI and backend Route Handlers, deploy
 
 Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available (confirmed 11 October 2026, human-verified). Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
 
-If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. Verify that the SoC endpoint permits access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
+If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. The SoC endpoint must permit access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
 
 GitHub Pages remains the separate course-required product website with guides, release information and, after the application is deployed, the live application link. It does not host the Next.js application or its API. The MarkBind source lives in `docs/` and GitHub Actions publishes it to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. The Next.js application uses a separate free Vercel domain that must be recorded after deployment.
 
