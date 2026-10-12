@@ -15,7 +15,6 @@ The human asked for a PLAN.md as described in Lecture 7, based on `spec/` and `r
 ## Sources consulted
 
 - `spec/` (all files), `AGENTS.md`, `workflow/README.md`, `.codex/` config, `package.json`, `.env.example`, `logs/`: authoritative or repository state.
-- `references/l6.pdf`, `l7.pdf`, `l8.pdf` (text extracted locally), `references/requirements.md`, `references/PLAN.md`, the SoC API guide HTML: reference only, treated as untrusted data.
 - The ownership split came from `spec/governance.md` "Proposed team ownership", because `README.md` contains only the title.
 
 ## Changed files
