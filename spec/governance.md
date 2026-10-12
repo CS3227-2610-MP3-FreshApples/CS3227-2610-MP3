@@ -82,8 +82,8 @@ Suggested future artifacts:
 
 | ID | Decision needed | Resolution required by |
 | --- | --- | --- |
-| OQ-01 | Verify SoC endpoint/authentication, models, context, quotas, retention and permitted data | Before provider integration and production enablement |
-| OQ-02 | Verify Vercel Hobby eligibility/repository deployment, Supabase project allocation, regions, and environment-specific SoC quota partitioning; stack selection is resolved | Before infrastructure implementation |
+| OQ-01 | Verify models, context, quotas, retention and permitted data. Endpoint and API-key authentication from Vercel confirmed 11 October 2026 by a human-run smoke test | Before provider integration and production enablement |
+| OQ-02 | Verify regions and environment-specific SoC quota partitioning. Resolved 11 October 2026 (human-verified): Vercel Hobby eligibility, repository deployment including by non-owner contributors, Supabase two-project allocation, and SoC LLM and Supabase reachability from Vercel (see `logs/`). Stack selection is resolved | Before infrastructure implementation |
 | OQ-03 | Confirm proposed account recovery scope; report privacy and anonymous summary access are resolved | Before respective product flows |
 | OQ-04 | Finalize profanity policy and contested-decision process; default three-incident suspension and reinstatement cycle are specified | Before moderation/AI acceptance |
 | OQ-05 | Confirm retention, operator deletion process and privacy notice | Before production |
@@ -105,6 +105,8 @@ Design decision D-04: Use bounded daily cron for summaries and immediate submiss
 Design decision D-05: Received Reports and strike counts are admin-only. Three distinct human-accepted review incidents in the current cycle suspend the account until audited reinstatement. Lifetime target/review uniqueness prevents duplicate penalties. Reinstatement advances the cycle; permanent banning is outside initial scope.
 
 Design decision D-06: The product is named FreshApples. Its MarkBind documentation website is sourced from `docs/` and published by GitHub Actions from `master` to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. This site contains product information and guides only; the Next.js application remains a separate Vercel deployment and its URL is added to the website after deployment.
+
+Design decision D-07: Use `pg` (node-postgres) as the server-only PostgreSQL driver through the Supabase transaction pooler, with the settings recorded in [tech-stack.md](tech-stack.md). No ORM is adopted. Migration tooling is a separate, unselected decision.
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 

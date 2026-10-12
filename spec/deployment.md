@@ -12,9 +12,9 @@ Use Next.js App Router/TypeScript for both UI and backend Route Handlers, deploy
 | Shared development | Vercel Preview deployment of trusted development changes | Supabase development project |
 | Production | Vercel Production deployment from reviewed master revision | Separate Supabase production project |
 
-Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available. Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
+Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available (confirmed 11 October 2026, human-verified). Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
 
-If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. Verify that the SoC endpoint permits access from Vercel; campus/VPN-only access would require revisiting the runtime placement.
+If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. The SoC endpoint must permit access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
 
 GitHub Pages remains the separate course-required product website with guides, release information and, after the application is deployed, the live application link. It does not host the Next.js application or its API. The MarkBind source lives in `docs/` and GitHub Actions publishes it to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. The Next.js application uses a separate free Vercel domain that must be recorded after deployment.
 
@@ -34,6 +34,7 @@ Validate configuration on server initialization and in release checks. Invalid d
 | PUBLIC_APP_URL | Absolute application origin; HTTPS in hosted environments |
 | PORT | Local Next.js listener only; default 3000 |
 | DATABASE_URL | Server-only Supabase transaction-pooler URL using least-privilege runtime role |
+| DATABASE_CA_CERT | Server-only PEM CA certificate of the environment's Supabase project, used to verify TLS |
 | MIGRATION_DATABASE_URL | Direct/session-pooled privileged connection; CI/operator only |
 | SESSION_SECRET | High-entropy environment-specific secret for session/CSRF signing |
 | SESSION_TTL_SECONDS | Default 28800 |
@@ -61,7 +62,7 @@ Validate configuration on server initialization and in release checks. Invalid d
 
 Use the Node.js runtime for API/database/authentication/AI routes. Enable Vercel Fluid compute and export maxDuration = 120 on AI cron and review mutation Route Handlers; verify that this configuration is effective on the deployed Hobby project. It is a route setting, not an arbitrary environment variable. Non-screening routes should have smaller deadlines.
 
-No Supabase publishable/service-role key is needed for direct server-side PostgreSQL access. Do not add NEXT_PUBLIC_ database/provider secrets. The database driver uses TLS, a small per-instance pool and transaction-pooler-compatible prepared-statement settings. Keep quota reservations in short transactions, outside provider calls.
+No Supabase publishable/service-role key is needed for direct server-side PostgreSQL access. Do not add NEXT_PUBLIC_ database/provider secrets. The database driver (`pg`) uses CA-verified TLS, a small per-instance pool and no named prepared statements; see [tech-stack.md](tech-stack.md). Keep quota reservations in short transactions, outside provider calls.
 
 ### 10.4 Infrastructure constraints
 
@@ -75,7 +76,7 @@ DEP-04: Provide synthetic seeds and controlled peer-tester access. No production
 
 DEP-05: Record app/product URLs, source revision, deployment owner, deployment commands, health checks, backup restoration and rollback evidence. Keep the graded master branch current.
 
-DEP-06: Validate Hobby eligibility for this non-commercial course project and the actual repository/deployment workflow before feature implementation. Git integration and contributor restrictions can affect two-developer repositories; designate one deployment owner without sharing personal credentials. CLI/Actions deployment does not override platform plan terms. If eligibility fails, record the blocker and evaluate course-provided hosting or sponsorship before changing providers.
+DEP-06: Validate Hobby eligibility for this non-commercial course project and the actual repository/deployment workflow before feature implementation. Git integration and contributor restrictions can affect two-developer repositories; designate one deployment owner without sharing personal credentials. Hobby eligibility and repository deployment, including deployments triggered by non-owner contributors, were confirmed on 11 October 2026 (human-verified). CLI/Actions deployment does not override platform plan terms. If eligibility fails, record the blocker and evaluate course-provided hosting or sponsorship before changing providers.
 
 DEP-07: Target zero hosting/database subscription cost. Monitor Vercel usage, Supabase database/egress usage and SoC allocation. Avoid paid add-ons or automatic plan upgrades. Free-tier limits and pauses may interrupt service; do not claim an always-on SLA.
 
