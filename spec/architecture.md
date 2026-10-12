@@ -17,10 +17,10 @@ GitHub Pages hosts the product information website and links to the deployed app
 | --- | --- |
 | Community UI | Listings, details, reviews, reports, summaries, announcements |
 | Admin UI | Catalogue, reports, announcements and AI review profanity checks |
-| Identity module | Accounts, sessions, role/status enforcement |
+| Identity module | Accounts, sessions, role/status enforcement and the account-status service (status, version, strike_cycle, session revocation; D-20) |
 | Catalogue module | Movie metadata, archive state |
 | Reviews module | Reviews, visibility, aggregates and content revision |
-| Moderation module | Reports, evidence snapshots, decisions and account actions |
+| Moderation module | Reports, evidence snapshots, decisions and strikes; decides account actions and applies them through the Identity account-status service (D-20) |
 | Announcements module | Draft/published content |
 | AI orchestration module | Scheduled summaries, profanity checks, jobs, quotas, provenance and validation |
 | SoC adapter | Provider authentication, request translation and error mapping |
@@ -32,7 +32,7 @@ HTTP handlers validate transport inputs and delegate to domain services. Domain 
 
 ### 6.4 Data Ownership
 
-Each module owns writes to its tables. Cross-module operations use explicit services and one transaction where consistency is required. Moderation may call review-visibility and account-status services; it must not duplicate their logic. The database is shared infrastructure with migrations, constraints and indexes, not separate per-role storage.
+Each module owns writes to its tables. Cross-module operations use explicit services and one transaction where consistency is required. Moderation may call review-visibility and account-status services; it must not duplicate their logic. Only the Identity account-status service writes Account rows (D-20). Transactions that lock several rows follow the global lock order in [data-model.md](data-model.md). The database is shared infrastructure with migrations, constraints and indexes, not separate per-role storage.
 
 ### 6.5 Communication
 
@@ -42,7 +42,7 @@ Use Supabase's shared transaction pooler for runtime database connections, with 
 
 ### 6.6 Dependency Rules
 
-UI cannot access the database or SoC LLM directly. Routes depend on services; services depend on repositories and defined adapters. Shared validation schemas and DTOs contain no credentials or ORM-private fields. Place pages and Route Handlers in src/app, reusable UI in src/components, and server-only services/repositories/adapters in src/server. Server Components may call authorized services directly; Client Components use the HTTP API. Role checks belong in services and handlers, not only navigation or middleware. The provider adapter must be replaceable by a deterministic fake for testing. User and Admin features share identity, storage and AI infrastructure without sharing privileged views.
+UI cannot access the database or SoC LLM directly. Routes depend on services; services depend on repositories and defined adapters. Shared validation schemas and DTOs contain no credentials or ORM-private fields. Place pages and Route Handlers in src/app, reusable UI in src/components, and server-only services/repositories/adapters in src/server. Server Components may call authorized services directly; Client Components use the HTTP API. Role checks belong in services and handlers, not only navigation or middleware. The provider adapter must be replaceable by a deterministic fake for testing. User and Admin features share identity, storage and AI infrastructure without sharing privileged views. Page routes (D-21): public pages at the root, User-only pages under /app and Admin pages under /admin.
 
 ## 9. Non-Functional Requirements
 
@@ -70,4 +70,4 @@ Structured logs contain request/job correlation ID, event, outcome, duration and
 
 ### 9.6 Scalability
 
-Keep Vercel function instances stateless apart from database-backed sessions, pending work and executions. PostgreSQL coordinates quotas, deduplication and leases. Initially share one active AI execution per environment; defer summaries and review checks when busy, keeping pending Reviews unpublished. Recovery throughput must be validated against the submission rate before release. Coordinate environment allocations within the actual SoC quota.
+Keep Vercel function instances stateless apart from database-backed sessions, pending work and executions. PostgreSQL coordinates quotas, deduplication and leases. Initially share one active AI execution per environment; defer summaries and review checks when busy, keeping pending Reviews unpublished. Recovery throughput must be validated against the submission rate before release. Coordinate environment allocations within the actual SoC quota using fixed per-environment sub-budgets (D-16).

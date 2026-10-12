@@ -16,7 +16,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
-| S-00 | Both (human) | Resolve blocking decisions and freeze contracts | — | 12 Oct | Draft |
+| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions recorded 12 Oct; contracts pending) | — | 12 Oct | Draft |
 | S-01 | B | Config, database access, migrations, full initial schema | S-00 | 13 Oct | Blocked |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
 | S-03 | B | Test harness, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
@@ -51,7 +51,7 @@ Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only af
 - Proposed module subfolders (confirm in S-00): `src/server/services/<module>/` and `src/server/repositories/<module>/` for `identity`, `catalogue`, `reviews`, `moderation`, `announcements`, `ai`, `audit`; `src/server/adapters/soc-llm/`; `src/server/db/` (pool, transaction helper, migrations); `src/server/http/` (API kernel); `src/server/config/`.
 - Database: `pg` through the transaction pooler with one connection per instance, CA-verified TLS, no named prepared statements, `SET LOCAL` only, and `date` returned as `YYYY-MM-DD` via per-pool `types` (`spec/tech-stack.md`).
 - API: `/api/v1`, Node.js runtime, the error envelope and status codes in `spec/api.md` §8.1, and `Cache-Control: no-store` on private or changing data.
-- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**; S-03 adds one after S-00 picks the framework.
+- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-03 adds the commands.
 - Git: branches `feat/<module>-<slug>`, `fix/…`, `chore/…` off `master`. Conventional Commits scoped to the module. Humans commit, push and open PRs (`AGENTS.md` § Git).
 - Ownership of shared hotspots (migrations, `package.json`, root layout, shared contracts) is set in [COMMIT-PLAN.md §2](COMMIT-PLAN.md#2-rules-that-make-independent-work-possible).
 
@@ -61,26 +61,28 @@ Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only af
 
 Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blocks the tasks listed. Agree all of them in **S-00** and record them in `spec/` (the human assigns any decision IDs).
 
-| # | Item | Why it blocks | Blocks |
-| --- | --- | --- | --- |
-| B1 | **Migration tool not selected** (D-07 leaves it open) | No schema can be created or versioned | S-01 and everything after |
-| B2 | **Test frameworks not selected** (unit/integration, E2E). `AGENTS.md` forbids inventing a test command | No task can meet the Completion Criteria | S-03 and every task's tests |
-| B3 | **Local/test PostgreSQL approach** (container vs local install; `spec/deployment.md` 10.1 requires disposable local PostgreSQL) | Integration tests need an isolated DB per developer | S-01, S-03 |
-| B4 | **Auth and password-hashing library** (DEP-04 needs a maintained library; SEC-02 needs Argon2id) | Identity cannot start | S-04 |
-| B5 | **Data-model gaps.** `spec/data-model.md` has no storage for (a) login-failure throttling (SEC-06), (b) per-User review/report rate limits with "shared enforcement" (`spec/security.md`), (c) AI token-budget reservations (AI-03 "PostgreSQL reservations"), or (d) CSRF token binding (SEC-04) | The initial schema migration would have to guess tables | S-01, S-04, S-05, S-06 |
-| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 |
-| B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model are still unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) |
-| B8 | **OQ-04: profanity policy text and version** | AI-02 says to review and version the policy before enabling screening | A-03 acceptance |
-| B9 | **OQ-06: developer names and final ownership** | Ownership and handoffs need names | All tasks (assignment) |
-| B10 | **Deployment mode.** Vercel Git integration (confirmed working) vs the DEP-02 GitHub Actions pipeline. Should automatic production deploys be disabled? | Release gate design | R-04 |
-| B11 | **Default branch.** `origin/HEAD` points to `main` (one commit), while work and D-06 use `master` | Grading pulls `master`; PR targets must be unambiguous | Repository setting (human) |
-| B12 | **Shared contract ownership.** Who owns the account-status transition (lock, version, sessions, `strike_cycle`): identity (A) or moderation (B)? Lock order for Account/Movie/Review | `spec/architecture.md` 6.4 forbids duplicated logic. Concurrency tests need one lock order | S-04, U-02, A-05, A-06 |
-| B13 | **Page route map** for public, `/app` and `/admin` pages (spec fixes only the `/app` and `/admin` split) | UI tasks would otherwise invent URLs | S-07, U-01, A-01 |
+**Status (12 Oct 2026):** the human adopted a recommended option for every item. The outcomes are recorded as D-08–D-21 in `spec/governance.md` and applied across `spec/`. Decision IDs are confirmed by the human. The session log `logs/2026-10-12-blocking-decisions-spec-update.md` awaits human verification. The Resolution column below summarises each outcome; `spec/` is authoritative.
+
+| # | Item | Why it blocks | Blocks | Resolution |
+| --- | --- | --- | --- | --- |
+| B1 | **Migration tool not selected** (D-07 leaves it open) | No schema can be created or versioned | S-01 and everything after | **Resolved:** D-08 node-pg-migrate, timestamped SQL files |
+| B2 | **Test frameworks not selected** (unit/integration, E2E). `AGENTS.md` forbids inventing a test command | No task can meet the Completion Criteria | S-03 and every task's tests | **Resolved:** D-09 Vitest + Playwright (commands added in S-03) |
+| B3 | **Local/test PostgreSQL approach** (container vs local install; `spec/deployment.md` 10.1 requires disposable local PostgreSQL) | Integration tests need an isolated DB per developer | S-01, S-03 | **Resolved:** D-10 `postgres:17` container (native PG 17 fallback), fresh migrated DB per run, truncation between files |
+| B4 | **Auth and password-hashing library** (DEP-04 needs a maintained library; SEC-02 needs Argon2id) | Identity cannot start | S-04 | **Resolved:** D-11 `@node-rs/argon2` + in-repo opaque sessions |
+| B5 | **Data-model gaps.** `spec/data-model.md` has no storage for (a) login-failure throttling (SEC-06), (b) per-User review/report rate limits with "shared enforcement" (`spec/security.md`), (c) AI token-budget reservations (AI-03 "PostgreSQL reservations"), or (d) CSRF token binding (SEC-04) | The initial schema migration would have to guess tables | S-01, S-04, S-05, S-06 | **Resolved:** (a)(b) D-12 RateLimitWindow; (c) D-13 `ai_execution` lease + AIBudgetDay/AIBudgetReservation, UTC days; (d) D-14 stateless HMAC CSRF token, no table |
+| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention still open |
+| B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model were unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) | **Partly resolved:** 90 RPM; USD 80/day and USD 800/month, in microdollars (OQ-01). D-16 interim posture remains. D-25: budget in microdollars, prod 2/3 (60 RPM, 53,333,333 µ$/day), dev 1/3 (30 RPM, 26,666,666 µ$/day). Still open: model and prices, context, TPM, retention; owner Developer B (thegrimbee), before provider integration and production enablement |
+| B8 | **OQ-04: profanity policy text and version** | AI-02 says to review and version the policy before enabling screening | A-03 acceptance | **Partly resolved:** D-17 versioned static policy file in source, English only. Policy text still open (OQ-04); owner Developer B (thegrimbee), before A-03 acceptance (target 17 Oct) |
+| B9 | **OQ-06: developer names and final ownership** | Ownership and handoffs need names | All tasks (assignment) | **Resolved:** A = Lim-ZY, B = thegrimbee. Tester accounts still open (OQ-06) |
+| B10 | **Deployment mode.** Vercel Git integration (confirmed working) vs the DEP-02 GitHub Actions pipeline. Should automatic production deploys be disabled? | Release gate design | R-04 | **Resolved:** D-18 Vercel Git integration, Actions as required checks, branch protection on `master`; DEP-02 revised |
+| B11 | **Default branch.** `origin/HEAD` points to `main` (one commit), while work and D-06 use `master` | Grading pulls `master`; PR targets must be unambiguous | Repository setting (human) | **Resolved:** D-19 `master`. GitHub default-branch setting and `main` retirement are human actions |
+| B12 | **Shared contract ownership.** Who owns the account-status transition (lock, version, sessions, `strike_cycle`): identity (A) or moderation (B)? Lock order for Account/Movie/Review | `spec/architecture.md` 6.4 forbids duplicated logic. Concurrency tests need one lock order | S-04, U-02, A-05, A-06 | **Resolved:** D-20 Identity (A) owns Account writes; lock order Account → Movie → Review → Report |
+| B13 | **Page route map** for public, `/app` and `/admin` pages (spec fixes only the `/app` and `/admin` split) | UI tasks would otherwise invent URLs | S-07, U-01, A-01 | **Resolved:** D-21 public pages at root, `/app`, `/admin` |
 
 Minor inconsistencies to note but not to block on:
 
 - `package.json` devDependencies use caret ranges (`^4`, `^5`, …) although `AGENTS.md` asks for pinned versions. S-01 should pin them, and the lockfile already exists.
-- `AGENTS.md` lists 7 workflow steps (including the code-quality/test agent). `spec/governance.md` lists 6. Align the two in S-00.
+- `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` lists 7 and has no code-quality/test step. Align the two in S-00 (still open).
 
 ---
 
@@ -110,11 +112,11 @@ Each contract has **one provider**. The provider merges the interface plus a fak
 | --- | --- | --- | --- |
 | K1 | Transaction helper and `Tx` handle; repositories accept `Tx` | B → A | One transaction for cross-module work (arch 6.4) |
 | K2 | API kernel: error envelope, request ID, body parsing (32 KiB, unknown-field rejection), pagination, If-Match/ETag, no-store | A → B | api.md 8.1 |
-| K3 | Auth guards (`active USER`, `active ADMIN`, recheck status every request), session revocation inside a caller's `Tx` | A → B | SEC-01, SEC-03, FR-01 |
-| K4 | Account-status transition (lock, version check, sessions, `strike_cycle`), owner per B12 | per B12 | FR-06, AT-25 |
+| K3 | Auth guards (`active USER`, `active ADMIN`, recheck status every request), CSRF/Origin checks, cron-secret guard, acting-User share lock. Session revocation is exposed only through K4 (contracts P-11) | A → B | SEC-01, SEC-03, SEC-04, FR-01 |
+| K4 | Account-status transition (lock, version check, sessions, `strike_cycle`), Identity-owned per D-20 | A → B | FR-06, AT-25 |
 | K5 | Audit `record(tx, entry)` | B → A | security.md audit rules |
 | K6 | Shared rate limiter `consume(key, limit, window)` | B → A | SEC-06, SEC-11 |
-| K7 | Catalogue: `assertMovieActiveForUpdate(tx, movieId)`, `markReviewsChanged(tx, movieId)` (bumps `reviews_revision`, sets `summary_pending_since`) | B → A | INV-05, INV-09, data-model |
+| K7 | Catalogue core: Movie lock functions, `markReviewsChanged` (bumps `reviews_revision`, sets `summary_pending_since`) and summary-schedule writes (contracts O-20) | B → A | INV-05, INV-09, data-model |
 | K8 | Review transitions: automatic clearance (version-guarded), approve, hide, restore, read-for-moderation | A → B | FR-03, FR-09, arch 6.4 |
 | K9 | Moderation work: `enqueue(tx, reviewId, contentRevision)` inside the review transaction; `attemptAfterCommit(reviewId)` bounded | B → A | AI-02 dispatch |
 | K10 | AI runtime: `LlmProvider` interface + deterministic fake; execution controller (reserve capacity, lease, timeout/retries, reconcile usage) | B → A | AI-03, SEC-08 |
@@ -132,8 +134,8 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 **Owner:** both developers (human task, agent-assisted). **Depends on:** —
 **Description:** Run one 60–90-minute session. Resolve §3 B1–B13 and record the outcomes in `spec/governance.md`, `spec/data-model.md` (B5), `spec/deployment.md` (B6) and `AGENTS.md` (B2 test command). Approve the K1–K12 owners and have the architect agent draft signatures into `workflow/contracts.md`. Fill in developer names (OQ-06).
 **Acceptance Criteria:**
-- [ ] B1–B6, B9–B13 recorded in `spec/` with human approval. B7/B8 have an owner and a dated resolution plan.
-- [ ] `workflow/contracts.md` lists K1–K12 with provider, consumer, approved signature and lock order.
+- [x] B1–B6, B9–B13 recorded in `spec/` with human approval. B7/B8 have an owner and a dated resolution plan. *(D-08–D-25 recorded and confirmed 12 Oct; B7/B8 owners and deadlines recorded; session log verified.)*
+- [x] `workflow/contracts.md` lists K1–K12 with provider, consumer, approved signature and lock order. *(Approved by both developers, 12 Oct.)*
 - [ ] `AGENTS.md` Commands section names the selected test commands.
 - [ ] This plan's tracker is updated: tasks with no remaining blockers move to `Draft`.
 
@@ -180,7 +182,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 ### Task S-05: Audit and shared rate limiter
 
 **Owner:** B. **Depends on:** S-01. **Reqs:** security.md audit and limits, SEC-06, SEC-11.
-**Description:** K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID (no passwords, report bodies or prompts), with no API to edit it. K6 limiter backed by PostgreSQL (B5 storage) that returns `Retry-After`.
+**Description:** K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID (no passwords, report bodies or prompts), with no API to edit it. K6 limiter backed by PostgreSQL (RateLimitWindow, D-12) that returns `Retry-After`.
 **Acceptance Criteria:**
 - [ ] Audit write rolls back with its transaction (integration test).
 - [ ] Limiter is correct under concurrent calls from two connections and returns a retry time.

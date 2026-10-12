@@ -17,7 +17,7 @@ It is worth having, kept at PR granularity, not every commit:
 
 | Hotspot | Single owner | Rule for the other developer |
 | --- | --- | --- |
-| Migrations directory | B | The initial migration covers the **entire** data model, so later changes are rare. A requests a change in a short PR that adds a **new** migration file. Never edit a merged migration (`AGENTS.md` rule 4). Use timestamp-prefixed filenames if the selected tool allows, so parallel branches cannot collide |
+| Migrations directory | B | The initial migration covers the **entire** data model, so later changes are rare. A requests a change in a short PR that adds a **new** migration file. Never edit a merged migration (`AGENTS.md` rule 4). Use timestamp-prefixed filenames (node-pg-migrate, D-08) so parallel branches cannot collide |
 | `package.json`, `package-lock.json` | B | Dependencies chosen in S-00 are added in S-01. Any later addition is a separate one-commit PR by B (or by A with B's review). Never mix lockfile changes into feature PRs |
 | `src/app/layout.tsx`, route-group layouts, `src/components/` | A | B uses components as they are, or opens a small PR that A reviews |
 | `src/server/http/` (K2), `src/server/{services,repositories}/identity/` (K3) | A | B consumes only |

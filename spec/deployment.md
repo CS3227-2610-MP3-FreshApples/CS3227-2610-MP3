@@ -8,13 +8,13 @@ Use Next.js App Router/TypeScript for both UI and backend Route Handlers, deploy
 
 | Environment | Application | Database |
 | --- | --- | --- |
-| Local/test | Next.js dev server; isolated tests with fake SoC adapter | Local PostgreSQL/container with disposable fixtures |
+| Local/test | Next.js dev server; isolated tests with fake SoC adapter | `postgres:17` container (GitHub Actions service container in CI) or native PostgreSQL 17, freshly migrated per test run with disposable fixtures (D-10) |
 | Shared development | Vercel Preview deployment of trusted development changes | Supabase development project |
 | Production | Vercel Production deployment from reviewed master revision | Separate Supabase production project |
 
 Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available (confirmed 11 October 2026, human-verified). Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
 
-If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. The SoC endpoint must permit access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
+If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation (D-16); no shared cross-environment coordinator is built. Controlled live tests use synthetic data. The SoC endpoint must permit access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
 
 GitHub Pages remains the separate course-required product website with guides, release information and, after the application is deployed, the live application link. It does not host the Next.js application or its API. The MarkBind source lives in `docs/` and GitHub Actions publishes it to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. The Next.js application uses a separate free Vercel domain that must be recorded after deployment.
 
@@ -38,13 +38,17 @@ Validate configuration on server initialization and in release checks. Invalid d
 | MIGRATION_DATABASE_URL | Direct/session-pooled privileged connection; CI/operator only |
 | SESSION_SECRET | High-entropy environment-specific secret for session/CSRF signing |
 | SESSION_TTL_SECONDS | Default 28800 |
-| SOC_LLM_BASE_URL | Verified HTTPS endpoint reachable from Vercel |
+| RATE_LIMIT_KEY_SECRET | High-entropy environment-specific secret used only to HMAC email and IP rate-limit keys (D-12) |
+| SOC_LLM_BASE_URL | Verified HTTPS endpoint reachable from Vercel, without a trailing `/v1`; the adapter appends versioned paths |
 | SOC_LLM_API_KEY | Server-only secret; final auth mapping depends on verified SoC contract |
 | SOC_LLM_MODEL | Verified permitted model identifier |
-| SOC_LLM_REQUESTS_PER_MINUTE | Verified allocation or environment partition, no guessed default |
+| SOC_LLM_REQUESTS_PER_MINUTE | Verified allocation or environment partition, no guessed default. The team allocation is 90 requests per minute (OQ-01); development and production values must sum to at most 90. Production 60, development 30 (D-25) |
 | SOC_LLM_TOKENS_PER_MINUTE | Verified allocation/partition if applicable |
-| AI_DAILY_TOKEN_BUDGET | Required positive team-approved budget when AI is enabled |
+| AI_DAILY_BUDGET_MICRODOLLARS | Required positive budget when AI is enabled; counted per UTC calendar day (D-13, D-25). Production 53,333,333; development 26,666,666 (sum within the USD 80/day allocation) |
+| SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK | Verified input price of SOC_LLM_MODEL in microdollars per million tokens; no guessed default; missing value disables AI |
+| SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK | Verified output price of SOC_LLM_MODEL in microdollars per million tokens; no guessed default; missing value disables AI |
 | AI_ENABLED | Explicit boolean; false until provider validation succeeds |
+| AI_PROVIDER | soc_llm or fake. fake selects the deterministic adapter for local, test and development use (D-16); configuration validation rejects fake when APP_ENV is production |
 | AI_MAX_CONCURRENT_REQUESTS | Default 1 per environment, enforced through PostgreSQL |
 | AI_ATTEMPT_TIMEOUT_MS | Default 30000 |
 | AI_MAX_ATTEMPTS | Default 2 |
@@ -58,7 +62,7 @@ Validate configuration on server initialization and in release checks. Invalid d
 | REPORT_SUSPENSION_THRESHOLD | Default 3 distinct accepted incidents per strike cycle; positive integer, changes require policy review |
 | AI_INPUT_TOKEN_LIMIT | Maximum 8000, reduced if verified model context requires it |
 | LOG_LEVEL | info by default; no sensitive payloads |
-| VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID | Trusted deployment workflow configuration only; token is secret and not application runtime config |
+| VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID | Not used while D-18 (Vercel Git integration) is in effect. If a CI deployment job is introduced by a later decision: trusted deployment workflow configuration only; token is secret and not application runtime config |
 
 Use the Node.js runtime for API/database/authentication/AI routes. Enable Vercel Fluid compute and export maxDuration = 120 on AI cron and review mutation Route Handlers; verify that this configuration is effective on the deployed Hobby project. It is a route setting, not an arbitrary environment variable. Non-screening routes should have smaller deadlines.
 
@@ -68,11 +72,11 @@ No Supabase publishable/service-role key is needed for direct server-side Postgr
 
 DEP-01: Team-managed Vercel deployment is required; using Vercel directly is distinct from a coding-agent build-and-host environment. Do not use Codex/Claude hosting, Sites or an SDD toolkit.
 
-DEP-02: GitHub Actions pipeline: install from lockfile → formatting/lint/type checks → unit/integration/security tests → Next.js build and secret scan → development deploy/smoke → human-reviewed production deploy from the same source revision → production smoke checks. Environment-specific builds may differ; do not promote an artifact containing development configuration into production blindly. Use Vercel's documented CLI/Actions flow and disable competing automatic production deployments if they would bypass release gates.
+DEP-02: Release pipeline (D-18). GitHub Actions runs on every pull request to `master`: install from lockfile → formatting/lint/type checks → unit/integration/security tests → Next.js build and secret scan. These jobs are required status checks, and branch protection on `master` requires a human-reviewed pull request with passing checks. Vercel Git integration builds a Preview deployment with development configuration for pushed branches; smoke-check it before merge. Merging to `master` is the human-reviewed production release: Vercel builds Production from that same source revision with production configuration, followed by production smoke checks. Environment-specific builds may differ; never promote a Preview build containing development configuration into Production. No production deployment path may bypass branch protection.
 
-DEP-03: Run migrations as a controlled release step with a pre-migration backup and restore plan. Prefer backward-compatible migrations. Restore the previous compatible Vercel deployment for code rollback; database rollback requires a separate data plan.
+DEP-03: Run migrations with node-pg-migrate (D-08) as a controlled release step with a pre-migration backup and restore plan. Because merging to `master` deploys Production (D-18), apply a release's production migrations before merging the code that requires them; such migrations must remain compatible with the currently deployed code. Prefer backward-compatible migrations. Restore the previous compatible Vercel deployment for code rollback; database rollback requires a separate data plan.
 
-DEP-04: Provide synthetic seeds and controlled peer-tester access. No production admin credentials in source, workflow logs or the public website. Use a maintained authentication library compatible with the account/session specification; Supabase Auth is not implicitly selected.
+DEP-04: Provide synthetic seeds and controlled peer-tester access. No production admin credentials in source, workflow logs or the public website. Use a maintained authentication library compatible with the account/session specification; Supabase Auth is not implicitly selected. D-11 satisfies this with `@node-rs/argon2` for Argon2id hashing and an in-repo opaque session implementation.
 
 DEP-05: Record app/product URLs, source revision, deployment owner, deployment commands, health checks, backup restoration and rollback evidence. Keep the graded master branch current.
 

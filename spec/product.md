@@ -236,7 +236,7 @@ Admin: sign in, open the separate dashboard, manage catalogue/announcements, ins
 
 ### 5.2 UI Requirements
 
-Use a simple responsive text-first layout. Label rating inputs and displayed ratings as out of 10 (for example, 8/10); show aggregate ratings to one decimal (for example, 8.3/10). Separate /app and /admin navigation; shared inputs, validation messages and tables use common components. Include loading, empty, error, stale and success states. Preserve form text after a recoverable failure. Confirm archive and moderation actions. AI output must be labelled, distinguishable from source reviews and accompanied by limitations. A visible "All reports" reset prevents filters from concealing pending work.
+Use a simple responsive text-first layout. Label rating inputs and displayed ratings as out of 10 (for example, 8/10); show aggregate ratings to one decimal (for example, 8.3/10). Separate /app and /admin navigation, with public pages served at the root (D-21); shared inputs, validation messages and tables use common components. Include loading, empty, error, stale and success states. Preserve form text after a recoverable failure. Confirm archive and moderation actions. AI output must be labelled, distinguishable from source reviews and accompanied by limitations. A visible "All reports" reset prevents filters from concealing pending work.
 
 ### 5.3 Accessibility Requirements
 
