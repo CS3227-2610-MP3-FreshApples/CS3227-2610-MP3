@@ -12,9 +12,9 @@ Use Next.js App Router/TypeScript for both UI and backend Route Handlers, deploy
 | Shared development | Vercel Preview deployment of trusted development changes | Supabase development project |
 | Production | Vercel Production deployment from reviewed master revision | Separate Supabase production project |
 
-Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available. Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
+Supabase's two free-project allocation is intended for development and production; confirm the account has both slots available (confirmed 11 October 2026, human-verified). Preview and Production credentials must be scoped separately in Vercel. Never reuse production data or credentials in Preview. Do not provision a database branch per preview; use the shared development database with compatible migrations and synthetic data.
 
-If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. Verify that the SoC endpoint permits access from Vercel; campus/VPN-only access would require revisiting the runtime placement.
+If SoC quota is shared, assign fixed development/production sub-budgets whose sums fit the allocation, or implement a shared coordinator. Controlled live tests use synthetic data. Verify that the SoC endpoint permits access from Vercel; campus/VPN-only access would require revisiting the runtime placement. Access from Vercel was confirmed on 11 October 2026 by a human-run smoke test.
 
 GitHub Pages remains the separate course-required product website with guides, release information and, after the application is deployed, the live application link. It does not host the Next.js application or its API. The MarkBind source lives in `docs/` and GitHub Actions publishes it to the `gh-pages` branch at <https://CS3227-2610-MP3-FreshApples.github.io/CS3227-2610-MP3>. The Next.js application uses a separate free Vercel domain that must be recorded after deployment.
 
@@ -76,7 +76,7 @@ DEP-04: Provide synthetic seeds and controlled peer-tester access. No production
 
 DEP-05: Record app/product URLs, source revision, deployment owner, deployment commands, health checks, backup restoration and rollback evidence. Keep the graded master branch current.
 
-DEP-06: Validate Hobby eligibility for this non-commercial course project and the actual repository/deployment workflow before feature implementation. Git integration and contributor restrictions can affect two-developer repositories; designate one deployment owner without sharing personal credentials. CLI/Actions deployment does not override platform plan terms. If eligibility fails, record the blocker and evaluate course-provided hosting or sponsorship before changing providers.
+DEP-06: Validate Hobby eligibility for this non-commercial course project and the actual repository/deployment workflow before feature implementation. Git integration and contributor restrictions can affect two-developer repositories; designate one deployment owner without sharing personal credentials. Hobby eligibility and repository deployment, including deployments triggered by non-owner contributors, were confirmed on 11 October 2026 (human-verified). CLI/Actions deployment does not override platform plan terms. If eligibility fails, record the blocker and evaluate course-provided hosting or sponsorship before changing providers.
 
 DEP-07: Target zero hosting/database subscription cost. Monitor Vercel usage, Supabase database/egress usage and SoC allocation. Avoid paid add-ons or automatic plan upgrades. Free-tier limits and pauses may interrupt service; do not claim an always-on SLA.
 

@@ -82,8 +82,8 @@ Suggested future artifacts:
 
 | ID | Decision needed | Resolution required by |
 | --- | --- | --- |
-| OQ-01 | Verify SoC endpoint/authentication, models, context, quotas, retention and permitted data | Before provider integration and production enablement |
-| OQ-02 | Verify Vercel Hobby eligibility/repository deployment, Supabase project allocation, regions, and environment-specific SoC quota partitioning; stack selection is resolved | Before infrastructure implementation |
+| OQ-01 | Verify models, context, quotas, retention and permitted data. Endpoint and API-key authentication from Vercel confirmed 11 October 2026 by a human-run smoke test | Before provider integration and production enablement |
+| OQ-02 | Verify regions and environment-specific SoC quota partitioning. Resolved 11 October 2026 (human-verified): Vercel Hobby eligibility, repository deployment including by non-owner contributors, Supabase two-project allocation, and SoC LLM and Supabase reachability from Vercel (see `logs/`). Stack selection is resolved | Before infrastructure implementation |
 | OQ-03 | Confirm proposed account recovery scope; report privacy and anonymous summary access are resolved | Before respective product flows |
 | OQ-04 | Finalize profanity policy and contested-decision process; default three-incident suspension and reinstatement cycle are specified | Before moderation/AI acceptance |
 | OQ-05 | Confirm retention, operator deletion process and privacy notice | Before production |

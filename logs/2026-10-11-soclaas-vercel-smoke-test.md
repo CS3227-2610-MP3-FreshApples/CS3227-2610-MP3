@@ -75,7 +75,7 @@
 | `npx tsc --noEmit` | Local Windows | PASS | Session output |
 | `npm run lint` | Local Windows | PASS | Session output |
 | `npm run build` | Local Windows | PASS (route `ƒ /api/smoke/soclaas`) | Session output |
-| Live call to SoCLaaS from Vercel | Vercel | UNAVAILABLE (not yet run by human) | — |
+| Live call to SoCLaaS from Vercel | Vercel | PASS (human-run; reported 2026-10-11; output not attached to this log) | Human report |
 | Automated tests | — | SKIPPED (no test framework configured) | — |
 
 ## 9. Security and Responsible-AI Review
@@ -92,7 +92,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| Live reachability unverified | Provider choice depends on it | Deployment owner | Deploy preview, call route, record result |
+| Live reachability | Resolved 2026-10-11: human-run smoke test passed | Deployment owner | Attach output if needed as release evidence |
 | Temporary route in codebase | Extra attack surface | Human | Delete after recording result |
 | `main`/`master` and `.env.template`/`.env.example` conflicts | Deployment/config ambiguity | Both developers | Decide and record |
 

@@ -45,6 +45,8 @@
 | 9 | Human | Check specs for issues with `pg`; if none, update specs to use it | No conflicts found; recorded D-07 and `pg` settings in specs | This log |
 | 10 | Human | Renamed `.env.template` to `.env.example` | Updated README reference | This log |
 | 11 | Human | `curl` returns "Redirecting..."; switch README smoke tests to browser console | Replaced `curl` with same-origin `fetch` snippets for both smoke tests; explained Vercel Deployment Protection redirect | This log |
+| 12 | Human | Reported both smoke tests passed; confirmed Vercel eligibility, non-owner contributor deployments and two Supabase free projects | Marked results in both logs, `spec/tech-stack.md` free-tier table and SoC reachability line, and OQ-02 | This log |
+| 13 | Human | Any other documents to update from smoke results? Then update PR summary | Updated `spec/deployment.md` (lines on slots, SoC access, DEP-06), `spec/README.md`, OQ-01; `docs/` unaffected | This log |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
@@ -72,10 +74,13 @@
 | `src/app/api/smoke/supabase/route.ts` | New temporary token-protected route: connects via `DATABASE_URL` with CA-verified TLS; reports role, server version, TLS, `smoke_env` marker, one insert/read/delete transaction, and that DDL and `auth.users` access are denied. Returns only SQLSTATE codes on error |
 | `.env.template` → `.env.example` | Renamed by human to match AGENTS.md. Agent added `DATABASE_URL` and `DATABASE_CA_CERT` placeholders; fixed missing newline after `SMOKE_TEST_TOKEN` |
 | `README.md` | Added Supabase smoke test section; narrowed SoCLaaS cleanup line to its own route folder (later edited by human) |
-| `spec/tech-stack.md` | Database access row names `pg`; new "Database driver" subsection with required settings |
+| `spec/tech-stack.md` | Database access row names `pg`; new "Database driver" subsection with required settings; three free-tier constraints and SoC reachability marked confirmed |
 | `spec/architecture.md` | 6.5 names `pg` and forbids named prepared statements |
 | `spec/deployment.md` | Driver sentence names `pg`; added `DATABASE_CA_CERT` to configuration contract |
-| `spec/governance.md` | Added design decision D-07 |
+| `spec/governance.md` | Added design decision D-07; OQ-02 narrowed to regions and SoC quota partitioning, with confirmed items recorded |
+| `logs/2026-10-11-soclaas-vercel-smoke-test.md` | Live SoCLaaS call marked PASS (human-reported) |
+| `spec/deployment.md` | Marked two-project allocation, SoC access from Vercel and DEP-06 eligibility/repository deployment as confirmed |
+| `spec/README.md` | Noted SoC LLM and Supabase reachability from Vercel confirmed |
 | `package.json`, `package-lock.json` | Added `pg` 8.23.1 and `@types/pg` 8.23.1 (exact) |
 | `logs/2026-10-11-supabase-feasibility-smoke-test.md` | This summary |
 
@@ -92,7 +97,9 @@
 | Call without token | Local dev server | PASS (401 `unauthorised`) | Session output |
 | Call with token: connect, TLS (CA verified), role | Local dev server → Supabase **production** pooler (dev project not yet created) | PASS (`role: app_runtime`, `ssl: true`, server 17.11, connect ~0.5–0.8 s) | Session output |
 | Call with token: `smoke_env`, transaction, least privilege | Local dev server → Supabase **production** pooler | FAIL `42P01` (`app.smoke_env` not yet created in production) | Session output |
-| Data API check (step 4), Preview/Production calls, backup/restore, pause | Supabase/Vercel | UNAVAILABLE (not yet run by human) | — |
+| Supabase smoke test (all README pass conditions) | Run by human after the agent run above | PASS (human-run; reported 2026-10-11; output not attached to this log) | Human report |
+| Data API check (step 4), backup/restore, pause | Supabase | UNAVAILABLE (not yet run by human) | — |
+| Vercel Hobby eligibility; non-owner contributor deployments; two free Supabase projects | Vercel/Supabase | CONFIRMED (human-verified, reported 2026-10-11) | Human report; recorded in `spec/tech-stack.md` |
 | Automated tests | — | SKIPPED (no test framework configured) | — |
 
 ## 9. Security and Responsible-AI Review
@@ -110,7 +117,7 @@
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
 | `.env.local` holds production credentials; dev project not created | Conflicts with option A env scoping; local run hit production | Human | Create dev project, switch `.env.local` to dev, rotate prod `app_runtime` password, add prod `smoke_env` marker |
-| Vercel Preview/Production runs not done | Feasibility from Vercel unproven | Deployment owner | Set scoped env vars, deploy, call both, record |
+| Vercel smoke runs | Resolved 2026-10-11: human-run smoke tests passed | Deployment owner | Attach output if needed as release evidence |
 | D-07 (`pg`) and `DATABASE_CA_CERT` recorded by agent | Spec change needs human review | Both developers | Review and approve or amend D-07; select migration tooling |
 | Steps 4, 6, 7 (Data API, backup/restore, pause) | AT-18/AT-19, DEP-08 evidence missing | Human | Run and record |
 | Temporary route and smoke tables | Extra surface | Human | Delete after recording result |
