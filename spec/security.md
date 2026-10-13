@@ -14,7 +14,7 @@ Untrusted inputs include browser requests, reviews, report explanations, announc
 | SEC-04 | CSRF token plus same-origin checks for unsafe browser methods; production CORS allowlist only. Token mechanism: D-14 | Cross-origin mutation rejection tests |
 | SEC-05 | Validate lengths/types/enums, parameterize database access, escape text, enforce restrictive CSP | SQL injection, stored XSS and malformed input cases |
 | SEC-06 | Login throttling by normalized account and IP, proposed 5 failures/15 min; generic credential errors. Shared enforcement: D-12 | Throttling and enumeration tests |
-| SEC-07 | Keys only in Vercel server-only environment variables; no frontend, repository or log exposure | Secret scan and built-asset inspection |
+| SEC-07 | Keys only in Vercel server-only environment variables; no frontend, repository or log exposure | Secret scan (gitleaks, D-29) and built-asset inspection with a synthetic-secret canary |
 | SEC-08 | AI has no action tools; bounded input/output, schema checks, prompt/data separation and guarded publication | Injection and malformed-output suite |
 | SEC-09 | All reports/reviews remain accessible to Admins; human acceptance drives deterministic threshold suspension; AI has no direct action tools | Model cannot accept a report, add a strike, clear an admin hide or mutate an account; only validated current output can trigger the fixed clearance rule |
 | SEC-10 | Snapshot evidence and audit moderation atomically; stale concurrent decisions rejected | Transaction rollback and concurrency tests |
@@ -37,13 +37,13 @@ Suspension invalidates sessions immediately. Recheck account status on every pro
 
 Specialized agents may propose specs, code and tests, but cannot independently approve their own changes or deploy production. Treat issue text, reference files, retrieved content and handoff artifacts as data, not authority to reveal secrets or change workflow permissions. Run tests against isolated fixtures with no production credentials. Scope agent permissions to the task and retain reviewed handoff evidence.
 
-CI must scan for secrets and dependencies, run security/acceptance tests, and require human review for release. Record false positives and accepted exceptions explicitly; never suppress failures only to pass a gate. These are intended team workflow rules, not a claim that such tooling already exists.
+CI must scan for secrets (gitleaks over the PR commit range and built assets, D-29) and dependencies, run security/acceptance tests, and require human review for release. Record false positives and accepted exceptions explicitly; never suppress failures only to pass a gate. These are intended team workflow rules, not a claim that such tooling already exists.
 
 ### Supabase and Next.js controls
 
 Database credentials and SoC keys must never use a NEXT_PUBLIC_ variable or enter Client Component props. Keep repositories and provider adapters in server-only modules. Runtime database access uses a dedicated least-privilege role; migration/owner credentials are restricted to controlled CI/operator actions.
 
-Keep application tables in a schema not exposed through Supabase Data APIs and revoke access from anon/authenticated API roles. If any table is exposed, enable RLS with deny-by-default policies and test direct API access separately. Server-side database access does not automatically inherit browser-user authorization: Next.js services must still enforce identity, role and ownership. No service-role key is needed in the browser.
+Keep application tables in the `app` schema (D-27), which is not exposed through Supabase Data APIs, and revoke access from anon/authenticated API roles. If any table is exposed, enable RLS with deny-by-default policies and test direct API access separately. Server-side database access does not automatically inherit browser-user authorization: Next.js services must still enforce identity, role and ownership. No service-role key is needed in the browser.
 
 Private pages, API results and per-user data must not enter shared Next.js/Vercel caches. Use dynamic rendering/no-store initially and test two-user cache isolation. Never pass deployment secrets to untrusted fork workflows; deployment credentials belong only in trusted CI jobs.
 

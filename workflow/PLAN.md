@@ -16,7 +16,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
-| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions recorded 12 Oct; contracts pending) | — | 12 Oct | Draft |
+| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
 | S-01 | B | Config, database access, migrations, full initial schema | S-00 | 13 Oct | Blocked |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
 | S-03 | B | Test harness, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
@@ -70,7 +70,7 @@ Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blo
 | B3 | **Local/test PostgreSQL approach** (container vs local install; `spec/deployment.md` 10.1 requires disposable local PostgreSQL) | Integration tests need an isolated DB per developer | S-01, S-03 | **Resolved:** D-10 `postgres:17` container (native PG 17 fallback), fresh migrated DB per run, truncation between files |
 | B4 | **Auth and password-hashing library** (DEP-04 needs a maintained library; SEC-02 needs Argon2id) | Identity cannot start | S-04 | **Resolved:** D-11 `@node-rs/argon2` + in-repo opaque sessions |
 | B5 | **Data-model gaps.** `spec/data-model.md` has no storage for (a) login-failure throttling (SEC-06), (b) per-User review/report rate limits with "shared enforcement" (`spec/security.md`), (c) AI token-budget reservations (AI-03 "PostgreSQL reservations"), or (d) CSRF token binding (SEC-04) | The initial schema migration would have to guess tables | S-01, S-04, S-05, S-06 | **Resolved:** (a)(b) D-12 RateLimitWindow; (c) D-13 `ai_execution` lease + AIBudgetDay/AIBudgetReservation, UTC days; (d) D-14 stateless HMAC CSRF token, no table |
-| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention still open |
+| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention resolved by D-24 (contracts O-27: base URL excludes `/v1`) |
 | B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model were unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) | **Partly resolved:** 90 RPM; USD 80/day and USD 800/month, in microdollars (OQ-01). D-16 interim posture remains. D-25: budget in microdollars, prod 2/3 (60 RPM, 53,333,333 µ$/day), dev 1/3 (30 RPM, 26,666,666 µ$/day). Still open: model and prices, context, TPM, retention; owner Developer B (thegrimbee), before provider integration and production enablement |
 | B8 | **OQ-04: profanity policy text and version** | AI-02 says to review and version the policy before enabling screening | A-03 acceptance | **Partly resolved:** D-17 versioned static policy file in source, English only. Policy text still open (OQ-04); owner Developer B (thegrimbee), before A-03 acceptance (target 17 Oct) |
 | B9 | **OQ-06: developer names and final ownership** | Ownership and handoffs need names | All tasks (assignment) | **Resolved:** A = Lim-ZY, B = thegrimbee. Tester accounts still open (OQ-06) |
@@ -115,10 +115,10 @@ Each contract has **one provider**. The provider merges the interface plus a fak
 | K3 | Auth guards (`active USER`, `active ADMIN`, recheck status every request), CSRF/Origin checks, cron-secret guard, acting-User share lock. Session revocation is exposed only through K4 (contracts P-11) | A → B | SEC-01, SEC-03, SEC-04, FR-01 |
 | K4 | Account-status transition (lock, version check, sessions, `strike_cycle`), Identity-owned per D-20 | A → B | FR-06, AT-25 |
 | K5 | Audit `record(tx, entry)` | B → A | security.md audit rules |
-| K6 | Shared rate limiter `consume(key, limit, window)` | B → A | SEC-06, SEC-11 |
+| K6 | Shared rate limiter `consume(key, policy, units)` and `check` (signatures in `contracts.md` §9) | B → A | SEC-06, SEC-11 |
 | K7 | Catalogue core: Movie lock functions, `markReviewsChanged` (bumps `reviews_revision`, sets `summary_pending_since`) and summary-schedule writes (contracts O-20) | B → A | INV-05, INV-09, data-model |
 | K8 | Review transitions: automatic clearance (version-guarded), approve, hide, restore, read-for-moderation | A → B | FR-03, FR-09, arch 6.4 |
-| K9 | Moderation work: `enqueue(tx, reviewId, contentRevision)` inside the review transaction; `attemptAfterCommit(reviewId)` bounded | B → A | AI-02 dispatch |
+| K9 | Moderation work: `enqueue(tx, reviewId, contentRevision)` and `cancelForDeletedReview(tx, reviewId)` inside the review transaction; `attemptAfterCommit(reviewId, contentRevision)` bounded (`contracts.md` §12) | B → A | AI-02 dispatch |
 | K10 | AI runtime: `LlmProvider` interface + deterministic fake; execution controller (reserve capacity, lease, timeout/retries, reconcile usage) | B → A | AI-03, SEC-08 |
 | K11 | Report evidence snapshot shape and receipt projection | A → B | FR-04, INV-07 |
 | K12 | Shared UI primitives (form field with error, table, pagination, status badge, live region, confirm dialog) | A → B | product 5.2, 5.3 |
@@ -142,8 +142,8 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 ### Task S-01: Config, database access, migrations, initial schema
 
 **Owner:** B. **Depends on:** S-00 (B1, B3, B5, B6). **Reqs:** spec/data-model.md §7, tech-stack.md "Database driver", deployment.md 10.3, SEC-05, SEC-07.
-**Allowed paths:** `src/server/config/`, `src/server/db/`, migration directory, `.env.example`, `package.json`/lockfile.
-**Description:** Add a server-only config validator (invalid DB/session config prevents readiness; missing AI config disables AI). Add the `pg` pool (1 connection, CA TLS, `date` as string, statement timeout, no query names) and the `withTransaction` helper (K1). Add the migration runner and **one initial migration for the whole data model**, including the B5 additions, all constraints, partial unique indexes and listed indexes, in a schema not exposed to Supabase Data APIs. Add a synthetic seed script. Pin devDependency versions.
+**Allowed paths:** `src/server/config/`, `src/server/db/` (migrations in `src/server/db/migrations/`, D-26), `.env.example`, `package.json`/lockfile.
+**Description:** Add a server-only config validator (invalid core config per D-28 prevents readiness; missing AI config disables AI). Add the `pg` pool (1 connection, CA TLS, `date` as string, statement timeout, no query names) and the `withTransaction` helper (K1). Add the migration runner and **one initial migration for the whole data model**, including the B5 additions, all constraints, partial unique indexes and listed indexes, in the `app` schema (D-27), not exposed to Supabase Data APIs. Add a synthetic seed script. Pin devDependency versions.
 **Acceptance Criteria:**
 - [ ] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
 - [ ] Integration tests check: unique `(movie_id, author_id)`; rating 1–10 check; partial unique open report per `(reporter_id, review_id)`; unique `(target_user_id, review_id)` strike; unique `ModerationWork` revision key.
@@ -163,7 +163,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 **Owner:** B. **Depends on:** S-01, S-00 (B2). **Reqs:** DEP-02 (checks portion), AT-26, verification.md 11.1.
 **Allowed paths:** `tests/` harness and config, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
-**Description:** Wire the selected unit, PostgreSQL-integration and E2E runners to real scripts with nonzero exit on failure. Each test run gets a disposable database. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan, with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
+**Description:** Wire the selected unit, PostgreSQL-integration and E2E runners to real scripts with nonzero exit on failure. Each test run gets a disposable database. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
 **Acceptance Criteria:**
 - [ ] AT-26: live returns 200 without DB access; ready returns 503 on a DB outage or missing core config and 200 when AI is down; both use no-store, generic shapes and a 2 s probe.
 - [ ] CI runs on PRs to `master` and fails on a deliberately failing test (demonstrated once, then reverted).
@@ -191,7 +191,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 **Owner:** B. **Depends on:** S-01, S-05; B7 for live values only. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4.
 **Allowed paths:** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, tests.
-**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, token-budget reservation and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
+**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
 **Acceptance Criteria:**
 - [ ] Unit/integration tests: second concurrent execution is deferred; budget exhaustion defers without losing work; expired lease rejects late publish; unknown usage charged conservatively; retries stop at the deadline.
 - [ ] Missing quota/budget config → AI disabled, core unaffected.

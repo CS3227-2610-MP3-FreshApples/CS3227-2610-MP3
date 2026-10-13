@@ -26,7 +26,7 @@ Supabase runtime traffic uses the copied shared transaction-pooler connection st
 
 ### 10.3 Configuration contracts
 
-Validate configuration on server initialization and in release checks. Invalid database/session configuration prevents readiness; missing AI configuration disables AI while core features remain available. Never print secret values. Keep names/placeholders only in .env.example; do not commit .env.local or Vercel environment downloads.
+Validate configuration on server initialization and in release checks. Invalid core configuration (D-28: APP_ENV, PUBLIC_APP_URL, DATABASE_URL, DATABASE_CA_CERT, SESSION_SECRET, RATE_LIMIT_KEY_SECRET, and SESSION_TTL_SECONDS/REPORT_SUSPENSION_THRESHOLD when set) prevents readiness; missing AI configuration disables AI while core features remain available; a missing CRON_SECRET makes both cron routes reject every request. Never print secret values. Keep names/placeholders only in .env.example; do not commit .env.local or Vercel environment downloads.
 
 | Variable | Contract |
 | --- | --- |
@@ -72,7 +72,7 @@ No Supabase publishable/service-role key is needed for direct server-side Postgr
 
 DEP-01: Team-managed Vercel deployment is required; using Vercel directly is distinct from a coding-agent build-and-host environment. Do not use Codex/Claude hosting, Sites or an SDD toolkit.
 
-DEP-02: Release pipeline (D-18). GitHub Actions runs on every pull request to `master`: install from lockfile → formatting/lint/type checks → unit/integration/security tests → Next.js build and secret scan. These jobs are required status checks, and branch protection on `master` requires a human-reviewed pull request with passing checks. Vercel Git integration builds a Preview deployment with development configuration for pushed branches; smoke-check it before merge. Merging to `master` is the human-reviewed production release: Vercel builds Production from that same source revision with production configuration, followed by production smoke checks. Environment-specific builds may differ; never promote a Preview build containing development configuration into Production. No production deployment path may bypass branch protection.
+DEP-02: Release pipeline (D-18). GitHub Actions runs on every pull request to `master`: install from lockfile → formatting/lint/type checks → unit/integration/security tests → Next.js build and secret scan (gitleaks plus a built-asset canary, D-29). These jobs are required status checks, and branch protection on `master` requires a human-reviewed pull request with passing checks. Vercel Git integration builds a Preview deployment with development configuration for pushed branches; smoke-check it before merge. Merging to `master` is the human-reviewed production release: Vercel builds Production from that same source revision with production configuration, followed by production smoke checks. Environment-specific builds may differ; never promote a Preview build containing development configuration into Production. No production deployment path may bypass branch protection.
 
 DEP-03: Run migrations with node-pg-migrate (D-08) as a controlled release step with a pre-migration backup and restore plan. Because merging to `master` deploys Production (D-18), apply a release's production migrations before merging the code that requires them; such migrations must remain compatible with the currently deployed code. Prefer backward-compatible migrations. Restore the previous compatible Vercel deployment for code rollback; database rollback requires a separate data plan.
 

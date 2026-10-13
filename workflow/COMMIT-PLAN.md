@@ -17,7 +17,7 @@ It is worth having, kept at PR granularity, not every commit:
 
 | Hotspot | Single owner | Rule for the other developer |
 | --- | --- | --- |
-| Migrations directory | B | The initial migration covers the **entire** data model, so later changes are rare. A requests a change in a short PR that adds a **new** migration file. Never edit a merged migration (`AGENTS.md` rule 4). Use timestamp-prefixed filenames (node-pg-migrate, D-08) so parallel branches cannot collide |
+| Migrations directory (`src/server/db/migrations/`, D-26) | B | The initial migration covers the **entire** data model, so later changes are rare. A requests a change in a short PR that adds a **new** migration file. Never edit a merged migration (`AGENTS.md` rule 4). Use timestamp-prefixed filenames (node-pg-migrate, D-08) so parallel branches cannot collide |
 | `package.json`, `package-lock.json` | B | Dependencies chosen in S-00 are added in S-01. Any later addition is a separate one-commit PR by B (or by A with B's review). Never mix lockfile changes into feature PRs |
 | `src/app/layout.tsx`, route-group layouts, `src/components/` | A | B uses components as they are, or opens a small PR that A reviews |
 | `src/server/http/` (K2), `src/server/{services,repositories}/identity/` (K3) | A | B consumes only |
@@ -73,7 +73,7 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | --- | --- | --- | --- | --- | --- | --- |
 | B#0 | S-00 | (joint with A#0) | — | — | — | Planned |
 | B#1 | S-01 | `feat/db-foundation` | `chore(deps): pin dependencies and add selected tools` · `feat(config): validate server configuration` · `feat(db): pg pool and transaction helper` · `test: configure unit and PostgreSQL integration runners` · `feat(db): initial schema migration` · `chore(db): synthetic seed script` | `src/server/{config,db}/`, migrations, `tests/` config, `.env.example`, `package*.json`, `AGENTS.md` Commands | SP-0 | Planned (**SP-1**) |
-| B#2 | S-03 | `chore/ci-test-harness` | `ci: lint, typecheck, test, build and secret scan (DEP-02)` · `feat(health): liveness and readiness endpoints (AT-26)` | `.github/workflows/ci.yml`, `/health/*`, `package.json` scripts | B#1 | Planned |
+| B#2 | S-03 | `chore/ci-test-harness` | `ci: lint, typecheck, test, build and secret scan (DEP-02)` · `feat(health): liveness and readiness endpoints (AT-26)` | `.github/workflows/ci.yml`, `.gitleaks.toml`, canary script, `/health/*`, `package.json` scripts | B#1 | Planned |
 | B#3 | S-05 | `feat/audit-ratelimit` | `feat(audit): transactional audit entries` · `feat(security): shared PostgreSQL rate limiter (SEC-11)` | audit, limiter, tests | B#1 | Planned (**SP-2**) |
 | B#4 | K7/K9/K10 stubs | `feat/ai-catalogue-contracts` | `feat(catalogue): movie active check and reviews-changed marker (INV-09)` · `feat(ai): moderation work enqueue/attempt interface with fail-closed fake` · `feat(ai): LLM provider interface and deterministic fake` | catalogue write service (part), `src/server/services/ai/`, `src/server/adapters/soc-llm/` (interface) | B#1 | Planned (**SP-2**) |
 | B#5 | S-06 | `feat/ai-runtime` | `feat(ai): SoC adapter with typed errors (CON-02)` · `feat(ai): execution controller, leases and token budget (AI-03)` · `test(ai): concurrency, deadline and late-write rejection` | AI runtime, adapter, tests | B#4 | Planned |
@@ -82,7 +82,7 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | B#8 | A-04 | `feat/admin-review-queue` | `feat(moderation): admin review list, approve, hide and restore (FR-09)` · `feat(admin-ui): review queue with approve, hide and restore` | `/admin/reviews*`, admin pages | B#7 | Planned |
 | B#9 | A-05 | `feat/moderation-decisions` | `feat(moderation): report decisions with unique strikes (FR-06, SEC-10)` · `feat(moderation): threshold suspension with session revocation` · `feat(admin-ui): report queue with effect preview` | decision service, `/admin/reports*`, pages | A#8, A#3 | Planned |
 | B#10 | A-06 | `feat/admin-user-status` | `feat(moderation): manual suspend and unsuspend (FR-06)` · `feat(admin-ui): user management screen` | `/admin/users*`, pages | B#9 | Planned |
-| B#11 | R-04 | `chore/deploy-release` | `ci: environment-scoped deployment workflow (DEP-02)` · `chore: daily cron configuration (DEP-09, DEP-10)` · `docs: backup, restore and rollback procedure (DEP-08)` | `.github/workflows/`, `vercel.json`, `docs/DeveloperGuide.md` | B#2 | Planned |
+| B#11 | R-04 | `chore/deploy-release` | `chore(db): operator migration and backup scripts (DEP-03, DEP-08)` · `chore: daily cron configuration (DEP-09, DEP-10)` · `docs: backup, restore and rollback procedure (DEP-08)` | `package.json` scripts, `vercel.json`, `docs/DeveloperGuide.md` | B#2 | Planned |
 | B#12 | R-01/R-02 | `test/admin-security-e2e` | `test(ai): moderation benign and adversarial fixtures (AT-11)` · `test(e2e): admin journey` · `test(api): admin access matrix and concurrency (AT-05, AT-25)` | `tests/` | SP-6 | Planned |
 
 ## 6. Joint PRs (both review, one author each)
