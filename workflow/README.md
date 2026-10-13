@@ -16,6 +16,11 @@ This directory contains the durable role prompts and evidence structure for the 
 
 Do not run roles concurrently against the same files. Give each agent a bounded assignment with task and requirement identifiers copied from recorded sources, a source revision, permitted paths/actions, and an explicit receiver. Agents return evidence to the coordinating agent; they do not approve their own output.
 
+## Plans
+
+- `workflow/PLAN.md`: task breakdown of `spec/` with dependencies, acceptance criteria, blocking decisions and progress tracking.
+- `workflow/COMMIT-PLAN.md`: per-developer PR sequence, hotspot ownership and sync points for independent work.
+
 ## Evidence locations
 
 - `workflow/handoffs/` stores task handoffs when a durable artifact is required.

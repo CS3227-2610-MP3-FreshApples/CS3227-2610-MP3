@@ -4,13 +4,28 @@
 
 ### 8.1 HTTP APIs
 
-Base path: /api/v1, implemented by Next.js App Router Route Handlers using the Node.js runtime. JSON requests/responses; reject unknown mutation fields. Successful reads/updates return 200, creates 201, deletes/logout 204, and references to already-running AI work 202. Cookies carry sessions; state-changing browser requests require CSRF protection. IDs, ownership, roles and account status are validated server-side.
+Base path: /api/v1, implemented by Next.js App Router Route Handlers using the Node.js runtime. JSON requests/responses; reject unknown mutation fields with 422. Successful reads/updates return 200, creates 201, deletes/logout 204, and references to already-running AI work 202. Cookies carry sessions; state-changing browser requests require CSRF protection. IDs, ownership, roles and account status are validated server-side.
 
-Lists return { items, page, pageSize, total }; page starts at 1, pageSize defaults to 20 and caps at 100. Stable ordering always includes ID. Timestamps use ISO 8601 UTC. Private responses use Cache-Control: no-store.
+Lists return { items, page, pageSize, total }; page starts at 1, pageSize defaults to 20 and caps at 100. Non-integer, zero, negative or over-cap page/pageSize values return 422; they are not clamped. Stable ordering always includes ID. Timestamps use ISO 8601 UTC. Private responses use Cache-Control: no-store.
 
-Errors have { error: { code, message, fieldErrors?, requestId } }. Use 400 for malformed input, 401 for no valid session, 403 for forbidden role/status, 404 for missing or ownership-protected objects, 409 for conflicts/stale writes, 422 for valid JSON with invalid fields or insufficient reviews, 429 for limits (with Retry-After), and 503 for unavailable dependencies. Never return stack traces or provider raw errors.
+Errors have { error: { code, message, fieldErrors?, requestId } }. Use 400 for malformed input, 401 for no valid session, 403 for forbidden role/status or failed CSRF/Origin checks, 404 for missing or ownership-protected objects (including malformed path IDs), 409 for conflicts/stale writes, 413 for bodies over 32 KiB, 415 for unsupported content types, 422 for valid JSON with invalid or unknown fields, 428 for a missing If-Match, 429 for limits (with Retry-After), 500 for unexpected server faults, and 503 for unavailable dependencies. Never return stack traces or provider raw errors. Every response carries a server-generated X-Request-Id header equal to error.requestId; inbound request IDs are ignored.
 
-Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the new version in the resource and ETag header. This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes.
+| HTTP status | error.code values |
+| --- | --- |
+| 400 | malformed_request |
+| 401 | unauthenticated |
+| 403 | forbidden, csrf_failed |
+| 404 | not_found |
+| 409 | conflict, stale_version |
+| 413 | payload_too_large |
+| 415 | unsupported_media_type |
+| 422 | validation_failed (with fieldErrors) |
+| 428 | precondition_required |
+| 429 | rate_limited |
+| 500 | internal_error |
+| 503 | service_unavailable |
+
+Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the new version in the resource and ETag header. ETag and If-Match use the quoted integer version, for example "3"; weak validators, lists and * are malformed (400). This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes.
 
 | Method and path | Access | Request / result |
 | --- | --- | --- |
@@ -18,6 +33,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /auth/login | Anonymous | email, password → safe account; session cookie |
 | POST /auth/logout | Authenticated | invalidate session and clear cookie |
 | GET /auth/me | Authenticated | id, displayName, role, status |
+| GET /auth/csrf | Anonymous or authenticated | { csrfToken } for the X-CSRF-Token header; sets the pre-session cookie when no session exists (security.md, D-14) |
 | GET /movies | Public | q ≤200, sort=release_desc/title_asc, page, pageSize → active Movie summaries |
 | GET /movies/:id | Public | active Movie detail and aggregate |
 | GET /movies/:id/reviews | Public | page, pageSize; newest first → visible Review projections |
@@ -61,7 +77,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /health/live | Public, no session | 200 { status: "ok" }; process responsiveness only, no dependency calls |
 | GET /health/ready | Public, no session | 200 { status: "ready" } or 503 { status: "unavailable" }; core configuration and bounded database connectivity check |
 
-Review rating inputs must be integers from 1 to 10 inclusive; reject fractional and out-of-range values with 422.
+Review rating inputs must be integers from 1 to 10 inclusive; reject fractional and out-of-range values with 422. User review and report mutations that target a missing or archived Movie return 404.
 
 Public Review projection: id, movieId, author { id, displayName }, rating, body, createdAt, updatedAt. Do not expose email or account history. A report receipt includes id, reviewId, category, status, createdAt and disposition when closed.
 
@@ -97,12 +113,12 @@ Logical events ReviewChanged, ReviewModerated, MovieVisibilityChanged, ReportCre
 
 ### 8.4 External Integrations
 
-SoC LLM is the required runtime AI provider. Its actual endpoint, authentication scheme, models, quotas and retention behaviour must be verified against the course guide before integration. Do not assume compatibility with any vendor SDK. The provider adapter isolates those differences.
+SoC LLM is the required runtime AI provider. Its actual endpoint, authentication scheme, models, quotas and retention behaviour must be verified against the course guide before integration. Do not assume compatibility with any vendor SDK. The provider adapter isolates those differences. SOC_LLM_BASE_URL excludes the /v1 path segment; the adapter appends versioned paths. Do not rely on a provider JSON response mode; validate returned content (AI-01, AI-02).
 
 GitHub Actions is the team-managed CI/CD mechanism; GitHub Pages is the required product website host. Next.js frontend/backend are hosted on Vercel and PostgreSQL on Supabase. No external movie API is required.
 
-Review approval is a manual override for the current content revision, requires a reason and If-Match, and supersedes automatic work. It does not clear author deletion or admin hidden_at; restore clears hidden_at only and never bypasses pending/flagged moderation. Every control is server-authorized.
+Review approval is a manual override for the current content revision, requires a reason and If-Match, and supersedes automatic work. It does not clear author deletion or admin hidden_at; restore clears hidden_at only and never bypasses pending/flagged moderation. Every control is server-authorized. Approving a cleared Review, hiding a hidden Review or restoring a non-hidden Review is a no-op: 200 with the unchanged version and an audit entry with result no_op. Admin approve, hide and restore are permitted on Reviews of archived Movies; they cannot make content public while the Movie is archived.
 
 Health contract: both endpoints use Cache-Control: no-store and bypass login/role middleware so external uptime checks work without an Admin session. Liveness never queries the database or LLM. Readiness checks required core configuration and a read-only database probe with a 2-second timeout; AI availability/quota does not determine core readiness. No database writes, provider calls or migrations. Health responses use the minimal shapes above even on failure, not raw dependency errors; detailed causes go to restricted server logs. Do not expose hostnames, versions, connection strings, stack traces or per-dependency diagnostics. Protect against flooding at the edge without relying on application database/session access.
 
-Manual account status changes return 200 with id, displayName, status and version. A same-status request with a current If-Match is a no-op; it must not reset strike_cycle. Unauthorized callers receive 401/403, non-USER targets are rejected, and stale versions return 409. The status transaction serializes with Report acceptance and revokes sessions atomically on suspension. Manual actions do not reveal received-report details to the target.
+Manual account status changes return 200 with id, displayName, status and version. A same-status request with a current If-Match is a no-op; it must not reset strike_cycle. Unauthorized callers receive 401/403, non-USER targets are rejected with 403 forbidden, and stale versions return 409. The status transaction serializes with Report acceptance and revokes sessions atomically on suspension. Manual actions do not reveal received-report details to the target.

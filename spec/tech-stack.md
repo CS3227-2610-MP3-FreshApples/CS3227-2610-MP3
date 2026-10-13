@@ -11,13 +11,17 @@ Status: selected on 8 October 2026. This supplements sections 6, 10 and 14.
 | Application hosting | Vercel Hobby, subject to account/repository eligibility |
 | Database | PostgreSQL hosted in Supabase Free |
 | Database access | `pg` (node-postgres) driver behind a server-only repository layer, via Supabase transaction pooler |
+| Database migrations | node-pg-migrate with timestamp-prefixed SQL files (D-08) |
+| Authentication | `@node-rs/argon2` (Argon2id) with in-repo opaque server-side sessions (D-11) |
+| Testing | Vitest for unit/integration tests; Playwright for end-to-end tests (D-09) |
+| Input validation | zod schemas in strict mode (D-22) |
 | Runtime AI | SoC LLM, called only from Next.js server code |
-| CI/CD | GitHub Actions checks and team-managed Vercel deployment |
+| CI/CD | GitHub Actions required checks; Vercel Git integration deployment from reviewed `master` (D-18) |
 | Product information website | GitHub Pages, as required by the course |
 
 Pin compatible stable dependency versions during implementation and commit a lockfile. A separate Express backend, persistent worker, message broker, Supabase Edge Functions and Vercel AI Gateway are unnecessary for the initial scope.
 
-Supabase is selected as the PostgreSQL host. Its Auth, Storage and Realtime services are not automatically added to the architecture. Existing account/session contracts remain in effect; choose a maintained authentication library before implementation. Adopting Supabase Auth later requires an explicit update to those contracts and tests.
+Supabase is selected as the PostgreSQL host. Its Auth, Storage and Realtime services are not automatically added to the architecture. Existing account/session contracts remain in effect; D-11 selects the password-hashing library and the in-repo session implementation. Adopting Supabase Auth later requires an explicit update to those contracts and tests.
 
 ## Free-tier constraints and responses
 
@@ -43,10 +47,12 @@ Use `pg` (node-postgres), pinned exactly in `package.json`, only from server-onl
 - Never set a query `name`. Named prepared statements are not supported through the transaction pooler; unnamed parameterized queries (`$1`, `$2`, …) remain mandatory (SEC-05).
 - TLS with certificate verification against the Supabase project CA (`DATABASE_CA_CERT`); never disable `rejectUnauthorized`. Do not put `sslmode` in `DATABASE_URL`, because it overrides the driver's TLS options.
 - Return PostgreSQL `date` values as `YYYY-MM-DD` strings rather than JavaScript `Date`, so calendar dates such as release_date are not shifted by time zone. Configure this per pool through the `types` option, not the global `pg.types` registry.
-- Bound statement time; the readiness probe uses 2 seconds (see [api.md](api.md) health contract).
+- Bound statement time: 5 seconds per transaction through `SET LOCAL statement_timeout`; the readiness probe uses 2 seconds (see [api.md](api.md) health contract). Waiting for the pool connection times out after 5 seconds.
+- Use PostgreSQL's default READ COMMITTED isolation with explicit row locks in the order defined in [data-model.md](data-model.md). Deadlock (40P01) and serialization (40001) failures are not retried automatically; they map to 409 conflict.
+- With one connection per instance, never begin a transaction while another is open in the same request; nested transaction calls fail immediately.
 - Session state does not persist between transactions through the pooler. Use transaction-scoped settings (`SET LOCAL`) and table-based leases, not session-level settings, session advisory locks or `LISTEN`/`NOTIFY`.
 
-`pg` does not provide migrations; migration tooling is not selected by this decision. Feasibility evidence: `logs/2026-10-11-supabase-feasibility-smoke-test.md`.
+`pg` does not provide migrations; D-08 selects node-pg-migrate. Feasibility evidence: `logs/2026-10-11-supabase-feasibility-smoke-test.md`.
 
 Use dynamic rendering/no-store for private or changing data in the initial release to avoid accidental cross-user caching and stale moderation visibility. Public caching is an optimization only after invalidation tests exist. Route Handlers implement the [API contract](api.md); see [Next.js documentation](https://nextjs.org/docs/app/getting-started/route-handlers).
 

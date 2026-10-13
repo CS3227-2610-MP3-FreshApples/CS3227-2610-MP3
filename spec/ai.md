@@ -25,7 +25,7 @@ Measure throughput against the changed-Movie rate; monitor oldest pending age an
 
 Every new Review, author resubmission and body edit atomically saves pending moderation work before attempting AI. No Admin/User requests the check separately. Rating-only edits retain text clearance. Input contains only pseudonymous Review ID/content_revision, the complete body (maximum 2,000 characters), and a versioned profanity policy. Exclude history, Reports, explanations, emails, ratings, sessions and profiles. Bound input including policy to 8,000 tokens; if the full text cannot fit, retain it for manual review instead of screening a fragment.
 
-The policy defines profanity, contextual quotations, obfuscated spellings and supported languages. Negative movie opinions alone are not profanity. Review and version the policy before enabling screening.
+The policy defines profanity, contextual quotations, obfuscated spellings and supported languages. Negative movie opinions alone are not profanity. Review and version the policy before enabling screening. The policy is a versioned static artifact in source under `src/server/services/ai/moderation/policy/`, and its version is the recorded policy_version (D-17). English is the initial supported language (ASM-08).
 
 Expected validated output:
 
@@ -58,13 +58,13 @@ AI never creates or accepts Reports, adds strikes or changes accounts. Human Rep
 
 Limits: 1 active execution per subject/type/content revision and 1 active AI execution per environment shared by scheduled summaries and automatic review screening. Existing per-User review-write throttles limit screening triggers; no per-Admin AI-request throttle is needed. Public/admin reads consume no provider budget and cannot dispatch work. Pending work is durable when capacity is unavailable.
 
-Configure verified SoC request/token quotas and a required shared daily token budget. Coordinate all instances through PostgreSQL reservations. Partition shared development/production allocations so their sums fit, or provide a shared coordinator. Missing quota/budget configuration disables generation safely.
+Configure verified SoC request/token quotas and a required daily cost budget in microdollars (D-25). Coordinate all instances through PostgreSQL reservations. Partition shared development/production allocations as fixed sub-budgets whose sums fit (D-16). The per-environment execution slot is the `ai_execution` SchedulerLease; the daily budget is tracked per UTC calendar day in AIBudgetDay and AIBudgetReservation; per-minute request and token quotas use RateLimitWindow (D-13, [data-model.md](data-model.md)). Missing quota/budget configuration disables generation safely.
 
 Use 30 seconds per provider attempt, at most 2 attempts per execution and a 75-second execution deadline including storage. Configure maxDuration = 120 with Fluid compute on AI cron and review mutation handlers and verify deployment. Retry transient network errors, 429 and provider 5xx with jitter and Retry-After only if time remains. Apply AI-02 limits across recovery executions as well. Cap output at 1,200 tokens for summaries and 1,000 for screening; input plus output must fit verified context.
 
 The cron or review mutation Route Handler awaits execution and persists results before responding. No detached continuation. Shared capacity exhaustion retains summary or moderation work for its next sweep. Duplicate submissions cannot start duplicate checks; existing review-write conflict/idempotency semantics apply. Expire abandoned leases on later access/sweeps and reject late writes. Recovery is automatic, never dependent on an Admin POST.
 
-Reserve token usage before dispatch and reconcile afterward, charging conservatively when usage is unknown. Safe failures leave core features usable; never expose provider raw errors or promise unsupported completion times.
+Reserve cost before dispatch and reconcile afterward, charging conservatively when usage is unknown. No tokenizer is selected: estimate input tokens as the UTF-8 byte length divided by 3, rounded up, plus 16 per message. Reserve, in microdollars, ceil((estimated input tokens × input price + output cap × output price) ÷ 1,000,000), using the verified per-million-token prices; reconciliation recomputes cost from provider-reported usage, and unknown usage is charged at the reserved amount. The estimate is used for budgeting and the input cap; it is not a guaranteed upper bound, so reconcile against provider-reported usage. Lease durations are in [data-model.md](data-model.md) (SchedulerLease). Safe failures leave core features usable; never expose provider raw errors or promise unsupported completion times.
 
 ## AI-04: Guardrails and limitations
 

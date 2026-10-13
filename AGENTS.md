@@ -14,7 +14,7 @@ Use project artifacts in this order:
 
 1. Human-approved specifications and recorded decisions in `spec/`
 2. `spec/README.md` and its referenced service/API specifications
-3. Existing code on `main`
+3. Existing code on `master`
 4. This repository-level `AGENTS.md`
 
 `AGENTS.md` defines how to work. The files in `spec/` define required software behaviour.
@@ -66,7 +66,7 @@ The AI execution module may read approved snapshots and write validated derived 
 What to avoid:
 
 * Content — reaching into another component's internals. Never. Keep struct fields unexported unless the package's own API needs them.
-* Common/global — shared mutable globals. No package-level `var` that isn't a constant, a compiled regexp, or a sentinel error.
+* Common/global — shared mutable globals. No package-level `var` that isn't a constant, a compiled regexp, or a sentinel error. The one recorded exception is the composition root `src/server/composition.ts`, which holds the per-instance database pool and service graph (`spec/governance.md` D-23).
 * Control — passing a flag that tells the callee which branch to take. `Update(x, isAdmin bool)` is control coupling; write two named functions instead. This is the one that creeps in most quietly.
 * Temporal — work bundled together only because it happens at the same time, or an object that must have methods called in a fixed order. Constructors return ready-to-use values; no `New()` then `Init()` then `Start()`. Across services, never assume startup order — retry and wait for readiness.
 * External / inclusion — depend on an interface you define, not on a vendor type spread through your code. Adapters live at the edges.
@@ -122,7 +122,7 @@ Open decisions already recorded in `spec/governance.md` must be resolved by thei
 - Lint: `npm run lint`
 - Type-check: `npx tsc --noEmit`
 
-No automated test command is configured yet. Do not invent one; add it when the testing framework is selected.
+Test frameworks are selected (Vitest and Playwright; `spec/governance.md` D-09), but no automated test command is configured yet. Do not invent one; add it when the test harness is set up.
 
 ## Agent Workflow and Roles
 
@@ -139,7 +139,7 @@ Use the recorded SDD workflow:
 
 Each handoff must record task ID, requirement IDs, source revision, permitted paths/actions, changed files, rationale, tests and results, known gaps, and the next action. Keep role definitions, prompts, runners, and grader-facing scripts under `workflow/`, except CI in `.github/workflows/` and specifications in `spec/`.
 
-The proposed ownership split is Developer A for User features and identity/public API/User security testing, Developer B for Admin features, database/migrations, deployment/CI, audit/job infrastructure, and developer guide; both developers cross-review and integrate. Names and final allocation remain unresolved.
+The proposed ownership split is Developer A for User features and identity/public API/User security testing, Developer B for Admin features, database/migrations, deployment/CI, audit/job infrastructure, and developer guide; both developers cross-review and integrate. This split is adopted: Developer A is Lim-ZY and Developer B is thegrimbee. Tester accounts remain unresolved (`spec/governance.md` OQ-06).
 
 ## Completion Criteria
 
