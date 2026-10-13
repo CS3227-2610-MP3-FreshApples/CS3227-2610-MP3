@@ -174,7 +174,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 - **Vitest harness:**
   - a fresh database per run with the D-31 synthetic roles, and truncation between files (D-10)
   - an `npm` test script, recorded in `AGENTS.md` Commands
-- **Dependencies:** add only node-pg-migrate, zod and vitest. Pin them and the existing caret devDependencies exactly. The D-08 TLS check for the pinned node-pg-migrate version is recorded in the handoff.
+- **Dependencies:** add every package selected in `spec/governance.md` in one lockfile commit: node-pg-migrate (D-08), vitest and @playwright/test (D-09), zod (D-22) and @node-rs/argon2 (D-11). Pin them and the existing caret devDependencies exactly. S-03 and S-04 then use these pins and change no lockfile. The D-08 TLS check for the pinned node-pg-migrate version is recorded in the handoff. *(Revised 13 Oct: Playwright and argon2 moved here from S-03/S-04.)*
 - **No seed script:** it moves to R-04 (D-35).
 **Acceptance Criteria:**
 - [ ] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
@@ -208,7 +208,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 **Owner:** B. **Depends on:** S-01, S-00 (B2). **Reqs:** DEP-02 (checks portion), AT-26, verification.md 11.1.
 **Allowed paths:** Playwright config and `tests/e2e/`, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
-**Description:** The Vitest unit and PostgreSQL-integration harness lands in S-01. S-03 adds Playwright (pinned, Chromium only, D-09) and wires every runner into CI with nonzero exit on failure, using a `postgres:17` service container. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
+**Description:** The Vitest unit and PostgreSQL-integration harness lands in S-01. S-03 configures Playwright (package pinned in S-01; Chromium only, D-09) and wires every runner into CI with nonzero exit on failure, using a `postgres:17` service container. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
 **Acceptance Criteria:**
 - [ ] AT-26: live returns 200 without DB access; ready returns 503 on a DB outage or missing core config and 200 when AI is down; both use no-store, generic shapes and a 2 s probe.
 - [ ] CI runs on PRs to `master` and fails on a deliberately failing test (demonstrated once, then reverted).

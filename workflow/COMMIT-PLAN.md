@@ -18,7 +18,7 @@ It is worth having, kept at PR granularity, not every commit:
 | Hotspot | Single owner | Rule for the other developer |
 | --- | --- | --- |
 | Migrations directory (`src/server/db/migrations/`, D-26) | B | The initial migration covers the **entire** data model except the optional WatchlistEntry (D-34), so later changes are rare. A requests a change in a short PR that adds a **new** migration file. Never edit a merged migration (`AGENTS.md` rule 4). Use timestamp-prefixed filenames (node-pg-migrate, D-08) so parallel branches cannot collide |
-| `package.json`, `package-lock.json` | B | S-01 adds the dependencies it needs (node-pg-migrate, zod, vitest) and pins the existing caret devDependencies. Playwright (S-03) and `@node-rs/argon2` (S-04) are added by the task that first needs them. Any later addition is a separate one-commit PR by B (or by A with B's review). Never mix lockfile changes into feature PRs |
+| `package.json`, `package-lock.json` | B | S-01 adds every dependency selected in `spec/governance.md` (node-pg-migrate, zod, vitest, @playwright/test, `@node-rs/argon2`) in one lockfile commit and pins the existing caret devDependencies, so S-03 and S-04 need no lockfile change. Any later addition is a separate one-commit PR by B (or by A with B's review). Never mix lockfile changes into feature PRs |
 | `src/app/layout.tsx`, route-group layouts, `src/components/` | A | B uses components as they are, or opens a small PR that A reviews |
 | `src/server/http/` (K2), `src/server/{services,repositories}/identity/` (K3) | A | B consumes only |
 | `src/server/db/`, `src/server/config/`, audit, limiter, AI runtime, SoC adapter (K1, K5, K6, K9, K10) | B | A consumes only |
