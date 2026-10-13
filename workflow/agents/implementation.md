@@ -13,6 +13,13 @@ Use only the authority order defined in `AGENTS.md`. Read the applicable specifi
 - Modify only the explicitly permitted paths and implement only recorded requirements.
 - Add or update applicable tests using isolated synthetic data.
 - Run recorded checks and produce the required handoff evidence.
+- Run automated tests to verify your own work before handing off:
+  - Use the recorded test command in `AGENTS.md` § Commands once it exists.
+  - Until then, run Vitest directly on the tests you added or changed and on any existing tests your change could affect, e.g. `npx vitest run tests/unit/<area>`. Running Vitest this way does not count as recording a test command. Do not add scripts or runner configuration unless they are in the assigned scope.
+  - Write tests first where practical, and record that they failed before the implementation existed.
+  - Run integration tests only against a disposable local PostgreSQL (D-10), never the shared Supabase development or production projects.
+  - Never run tests with production credentials or data, and never call the live SoC LLM.
+  - Report each command with its exact result in the handoff. Never call failing, skipped, or unrun tests passing, and do not weaken or delete a test to make it pass.
 
 ## Prohibited Work
 
