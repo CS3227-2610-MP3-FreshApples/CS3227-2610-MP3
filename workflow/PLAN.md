@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`).
+Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`); S-01 revisions below are against `682c010`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -17,9 +17,9 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
 | S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
-| S-01 | B | Config, database access, migrations, full initial schema | S-00 | 13 Oct | Blocked |
+| S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Spec review |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
-| S-03 | B | Test harness, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
+| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Blocked |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
@@ -51,7 +51,7 @@ Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only af
 - Proposed module subfolders (confirm in S-00): `src/server/services/<module>/` and `src/server/repositories/<module>/` for `identity`, `catalogue`, `reviews`, `moderation`, `announcements`, `ai`, `audit`; `src/server/adapters/soc-llm/`; `src/server/db/` (pool, transaction helper, migrations); `src/server/http/` (API kernel); `src/server/config/`.
 - Database: `pg` through the transaction pooler with one connection per instance, CA-verified TLS, no named prepared statements, `SET LOCAL` only, and `date` returned as `YYYY-MM-DD` via per-pool `types` (`spec/tech-stack.md`).
 - API: `/api/v1`, Node.js runtime, the error envelope and status codes in `spec/api.md` §8.1, and `Cache-Control: no-store` on private or changing data.
-- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-03 adds the commands.
+- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-01 adds the Vitest command and S-03 the Playwright command.
 - Git: branches `feat/<module>-<slug>`, `fix/…`, `chore/…` off `master`. Conventional Commits scoped to the module. Humans commit, push and open PRs (`AGENTS.md` § Git).
 - Ownership of shared hotspots (migrations, `package.json`, root layout, shared contracts) is set in [COMMIT-PLAN.md §2](COMMIT-PLAN.md#2-rules-that-make-independent-work-possible).
 
@@ -82,7 +82,9 @@ Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blo
 Minor inconsistencies to note but not to block on:
 
 - `package.json` devDependencies use caret ranges (`^4`, `^5`, …) although `AGENTS.md` asks for pinned versions. S-01 should pin them, and the lockfile already exists.
-- `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` lists 7 and has no code-quality/test step. Align the two in S-00 (still open).
+- `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` listed 7. **Resolved 13 Oct:** governance now lists the same 8 steps.
+
+**S-01 analysis (13 Oct 2026).** The analyst found 15 blocking items and 10 plan/contract conflicts for S-01. Developer B delegated every choice to the agent's recommendation. The outcomes are recorded as D-30–D-37 in `spec/governance.md` and as contract amendments AM-01–AM-05 in `contracts.md` §17; AM-01–AM-05 still need Developer A's approval. This plan now reflects them: S-01 scope, S-03 harness split, seed moved to R-04, watchlist excluded. Log: `logs/2026-10-13-s01-analysis-decisions.md`.
 
 ---
 
@@ -136,19 +138,62 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 **Acceptance Criteria:**
 - [x] B1–B6, B9–B13 recorded in `spec/` with human approval. B7/B8 have an owner and a dated resolution plan. *(D-08–D-25 recorded and confirmed 12 Oct; B7/B8 owners and deadlines recorded; session log verified.)*
 - [x] `workflow/contracts.md` lists K1–K12 with provider, consumer, approved signature and lock order. *(Approved by both developers, 12 Oct.)*
-- [ ] `AGENTS.md` Commands section names the selected test commands.
+- [ ] `AGENTS.md` Commands section names the selected test commands. *(Moved to S-01 for Vitest and S-03 for Playwright, 13 Oct.)*
 - [ ] This plan's tracker is updated: tasks with no remaining blockers move to `Draft`.
 
 ### Task S-01: Config, database access, migrations, initial schema
 
-**Owner:** B. **Depends on:** S-00 (B1, B3, B5, B6). **Reqs:** spec/data-model.md §7, tech-stack.md "Database driver", deployment.md 10.3, SEC-05, SEC-07.
-**Allowed paths:** `src/server/config/`, `src/server/db/` (migrations in `src/server/db/migrations/`, D-26), `.env.example`, `package.json`/lockfile.
-**Description:** Add a server-only config validator (invalid core config per D-28 prevents readiness; missing AI config disables AI). Add the `pg` pool (1 connection, CA TLS, `date` as string, statement timeout, no query names) and the `withTransaction` helper (K1). Add the migration runner and **one initial migration for the whole data model**, including the B5 additions, all constraints, partial unique indexes and listed indexes, in the `app` schema (D-27), not exposed to Supabase Data APIs. Add a synthetic seed script. Pin devDependency versions.
+**Owner:** B. **Depends on:** S-00 (B1, B3, B5, B6); S-01 decisions D-30–D-37 (13 Oct). **Reqs:** spec/data-model.md §7, tech-stack.md "Database driver", deployment.md 10.3, SEC-05, SEC-07, DEP-03, D-08, D-10, D-22, D-23, D-26–D-28, D-30–D-37.
+**Allowed paths:**
+- `src/server/config/`
+- `src/server/db/` (migrations in `src/server/db/migrations/`, D-26)
+- `src/server/shared/`: `Tx`, `Result`, branded IDs and `TransactionConflict` (contracts §2, O-34)
+- `src/server/composition.ts`: config and pool only (D-23)
+- `tests/integration/database/`, `tests/unit/config/`, `tests/support/`
+- `vitest.config.ts`
+- `.env.example`
+- `package.json`/lockfile
+- the `AGENTS.md` Commands section
+
+**Description:**
+- **Config validator** (zod, D-37). Invalid core config per D-28 prevents readiness. Invalid or missing AI config disables AI.
+- **`pg` pool:**
+  - 1 connection
+  - CA-verified TLS, or loopback without TLS in local/test (D-30)
+  - `date` as string and `bigint` as safe number, both per pool
+  - 5 s statement and acquire timeouts
+  - no query names
+- **K1:** `withTransaction`, `withTransactionResult`, `probe()` and `TransactionConflict` (D-36).
+- **Migration runner:** node-pg-migrate over `MIGRATION_DATABASE_URL` with the same TLS rule, bookkeeping table in `app`.
+- **One initial migration:**
+  - covers the whole data model **except the optional WatchlistEntry (D-34)**, including the B5 additions
+  - all structural constraints (D-33), partial unique indexes and listed indexes
+  - everything in the `app` schema (D-27)
+  - revokes from `anon`, `authenticated` and `public`, and applies the `app_runtime` grants (D-32)
+  - creates no roles (D-31)
+- **Vitest harness:**
+  - a fresh database per run with the D-31 synthetic roles, and truncation between files (D-10)
+  - an `npm` test script, recorded in `AGENTS.md` Commands
+- **Dependencies:** add only node-pg-migrate, zod and vitest. Pin them and the existing caret devDependencies exactly. The D-08 TLS check for the pinned node-pg-migrate version is recorded in the handoff.
+- **No seed script:** it moves to R-04 (D-35).
 **Acceptance Criteria:**
 - [ ] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
 - [ ] Integration tests check: unique `(movie_id, author_id)`; rating 1–10 check; partial unique open report per `(reporter_id, review_id)`; unique `(target_user_id, review_id)` strike; unique `ModerationWork` revision key.
-- [ ] Runtime role has least privilege. The anon/authenticated API roles cannot read app tables (AT-18 direct-access check documented).
+- [ ] Integration tests also check: `ON DELETE RESTRICT`; AIBudgetDay budget CHECK; `NULLS NOT DISTINCT` on a null `model_id`.
+- [ ] K1 tests cover:
+  - commit, rollback on throw and on an error Result
+  - nested call throws immediately
+  - stale `Tx` throws
+  - no query `name` sent
+  - `date` string and per-pool types
+  - statement timeout
+  - deadlock → `TransactionConflict`
+  - `probe()` 2 s limit
+- [ ] Config unit tests cover each D-37 rule, and no secret value appears in error output.
+- [ ] Runtime role has exactly the D-32 privileges: no UPDATE or DELETE on AuditEntry, no DDL, no access to bookkeeping. The `anon`/`authenticated` roles cannot read app tables (local test).
+- [ ] AT-18 direct-access check on the Supabase development project is human-run when the initial migration is applied there, and recorded in the S-01 handoff.
 - [ ] No secrets in the repo. `.env.example` has placeholders for every new variable.
+- [ ] `AGENTS.md` Commands names the Vitest command(s).
 
 ### Task S-02: HTTP/API kernel
 
@@ -162,12 +207,12 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 ### Task S-03: Test harness, CI checks, health endpoints
 
 **Owner:** B. **Depends on:** S-01, S-00 (B2). **Reqs:** DEP-02 (checks portion), AT-26, verification.md 11.1.
-**Allowed paths:** `tests/` harness and config, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
-**Description:** Wire the selected unit, PostgreSQL-integration and E2E runners to real scripts with nonzero exit on failure. Each test run gets a disposable database. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
+**Allowed paths:** Playwright config and `tests/e2e/`, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
+**Description:** The Vitest unit and PostgreSQL-integration harness lands in S-01. S-03 adds Playwright (pinned, Chromium only, D-09) and wires every runner into CI with nonzero exit on failure, using a `postgres:17` service container. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
 **Acceptance Criteria:**
 - [ ] AT-26: live returns 200 without DB access; ready returns 503 on a DB outage or missing core config and 200 when AI is down; both use no-store, generic shapes and a 2 s probe.
 - [ ] CI runs on PRs to `master` and fails on a deliberately failing test (demonstrated once, then reverted).
-- [ ] `AGENTS.md` Commands updated with the real test commands.
+- [ ] `AGENTS.md` Commands updated with the Playwright command. Readiness uses K1 `probe()` (D-36).
 
 ### Task S-04: Identity
 
@@ -208,7 +253,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task U-01: Public catalogue, details, announcements (read)
 
-**Owner:** A. **Depends on:** S-02, S-07 (S-01 seed data). **Reqs:** FR-02, FR-07 (public read), INV-02, INV-05, CON-01, AT-02 (public half), AT-06 (public half).
+**Owner:** A. **Depends on:** S-02, S-07 (S-01 schema; test fixtures, since the seed script lands in R-04 per D-35). **Reqs:** FR-02, FR-07 (public read), INV-02, INV-05, CON-01, AT-02 (public half), AT-06 (public half).
 **Description:** `GET /movies` (q ≤ 200 case-insensitive, `release_desc`/`title_asc` with ID tie-break), `GET /movies/:id` with aggregate over eligible reviews only, `GET /announcements` (published, by publication time), and the corresponding pages with loading, empty and error states. Archived/unknown → 404. No image fields anywhere.
 **Acceptance Criteria:**
 - [ ] Stable pagination with ties; empty search; unknown release date; duplicate titles distinguished by ID.
@@ -307,8 +352,11 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task R-04: Deployment, crons, backup, rollback
 
-**Owner:** B (A reviews and approves the release). **Depends on:** S-03, B10. **Reqs:** DEP-01–DEP-10, AT-13, AT-17, AT-19.
-**Description:** Separate Preview/Production env scopes; `vercel.json` crons (summaries 00:00 UTC, review moderation 01:00 UTC); Fluid compute with `maxDuration` verified on the deployed Hobby project; controlled migration step with pre-migration encrypted backup; restore and rollback rehearsal; production smoke.
+**Owner:** B (A reviews and approves the release). **Depends on:** S-03, B10; S-04 and A-01 for the seed script. **Reqs:** DEP-01–DEP-10, AT-13, AT-17, AT-19.
+**Description:**
+- Synthetic seed script through the owning services (D-35). It refuses `APP_ENV=production` and is ready before peer testing on 21 Oct.
+- Operator `app_runtime` provisioning procedure (D-31) in the developer guide.
+- Separate Preview/Production env scopes; `vercel.json` crons (summaries 00:00 UTC, review moderation 01:00 UTC); Fluid compute with `maxDuration` verified on the deployed Hobby project; controlled migration step with pre-migration encrypted backup; restore and rollback rehearsal; production smoke.
 **Acceptance Criteria:**
 - [ ] Preview cannot reach production DB; no secrets in client bundle (built-asset scan); cron secret rejection verified on deployment; backup restored once into a scratch DB; app URL recorded in `docs/` site.
 

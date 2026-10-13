@@ -41,7 +41,7 @@ CI must scan for secrets (gitleaks over the PR commit range and built assets, D-
 
 ### Supabase and Next.js controls
 
-Database credentials and SoC keys must never use a NEXT_PUBLIC_ variable or enter Client Component props. Keep repositories and provider adapters in server-only modules. Runtime database access uses a dedicated least-privilege role; migration/owner credentials are restricted to controlled CI/operator actions.
+Database credentials and SoC keys must never use a NEXT_PUBLIC_ variable or enter Client Component props. Keep repositories and provider adapters in server-only modules. Runtime database access uses a dedicated least-privilege role; migration/owner credentials are restricted to controlled CI/operator actions. Roles are provisioned outside migrations (D-31), and the runtime role's exact privileges are listed in [data-model.md](data-model.md) "Runtime privileges" (D-32).
 
 Keep application tables in the `app` schema (D-27), which is not exposed through Supabase Data APIs, and revoke access from anon/authenticated API roles. If any table is exposed, enable RLS with deny-by-default policies and test direct API access separately. Server-side database access does not automatically inherit browser-user authorization: Next.js services must still enforce identity, role and ownership. No service-role key is needed in the browser.
 

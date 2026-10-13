@@ -8,7 +8,7 @@ Use Next.js App Router/TypeScript for both UI and backend Route Handlers, deploy
 
 | Environment | Application | Database |
 | --- | --- | --- |
-| Local/test | Next.js dev server; isolated tests with fake SoC adapter | `postgres:17` container (GitHub Actions service container in CI) or native PostgreSQL 17, freshly migrated per test run with disposable fixtures (D-10) |
+| Local/test | Next.js dev server; isolated tests with fake SoC adapter | `postgres:17` container (GitHub Actions service container in CI) or native PostgreSQL 17, freshly migrated per test run with disposable fixtures (D-10); loopback connection without TLS (D-30); test harness creates the synthetic roles (D-31) |
 | Shared development | Vercel Preview deployment of trusted development changes | Supabase development project |
 | Production | Vercel Production deployment from reviewed master revision | Separate Supabase production project |
 
@@ -28,14 +28,28 @@ Supabase runtime traffic uses the copied shared transaction-pooler connection st
 
 Validate configuration on server initialization and in release checks. Invalid core configuration (D-28: APP_ENV, PUBLIC_APP_URL, DATABASE_URL, DATABASE_CA_CERT, SESSION_SECRET, RATE_LIMIT_KEY_SECRET, and SESSION_TTL_SECONDS/REPORT_SUSPENSION_THRESHOLD when set) prevents readiness; missing AI configuration disables AI while core features remain available; a missing CRON_SECRET makes both cron routes reject every request. Never print secret values. Keep names/placeholders only in .env.example; do not commit .env.local or Vercel environment downloads.
 
+Validity rules (D-37). A core variable that breaks a rule makes core configuration invalid. A non-core variable that breaks a rule is treated as missing.
+
+- `APP_ENV` is exactly one of `local`, `test`, `development` or `production`.
+- `PUBLIC_APP_URL` is an absolute origin with no path, query or fragment, and uses `https` when `APP_ENV` is `development` or `production`.
+- `DATABASE_URL` is a `postgres://` or `postgresql://` URL with no `sslmode` or other `ssl*` query parameter.
+- `DATABASE_CA_CERT` contains at least one PEM certificate block. It is required in `development` and `production` and optional in `local` and `test` (D-30).
+- `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET` and `CRON_SECRET` are each at least 32 characters, and `SESSION_SECRET` differs from `RATE_LIMIT_KEY_SECRET`.
+- `SESSION_TTL_SECONDS`, when set, is an integer from 60 to 28800. The SEC-03 8-hour absolute expiry is the maximum.
+- `REPORT_SUSPENSION_THRESHOLD`, when set, is a positive integer.
+- `AI_ENABLED` is exactly `true` or `false`.
+- `AI_PROVIDER` is `soc_llm` or `fake`, and `fake` is invalid in `production`.
+- The numeric AI variables are positive integers within the limits in the table below.
+- AI is enabled only when `AI_ENABLED=true` and every AI variable that AI needs is present and valid. Otherwise AI is disabled and core readiness is unaffected (D-28).
+
 | Variable | Contract |
 | --- | --- |
 | APP_ENV | local, test, development or production; independent of Next.js NODE_ENV |
 | PUBLIC_APP_URL | Absolute application origin; HTTPS in hosted environments |
 | PORT | Local Next.js listener only; default 3000 |
 | DATABASE_URL | Server-only Supabase transaction-pooler URL using least-privilege runtime role |
-| DATABASE_CA_CERT | Server-only PEM CA certificate of the environment's Supabase project, used to verify TLS |
-| MIGRATION_DATABASE_URL | Direct/session-pooled privileged connection; CI/operator only |
+| DATABASE_CA_CERT | Server-only PEM CA certificate of the environment's Supabase project, used to verify TLS for runtime and migration connections. Optional only in local/test with a loopback database (D-30) |
+| MIGRATION_DATABASE_URL | Direct/session-pooled privileged connection; CI/operator only. Its TLS is verified against DATABASE_CA_CERT |
 | SESSION_SECRET | High-entropy environment-specific secret for session/CSRF signing |
 | SESSION_TTL_SECONDS | Default 28800 |
 | RATE_LIMIT_KEY_SECRET | High-entropy environment-specific secret used only to HMAC email and IP rate-limit keys (D-12) |
