@@ -19,7 +19,7 @@
 
 - Requested outcome: `.github/workflows/ci.yml` per D-40 and D-41 (jobs `lint-typecheck`, `unit`, `integration`, `build-secret-scan`, `dependency-audit`; `e2e` comes in commit 3), `.gitleaks.toml`, `scripts/check-bundle-canary.mjs`, `scripts/check-audit.mjs`, `audit-exceptions.json`, unit tests in `tests/unit/ci/`, and the `check:secrets` npm script.
 - Applicable recorded requirement IDs: DEP-02, SEC-07, D-18, D-29, D-40, D-41; governance §14 (GHSA-vfj7-8cjw-p6xm).
-- Permitted paths/actions: the paths above plus `package.json` scripts. No changes to `deploy-markbind.yml` or the lockfile. No git writes.
+- Permitted paths/actions: the paths above plus `package.json` scripts. No changes to `deploy-markbind.yml` or the lockfile; the lockfile fix in seq. 2 was approved by the human. No git writes.
 - Explicit exclusions: no `--omit=dev`, no lower audit level, no `continue-on-error`, no repository secrets, no deploy steps, no `pull_request_target`.
 - Human approval gates: the merge PR; the branch-protection and Vercel settings (human-only).
 
@@ -38,6 +38,7 @@
 | Seq. | Actor/agent | Summarized request or assignment | Action/result | Approval or handoff evidence |
 | ---: | --- | --- | --- | --- |
 | 1 | Human | Implement S-03 commit 1 (pasted prompt) | Files written; checks run (§8) | Working-tree diff; this log |
+| 2 | Human | First CI run: `npm ci` failed in all five jobs (`Missing: @emnapi/runtime@1.11.3`, `@emnapi/core@1.11.3`); "pick whichever you recommend" | Reproduced with npm 11.21.0 (11.6.2 passes). Regenerated the lockfile with `npm@11.21.0 install --package-lock-only --ignore-scripts` | Human delegated the choice among: regenerate, pin npm, or both |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
@@ -46,6 +47,7 @@
 | Pins: `actions/checkout` v7.0.1 `3d3c42e5…`, `actions/setup-node` v7.1.0 `949feb24…` | Agent | proposed | Latest releases; lightweight tags, so the SHAs are commits | `ci.yml` |
 | Canary values generated at random per run in the workflow, prefixed `mp3canary<name>` | Agent | proposed | Distinctive, synthetic, and never committed, so the commit-range scan cannot flag them and no allowlist entry is needed | `ci.yml` |
 | Canary build also sets `APP_ENV=test` and `PUBLIC_APP_URL=http://127.0.0.1:3000` | Agent | proposed | Non-secret synthetic values so core configuration is valid during the build | `ci.yml` |
+| Regenerate the lockfile instead of pinning npm in CI | Agent, delegated by the human | approved by delegation | The lockfile written by npm 11.6.2 omitted top-level optional WebAssembly entries that newer npm requires. The regenerated file passes `npm ci` on both 11.6.2 and 11.21.0, so a pin adds upkeep without fixing anything further | `package-lock.json` |
 | `check-audit.mjs` runs `npm audit --json` itself and ignores its exit code | Agent | proposed | npm exits nonzero whenever any advisory exists; the script's verdict replaces it without `|| true` in the workflow. A non-report output (npm error, wrong version) fails | `scripts/check-audit.mjs` |
 | A stale entry is one that matches no reported advisory of any severity | Agent, literal reading of D-40 | proposed | D-40: "no longer matches any reported advisory" | `scripts/check-audit.mjs` |
 | A high/critical advisory without a GHSA ID fails | Agent | proposed | It cannot be listed as an exception | `scripts/check-audit.mjs` |
@@ -72,9 +74,10 @@
 | `audit-exceptions.json` | New: GHSA-vfj7-8cjw-p6xm, reviewBy 2026-11-15 |
 | `tests/unit/ci/check-audit.test.ts`, `tests/unit/ci/check-bundle-canary.test.ts` | New: synthetic-fixture unit tests |
 | `package.json` | Added `check:secrets` script |
+| `package-lock.json` | Regenerated with npm 11.21.0. It adds 8 optional WebAssembly entries (`@emnapi/core` and `@emnapi/runtime` 1.11.3 at the top level; 6 packages bundled inside `@tailwindcss/oxide-wasm32-wasi`) and drops 16 `"peer": true` metadata flags. No existing package's version or integrity changed |
 | `logs/2026-10-15-s03-ci-workflow.md` | This summary |
 
-- Dependencies added or changed: none. Lockfile unchanged.
+- Dependencies added or changed: no direct dependency changed. The lockfile gained 8 optional transitive entries (see above).
 - Reused ideas, code, or documentation and attribution: none.
 - Unrelated files changed: no.
 
@@ -82,6 +85,9 @@
 
 | Command/check | Environment | Result | Evidence/path |
 | --- | --- | --- | --- |
+| `npm ci --dry-run` with npm 11.21.0, before the lockfile fix | Scratch copy | FAIL, reproducing CI (`Missing: @emnapi/...`); npm 11.6.2 passed | Session output |
+| `npm ci --dry-run` with npm 11.6.2 and 11.21.0, after the lockfile fix | Local | PASS on both | Session output |
+| After the lockfile fix: audit gate (npm 11.6.2; npm 11.21.0 also reports the same 5 high entries), lint, type-check, unit tests, `npm run build` | Local | PASS | Session output |
 | `npm run test:unit` | Local, Windows, Node 24.12.0 | PASS (3 files, 128 tests) | Session output |
 | `npm run lint` | Local | PASS | Session output |
 | `npx tsc --noEmit` | Local | PASS | Session output |
@@ -108,6 +114,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
+| CI's exact npm version is not pinned | A future npm could tighten lockfile checks again | thegrimbee | Accept, or pin it later through `packageManager` |
 | D-41 defines no commit range for `workflow_dispatch` | A manual run skips the commit-range scan (the built-asset scans still run) | thegrimbee | Record a decision (for example, full-history scan) or accept |
 | A push whose `before` is all zeros or not in history makes `git log` fail | That push run fails rather than passing; not expected for pushes to `master` | thegrimbee | Accept, or record handling in D-41 |
 | `scripts/check-secrets.mjs` is outside the listed paths | Scope deviation | thegrimbee | Approve, or ask for an inline alternative |
@@ -123,12 +130,12 @@
 
 ## 12. Human Verification
 
-- [ ] Summary matches the actual interaction and outcomes.
-- [ ] Requirement IDs and decisions are traceable to recorded sources.
-- [ ] Changed files and command results match the working tree and evidence.
-- [ ] Secrets, credentials, personal data, and raw production data are absent.
-- [ ] Agent proposals and unresolved questions are labelled accurately.
+- [x] Summary matches the actual interaction and outcomes.
+- [x] Requirement IDs and decisions are traceable to recorded sources.
+- [x] Changed files and command results match the working tree and evidence.
+- [x] Secrets, credentials, personal data, and raw production data are absent.
+- [x] Agent proposals and unresolved questions are labelled accurately.
 
-Reviewer:
-Verification date:
-Corrections or notes:
+Reviewer: Gabriel
+Verification date: 15 Oct 2026
+Corrections or notes: NIL
