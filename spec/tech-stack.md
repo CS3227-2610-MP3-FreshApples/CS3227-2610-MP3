@@ -11,10 +11,11 @@ Status: selected on 8 October 2026. This supplements sections 6, 10 and 14.
 | Application hosting | Vercel Hobby, subject to account/repository eligibility |
 | Database | PostgreSQL hosted in Supabase Free |
 | Database access | `pg` (node-postgres) driver behind a server-only repository layer, via Supabase transaction pooler |
-| Database migrations | node-pg-migrate with timestamp-prefixed SQL files (D-08) |
+| Database migrations | node-pg-migrate with timestamp-prefixed SQL files in `src/server/db/migrations/` (D-08, D-26) |
 | Authentication | `@node-rs/argon2` (Argon2id) with in-repo opaque server-side sessions (D-11) |
 | Testing | Vitest for unit/integration tests; Playwright for end-to-end tests (D-09) |
 | Input validation | zod schemas in strict mode (D-22) |
+| Secret scanning | gitleaks CLI, pinned release with checksum verification (D-29) |
 | Runtime AI | SoC LLM, called only from Next.js server code |
 | CI/CD | GitHub Actions required checks; Vercel Git integration deployment from reviewed `master` (D-18) |
 | Product information website | GitHub Pages, as required by the course |
@@ -44,11 +45,12 @@ Use a single Next.js project with src/app for pages/Route Handlers, src/componen
 Use `pg` (node-postgres), pinned exactly in `package.json`, only from server-only repository modules in src/server. It is a plain PostgreSQL client, not an ORM; repositories write parameterized SQL. Settings required by the transaction pooler and existing contracts:
 
 - One pool per server instance with at most 1 connection (see [architecture.md](architecture.md) 6.5).
+- Use schema-qualified table names in the `app` schema (D-27); do not depend on `search_path`.
 - Never set a query `name`. Named prepared statements are not supported through the transaction pooler; unnamed parameterized queries (`$1`, `$2`, …) remain mandatory (SEC-05).
-- TLS with certificate verification against the Supabase project CA (`DATABASE_CA_CERT`); never disable `rejectUnauthorized`. Do not put `sslmode` in `DATABASE_URL`, because it overrides the driver's TLS options.
-- Return PostgreSQL `date` values as `YYYY-MM-DD` strings rather than JavaScript `Date`, so calendar dates such as release_date are not shifted by time zone. Configure this per pool through the `types` option, not the global `pg.types` registry.
-- Bound statement time: 5 seconds per transaction through `SET LOCAL statement_timeout`; the readiness probe uses 2 seconds (see [api.md](api.md) health contract). Waiting for the pool connection times out after 5 seconds.
-- Use PostgreSQL's default READ COMMITTED isolation with explicit row locks in the order defined in [data-model.md](data-model.md). Deadlock (40P01) and serialization (40001) failures are not retried automatically; they map to 409 conflict.
+- TLS with certificate verification against the Supabase project CA (`DATABASE_CA_CERT`); never disable `rejectUnauthorized`. Do not put `sslmode` in `DATABASE_URL`, because it overrides the driver's TLS options. The only exception is D-30: in `APP_ENV=local` or `test` without `DATABASE_CA_CERT`, connect without TLS and only to a loopback host.
+- Return PostgreSQL `date` values as `YYYY-MM-DD` strings rather than JavaScript `Date`, so calendar dates such as release_date are not shifted by time zone. Configure this per pool through the `types` option, not the global `pg.types` registry. In the same per-pool `types` option, parse `bigint` (int8) values, such as microdollar amounts and `count(*)`, to JavaScript numbers, and throw if a value exceeds `Number.MAX_SAFE_INTEGER`.
+- Bound statement time: 5 seconds per transaction through `SET LOCAL statement_timeout`; waiting for the pool connection times out after 5 seconds. The readiness probe is a separate named operation (D-36) whose 2-second limit covers both connection acquisition and the query (see [api.md](api.md) health contract).
+- Use PostgreSQL's default READ COMMITTED isolation with explicit row locks in the order defined in [data-model.md](data-model.md). Deadlock (40P01) and serialization (40001) failures are not retried automatically; the transaction helper raises a typed transaction-conflict error that the API kernel maps to 409 conflict (D-36).
 - With one connection per instance, never begin a transaction while another is open in the same request; nested transaction calls fail immediately.
 - Session state does not persist between transactions through the pooler. Use transaction-scoped settings (`SET LOCAL`) and table-based leases, not session-level settings, session advisory locks or `LISTEN`/`NOTIFY`.
 

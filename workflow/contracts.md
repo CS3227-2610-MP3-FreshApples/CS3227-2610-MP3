@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: branch `plan` at `bcc1464`, plus the uncommitted working-tree edits recording D-08–D-21 (12 October 2026). Re-pin this to the merged SHA once the S-00 changes are merged.
+Source revision: `682c010` (branch `feat/db-foundation`), which includes the merged S-00 changes. The S-01 amendments in §17 (D-36) are working-tree edits on top of it. **They are approved by Developer B and still need approval from Developer A.**
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -15,7 +15,7 @@ Source revision: branch `plan` at `bcc1464`, plus the uncommitted working-tree e
 
 1. **Pass ids, not records.** Lock handles (§2.3) are the only exception. A handle proves that a lock is held and carries only the fields the next step needs.
 2. **No control flags.** No boolean or mode argument selects a branch in the callee. Each branch is its own named function.
-3. **Results for expected outcomes.** Domain outcomes return `Result`. Only infrastructure faults (database unreachable, programming error) throw, and K2 `runRoute` turns a throw into a safe generic error.
+3. **Results for expected outcomes.** Domain outcomes return `Result`. Only infrastructure faults (database unreachable, programming error) throw, and K2 `runRoute` turns a throw into a safe generic error. The one typed throw is K1's `TransactionConflict` (§2.4, D-36), which `runRoute` maps to 409 `conflict`.
 4. **Ready-to-use constructors.** Use `createX(deps)` with dependencies injected as the narrow interfaces below. There is no `init()`/`start()`. Vendor types (`pg`, provider responses) never cross a contract.
 5. **No module-level mutable state.** See O-03 for the composition root.
 6. **Fakes fail closed.** A fake never authorizes, clears a Review, admits a rate-limited request or changes an account unless a test scripts it to. Fakes live in `tests/support/fakes/`. The one exception is the K10 deterministic provider fake, which local, dev and E2E runs need (D-16). It lives in `src/server/adapters/soc-llm/`, and production must not be able to select it (O-28).
@@ -112,6 +112,14 @@ Only the owning module constructs a handle. A handle is valid only inside the `T
 
 **Approved (P-09):** functions that require a held lock take the handle instead of a raw id. A `ReviewUpdateLock` can only be obtained with a `MovieUpdateLock` inside it, so the type system enforces Movie before Review.
 
+### 2.4 Transaction conflict (D-36, amendment §17)
+
+```ts
+/** Thrown by K1 when PostgreSQL reports a deadlock (40P01) or serialization failure (40001).
+ *  Carries no driver types or messages. Never retried automatically. */
+export class TransactionConflict extends Error { readonly kind = "transaction_conflict" as const }
+```
+
 ---
 
 ## 3. Global lock order (D-20)
@@ -120,7 +128,7 @@ Only the owning module constructs a handle. A handle is valid only inside the `T
 
 1. A transaction that locks more than one of these rows locks them in the order **Account → Movie → Review → Report**. Rows of any other table are locked **after** these.
 2. When a transaction must read a row to learn which rows to lock, it **reads that row without a lock first**, then locks in order and **re-verifies versions** (and the relationships it read) before writing.
-3. **RateLimitWindow** and **AI-budget rows** (AIBudgetDay, AIBudgetReservation) are updated in **their own short transactions** or after these locks. **Approved (P-04):** contracts use only the own-short-transaction option.
+3. **RateLimitWindow** and **AI-budget rows** (AIBudgetDay, AIBudgetReservation) are updated in **their own short transactions** (data-model.md wording; P-04).
 4. **No transaction is open during an LLM network call** (architecture 6.5, AI-03).
 5. **Resolved (O-04):** order when one transaction locks several rows of the same table (Movie archive locks many Reviews). **Approved:** ascending `id`.
 
@@ -236,6 +244,8 @@ export interface Database {
   withTransaction<T>(work: (tx: Tx) => Promise<T>): Promise<T>;
   /** Commits if `work` returns ok; rolls back if it returns an error Result or throws. */
   withTransactionResult<T, E>(work: (tx: Tx) => Promise<Result<T, E>>): Promise<Result<T, E>>;
+  /** Readiness only (D-36): read-only query; resolves within 2 s including connection acquisition, else throws. */
+  probe(): Promise<void>;
 }
 export type SqlParam = string | number | boolean | null | Date | readonly string[] | readonly number[];
 export interface Sql {
@@ -245,7 +255,11 @@ export interface Sql {
 export function createDatabase(config: DatabaseConfig): Database & Sql; // ready to use
 ```
 
-- **Outcomes:** infrastructure failures throw, and K2 maps them to a safe error. A `Tx` used after commit or rollback throws.
+- **Outcomes:**
+  - Infrastructure failures throw, and K2 maps them to a safe error.
+  - A `Tx` used after commit or rollback throws.
+  - Deadlock (40P01) and serialization (40001) failures roll back and throw `TransactionConflict` (§2.4), which K2 maps to 409 `conflict` (D-36).
+  - `bigint` columns are returned as numbers; a value above `Number.MAX_SAFE_INTEGER` throws (tech-stack "Database driver").
 - **Locks:** none of its own.
 - **Transaction rule:**
   - Services receive `Database`. Repositories receive `Sql` and accept a `Tx` on every call.
@@ -266,7 +280,7 @@ export interface PageRequest { readonly page: number; readonly pageSize: number 
 
 export function runRoute(
   handler: (request: Request, requestId: RequestId) => Promise<Response>,
-): (request: Request) => Promise<Response>; // catches throws → safe envelope; no stack traces
+): (request: Request) => Promise<Response>; // catches throws → safe envelope; no stack traces; TransactionConflict → 409 conflict (D-36)
 export function readJsonBody<T>(request: Request, validate: Validator<T>): Promise<Result<T, DomainError>>;
 export function readPageRequest(url: URL): Result<PageRequest, DomainError>;
 export function readIfMatch(request: Request): Result<RowVersion, DomainError>; // absent → precondition_required
@@ -751,3 +765,15 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 | P-11 | Session revocation is exposed only through K4; PLAN.md §5 K3 updated |
 | P-12 | Catalogue splits into a core module (K7) and an archive/restore orchestrator, so Reviews → Catalogue core and orchestrator → Reviews, with no cycle |
 | P-13 | K10's own transactions lock SchedulerLease(`ai_execution`) → AIBudgetDay → AIBudgetReservation → AIJob |
+
+## 17. S-01 amendments (13 October 2026)
+
+These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; Developer A (Lim-ZY) approval pending.** No consumer code depends on them yet.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-01 | K1 converts 40P01 and 40001 into `TransactionConflict` (§2.4). K2 `runRoute` maps it to 409 `conflict`. This changes K2, which Developer A owns | D-36, tech-stack.md "Database driver" |
+| AM-02 | K1 `Database.probe()` for readiness: 2 s including connection acquisition. It is a separate named operation, not a timeout flag (§1 rule 2) | D-36, api.md 8.4 health contract |
+| AM-03 | `SessionId` (§2.1, K3 `Principal`) is backed by the new `Session.id` column | data-model.md Session row |
+| AM-04 | §3.1 rule 3 now matches data-model.md: rate-limit and AI-budget rows are updated only in their own short transactions. Behaviour is unchanged (P-04) | data-model.md "Lock order (D-20)" |
+| AM-05 | K1 returns `bigint` as `number`, and throws above `Number.MAX_SAFE_INTEGER`. `SqlParam` is unchanged | tech-stack.md "Database driver" |

@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`).
+Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`); S-01 revisions below are against `682c010`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -16,10 +16,10 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
-| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions recorded 12 Oct; contracts pending) | — | 12 Oct | Draft |
-| S-01 | B | Config, database access, migrations, full initial schema | S-00 | 13 Oct | Blocked |
+| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
+| S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Spec review |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
-| S-03 | B | Test harness, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
+| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Blocked |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
@@ -51,7 +51,7 @@ Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only af
 - Proposed module subfolders (confirm in S-00): `src/server/services/<module>/` and `src/server/repositories/<module>/` for `identity`, `catalogue`, `reviews`, `moderation`, `announcements`, `ai`, `audit`; `src/server/adapters/soc-llm/`; `src/server/db/` (pool, transaction helper, migrations); `src/server/http/` (API kernel); `src/server/config/`.
 - Database: `pg` through the transaction pooler with one connection per instance, CA-verified TLS, no named prepared statements, `SET LOCAL` only, and `date` returned as `YYYY-MM-DD` via per-pool `types` (`spec/tech-stack.md`).
 - API: `/api/v1`, Node.js runtime, the error envelope and status codes in `spec/api.md` §8.1, and `Cache-Control: no-store` on private or changing data.
-- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-03 adds the commands.
+- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-01 adds the Vitest command and S-03 the Playwright command.
 - Git: branches `feat/<module>-<slug>`, `fix/…`, `chore/…` off `master`. Conventional Commits scoped to the module. Humans commit, push and open PRs (`AGENTS.md` § Git).
 - Ownership of shared hotspots (migrations, `package.json`, root layout, shared contracts) is set in [COMMIT-PLAN.md §2](COMMIT-PLAN.md#2-rules-that-make-independent-work-possible).
 
@@ -70,7 +70,7 @@ Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blo
 | B3 | **Local/test PostgreSQL approach** (container vs local install; `spec/deployment.md` 10.1 requires disposable local PostgreSQL) | Integration tests need an isolated DB per developer | S-01, S-03 | **Resolved:** D-10 `postgres:17` container (native PG 17 fallback), fresh migrated DB per run, truncation between files |
 | B4 | **Auth and password-hashing library** (DEP-04 needs a maintained library; SEC-02 needs Argon2id) | Identity cannot start | S-04 | **Resolved:** D-11 `@node-rs/argon2` + in-repo opaque sessions |
 | B5 | **Data-model gaps.** `spec/data-model.md` has no storage for (a) login-failure throttling (SEC-06), (b) per-User review/report rate limits with "shared enforcement" (`spec/security.md`), (c) AI token-budget reservations (AI-03 "PostgreSQL reservations"), or (d) CSRF token binding (SEC-04) | The initial schema migration would have to guess tables | S-01, S-04, S-05, S-06 | **Resolved:** (a)(b) D-12 RateLimitWindow; (c) D-13 `ai_execution` lease + AIBudgetDay/AIBudgetReservation, UTC days; (d) D-14 stateless HMAC CSRF token, no table |
-| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention still open |
+| B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention resolved by D-24 (contracts O-27: base URL excludes `/v1`) |
 | B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model were unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) | **Partly resolved:** 90 RPM; USD 80/day and USD 800/month, in microdollars (OQ-01). D-16 interim posture remains. D-25: budget in microdollars, prod 2/3 (60 RPM, 53,333,333 µ$/day), dev 1/3 (30 RPM, 26,666,666 µ$/day). Still open: model and prices, context, TPM, retention; owner Developer B (thegrimbee), before provider integration and production enablement |
 | B8 | **OQ-04: profanity policy text and version** | AI-02 says to review and version the policy before enabling screening | A-03 acceptance | **Partly resolved:** D-17 versioned static policy file in source, English only. Policy text still open (OQ-04); owner Developer B (thegrimbee), before A-03 acceptance (target 17 Oct) |
 | B9 | **OQ-06: developer names and final ownership** | Ownership and handoffs need names | All tasks (assignment) | **Resolved:** A = Lim-ZY, B = thegrimbee. Tester accounts still open (OQ-06) |
@@ -82,7 +82,9 @@ Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blo
 Minor inconsistencies to note but not to block on:
 
 - `package.json` devDependencies use caret ranges (`^4`, `^5`, …) although `AGENTS.md` asks for pinned versions. S-01 should pin them, and the lockfile already exists.
-- `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` lists 7 and has no code-quality/test step. Align the two in S-00 (still open).
+- `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` listed 7. **Resolved 13 Oct:** governance now lists the same 8 steps.
+
+**S-01 analysis (13 Oct 2026).** The analyst found 15 blocking items and 10 plan/contract conflicts for S-01. Developer B delegated every choice to the agent's recommendation. The outcomes are recorded as D-30–D-37 in `spec/governance.md` and as contract amendments AM-01–AM-05 in `contracts.md` §17; AM-01–AM-05 still need Developer A's approval. This plan now reflects them: S-01 scope, S-03 harness split, seed moved to R-04, watchlist excluded. Log: `logs/2026-10-13-s01-analysis-decisions.md`.
 
 ---
 
@@ -115,10 +117,10 @@ Each contract has **one provider**. The provider merges the interface plus a fak
 | K3 | Auth guards (`active USER`, `active ADMIN`, recheck status every request), CSRF/Origin checks, cron-secret guard, acting-User share lock. Session revocation is exposed only through K4 (contracts P-11) | A → B | SEC-01, SEC-03, SEC-04, FR-01 |
 | K4 | Account-status transition (lock, version check, sessions, `strike_cycle`), Identity-owned per D-20 | A → B | FR-06, AT-25 |
 | K5 | Audit `record(tx, entry)` | B → A | security.md audit rules |
-| K6 | Shared rate limiter `consume(key, limit, window)` | B → A | SEC-06, SEC-11 |
+| K6 | Shared rate limiter `consume(key, policy, units)` and `check` (signatures in `contracts.md` §9) | B → A | SEC-06, SEC-11 |
 | K7 | Catalogue core: Movie lock functions, `markReviewsChanged` (bumps `reviews_revision`, sets `summary_pending_since`) and summary-schedule writes (contracts O-20) | B → A | INV-05, INV-09, data-model |
 | K8 | Review transitions: automatic clearance (version-guarded), approve, hide, restore, read-for-moderation | A → B | FR-03, FR-09, arch 6.4 |
-| K9 | Moderation work: `enqueue(tx, reviewId, contentRevision)` inside the review transaction; `attemptAfterCommit(reviewId)` bounded | B → A | AI-02 dispatch |
+| K9 | Moderation work: `enqueue(tx, reviewId, contentRevision)` and `cancelForDeletedReview(tx, reviewId)` inside the review transaction; `attemptAfterCommit(reviewId, contentRevision)` bounded (`contracts.md` §12) | B → A | AI-02 dispatch |
 | K10 | AI runtime: `LlmProvider` interface + deterministic fake; execution controller (reserve capacity, lease, timeout/retries, reconcile usage) | B → A | AI-03, SEC-08 |
 | K11 | Report evidence snapshot shape and receipt projection | A → B | FR-04, INV-07 |
 | K12 | Shared UI primitives (form field with error, table, pagination, status badge, live region, confirm dialog) | A → B | product 5.2, 5.3 |
@@ -136,19 +138,62 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 **Acceptance Criteria:**
 - [x] B1–B6, B9–B13 recorded in `spec/` with human approval. B7/B8 have an owner and a dated resolution plan. *(D-08–D-25 recorded and confirmed 12 Oct; B7/B8 owners and deadlines recorded; session log verified.)*
 - [x] `workflow/contracts.md` lists K1–K12 with provider, consumer, approved signature and lock order. *(Approved by both developers, 12 Oct.)*
-- [ ] `AGENTS.md` Commands section names the selected test commands.
+- [ ] `AGENTS.md` Commands section names the selected test commands. *(Moved to S-01 for Vitest and S-03 for Playwright, 13 Oct.)*
 - [ ] This plan's tracker is updated: tasks with no remaining blockers move to `Draft`.
 
 ### Task S-01: Config, database access, migrations, initial schema
 
-**Owner:** B. **Depends on:** S-00 (B1, B3, B5, B6). **Reqs:** spec/data-model.md §7, tech-stack.md "Database driver", deployment.md 10.3, SEC-05, SEC-07.
-**Allowed paths:** `src/server/config/`, `src/server/db/`, migration directory, `.env.example`, `package.json`/lockfile.
-**Description:** Add a server-only config validator (invalid DB/session config prevents readiness; missing AI config disables AI). Add the `pg` pool (1 connection, CA TLS, `date` as string, statement timeout, no query names) and the `withTransaction` helper (K1). Add the migration runner and **one initial migration for the whole data model**, including the B5 additions, all constraints, partial unique indexes and listed indexes, in a schema not exposed to Supabase Data APIs. Add a synthetic seed script. Pin devDependency versions.
+**Owner:** B. **Depends on:** S-00 (B1, B3, B5, B6); S-01 decisions D-30–D-37 (13 Oct). **Reqs:** spec/data-model.md §7, tech-stack.md "Database driver", deployment.md 10.3, SEC-05, SEC-07, DEP-03, D-08, D-10, D-22, D-23, D-26–D-28, D-30–D-37.
+**Allowed paths:**
+- `src/server/config/`
+- `src/server/db/` (migrations in `src/server/db/migrations/`, D-26)
+- `src/server/shared/`: `Tx`, `Result`, branded IDs and `TransactionConflict` (contracts §2, O-34)
+- `src/server/composition.ts`: config and pool only (D-23)
+- `tests/integration/database/`, `tests/unit/config/`, `tests/support/`
+- `vitest.config.ts`
+- `.env.example`
+- `package.json`/lockfile
+- the `AGENTS.md` Commands section
+
+**Description:**
+- **Config validator** (zod, D-37). Invalid core config per D-28 prevents readiness. Invalid or missing AI config disables AI.
+- **`pg` pool:**
+  - 1 connection
+  - CA-verified TLS, or loopback without TLS in local/test (D-30)
+  - `date` as string and `bigint` as safe number, both per pool
+  - 5 s statement and acquire timeouts
+  - no query names
+- **K1:** `withTransaction`, `withTransactionResult`, `probe()` and `TransactionConflict` (D-36).
+- **Migration runner:** node-pg-migrate over `MIGRATION_DATABASE_URL` with the same TLS rule, bookkeeping table in `app`.
+- **One initial migration:**
+  - covers the whole data model **except the optional WatchlistEntry (D-34)**, including the B5 additions
+  - all structural constraints (D-33), partial unique indexes and listed indexes
+  - everything in the `app` schema (D-27)
+  - revokes from `anon`, `authenticated` and `public`, and applies the `app_runtime` grants (D-32)
+  - creates no roles (D-31)
+- **Vitest harness:**
+  - a fresh database per run with the D-31 synthetic roles, and truncation between files (D-10)
+  - an `npm` test script, recorded in `AGENTS.md` Commands
+- **Dependencies:** add every package selected in `spec/governance.md` in one lockfile commit: node-pg-migrate (D-08), vitest and @playwright/test (D-09), zod (D-22) and @node-rs/argon2 (D-11). Pin them and the existing caret devDependencies exactly. S-03 and S-04 then use these pins and change no lockfile. The D-08 TLS check for the pinned node-pg-migrate version is recorded in the handoff. *(Revised 13 Oct: Playwright and argon2 moved here from S-03/S-04.)*
+- **No seed script:** it moves to R-04 (D-35).
 **Acceptance Criteria:**
 - [ ] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
 - [ ] Integration tests check: unique `(movie_id, author_id)`; rating 1–10 check; partial unique open report per `(reporter_id, review_id)`; unique `(target_user_id, review_id)` strike; unique `ModerationWork` revision key.
-- [ ] Runtime role has least privilege. The anon/authenticated API roles cannot read app tables (AT-18 direct-access check documented).
+- [ ] Integration tests also check: `ON DELETE RESTRICT`; AIBudgetDay budget CHECK; `NULLS NOT DISTINCT` on a null `model_id`.
+- [ ] K1 tests cover:
+  - commit, rollback on throw and on an error Result
+  - nested call throws immediately
+  - stale `Tx` throws
+  - no query `name` sent
+  - `date` string and per-pool types
+  - statement timeout
+  - deadlock → `TransactionConflict`
+  - `probe()` 2 s limit
+- [ ] Config unit tests cover each D-37 rule, and no secret value appears in error output.
+- [ ] Runtime role has exactly the D-32 privileges: no UPDATE or DELETE on AuditEntry, no DDL, no access to bookkeeping. The `anon`/`authenticated` roles cannot read app tables (local test).
+- [ ] AT-18 direct-access check on the Supabase development project is human-run when the initial migration is applied there, and recorded in the S-01 handoff.
 - [ ] No secrets in the repo. `.env.example` has placeholders for every new variable.
+- [ ] `AGENTS.md` Commands names the Vitest command(s).
 
 ### Task S-02: HTTP/API kernel
 
@@ -162,12 +207,12 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 ### Task S-03: Test harness, CI checks, health endpoints
 
 **Owner:** B. **Depends on:** S-01, S-00 (B2). **Reqs:** DEP-02 (checks portion), AT-26, verification.md 11.1.
-**Allowed paths:** `tests/` harness and config, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
-**Description:** Wire the selected unit, PostgreSQL-integration and E2E runners to real scripts with nonzero exit on failure. Each test run gets a disposable database. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan, with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
+**Allowed paths:** Playwright config and `tests/e2e/`, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
+**Description:** The Vitest unit and PostgreSQL-integration harness lands in S-01. S-03 configures Playwright (package pinned in S-01; Chromium only, D-09) and wires every runner into CI with nonzero exit on failure, using a `postgres:17` service container. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
 **Acceptance Criteria:**
 - [ ] AT-26: live returns 200 without DB access; ready returns 503 on a DB outage or missing core config and 200 when AI is down; both use no-store, generic shapes and a 2 s probe.
 - [ ] CI runs on PRs to `master` and fails on a deliberately failing test (demonstrated once, then reverted).
-- [ ] `AGENTS.md` Commands updated with the real test commands.
+- [ ] `AGENTS.md` Commands updated with the Playwright command. Readiness uses K1 `probe()` (D-36).
 
 ### Task S-04: Identity
 
@@ -191,7 +236,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 **Owner:** B. **Depends on:** S-01, S-05; B7 for live values only. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4.
 **Allowed paths:** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, tests.
-**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, token-budget reservation and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
+**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
 **Acceptance Criteria:**
 - [ ] Unit/integration tests: second concurrent execution is deferred; budget exhaustion defers without losing work; expired lease rejects late publish; unknown usage charged conservatively; retries stop at the deadline.
 - [ ] Missing quota/budget config → AI disabled, core unaffected.
@@ -208,7 +253,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task U-01: Public catalogue, details, announcements (read)
 
-**Owner:** A. **Depends on:** S-02, S-07 (S-01 seed data). **Reqs:** FR-02, FR-07 (public read), INV-02, INV-05, CON-01, AT-02 (public half), AT-06 (public half).
+**Owner:** A. **Depends on:** S-02, S-07 (S-01 schema; test fixtures, since the seed script lands in R-04 per D-35). **Reqs:** FR-02, FR-07 (public read), INV-02, INV-05, CON-01, AT-02 (public half), AT-06 (public half).
 **Description:** `GET /movies` (q ≤ 200 case-insensitive, `release_desc`/`title_asc` with ID tie-break), `GET /movies/:id` with aggregate over eligible reviews only, `GET /announcements` (published, by publication time), and the corresponding pages with loading, empty and error states. Archived/unknown → 404. No image fields anywhere.
 **Acceptance Criteria:**
 - [ ] Stable pagination with ties; empty search; unknown release date; duplicate titles distinguished by ID.
@@ -307,8 +352,11 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task R-04: Deployment, crons, backup, rollback
 
-**Owner:** B (A reviews and approves the release). **Depends on:** S-03, B10. **Reqs:** DEP-01–DEP-10, AT-13, AT-17, AT-19.
-**Description:** Separate Preview/Production env scopes; `vercel.json` crons (summaries 00:00 UTC, review moderation 01:00 UTC); Fluid compute with `maxDuration` verified on the deployed Hobby project; controlled migration step with pre-migration encrypted backup; restore and rollback rehearsal; production smoke.
+**Owner:** B (A reviews and approves the release). **Depends on:** S-03, B10; S-04 and A-01 for the seed script. **Reqs:** DEP-01–DEP-10, AT-13, AT-17, AT-19.
+**Description:**
+- Synthetic seed script through the owning services (D-35). It refuses `APP_ENV=production` and is ready before peer testing on 21 Oct.
+- Operator `app_runtime` provisioning procedure (D-31) in the developer guide.
+- Separate Preview/Production env scopes; `vercel.json` crons (summaries 00:00 UTC, review moderation 01:00 UTC); Fluid compute with `maxDuration` verified on the deployed Hobby project; controlled migration step with pre-migration encrypted backup; restore and rollback rehearsal; production smoke.
 **Acceptance Criteria:**
 - [ ] Preview cannot reach production DB; no secrets in client bundle (built-asset scan); cron secret rejection verified on deployment; backup restored once into a scratch DB; app URL recorded in `docs/` site.
 
