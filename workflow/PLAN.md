@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`); S-01 revisions below are against `682c010`.
+Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`); S-01 revisions below are against `682c010`. S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 revisions below are against `9f77b53`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -17,11 +17,11 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
 | S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
-| S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Spec review |
+| S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
-| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Blocked |
+| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Ready |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
-| S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Blocked |
+| S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Draft |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Blocked |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
@@ -51,7 +51,7 @@ Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only af
 - Proposed module subfolders (confirm in S-00): `src/server/services/<module>/` and `src/server/repositories/<module>/` for `identity`, `catalogue`, `reviews`, `moderation`, `announcements`, `ai`, `audit`; `src/server/adapters/soc-llm/`; `src/server/db/` (pool, transaction helper, migrations); `src/server/http/` (API kernel); `src/server/config/`.
 - Database: `pg` through the transaction pooler with one connection per instance, CA-verified TLS, no named prepared statements, `SET LOCAL` only, and `date` returned as `YYYY-MM-DD` via per-pool `types` (`spec/tech-stack.md`).
 - API: `/api/v1`, Node.js runtime, the error envelope and status codes in `spec/api.md` §8.1, and `Cache-Control: no-store` on private or changing data.
-- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`. There is **no test command yet**. Vitest and Playwright are selected (D-09); S-01 adds the Vitest command and S-03 the Playwright command.
+- Commands available now: `npm ci`, `npm run dev`, `npm run build`, `npm run lint`, `npx tsc --noEmit`, `npm run test:unit`, `npm run test:integration` and `npm run db:migrate` (added in S-01). S-03 adds `npm run test:e2e` (D-42) and `npm run check:secrets` (D-41).
 - Git: branches `feat/<module>-<slug>`, `fix/…`, `chore/…` off `master`. Conventional Commits scoped to the module. Humans commit, push and open PRs (`AGENTS.md` § Git).
 - Ownership of shared hotspots (migrations, `package.json`, root layout, shared contracts) is set in [COMMIT-PLAN.md §2](COMMIT-PLAN.md#2-rules-that-make-independent-work-possible).
 
@@ -85,6 +85,23 @@ Minor inconsistencies to note but not to block on:
 - `AGENTS.md` lists 8 workflow steps (including the code-quality/test agent). `spec/governance.md` listed 7. **Resolved 13 Oct:** governance now lists the same 8 steps.
 
 **S-01 analysis (13 Oct 2026).** The analyst found 15 blocking items and 10 plan/contract conflicts for S-01. Developer B delegated every choice to the agent's recommendation. The outcomes are recorded as D-30–D-37 in `spec/governance.md` and as contract amendments AM-01–AM-05 in `contracts.md` §17; AM-01–AM-05 still need Developer A's approval. This plan now reflects them: S-01 scope, S-03 harness split, seed moved to R-04, watchlist excluded. Log: `logs/2026-10-13-s01-analysis-decisions.md`.
+
+**S-03 analysis (15 Oct 2026).** S-01 is merged (PR #5, `9f77b53`). The analyst found 15 gaps and 10 plan/contract conflicts for S-03.
+- **Decided by Developer B:** while A#1 (K2) is unmerged, the health handlers set `Cache-Control: no-store` directly and the PR says so.
+- **Delegated to the agent:** the other spec gaps, recorded as D-38–D-42 in `spec/governance.md` and amendment AM-06 in `contracts.md` §18. AM-06 was approved by Developer A (Lim-ZY) on 15 Oct.
+- **Reflected in this plan:** the S-03 scope, requirements, allowed paths and acceptance criteria.
+- **Follow-up (15 Oct, delegated by Developer B to the agent):** a second analyst pass found gaps, now recorded as edits to D-31 and D-38 to D-42 and a clarification of AM-06:
+  - negative-path CI evidence comes from a throwaway PR;
+  - E2E uses a per-run login role that inherits `app_runtime`, a wrapper-managed lifecycle and its own build;
+  - the local `check:secrets` range is `origin/master..HEAD`;
+  - readiness input is a two-variant value;
+  - HEAD, OPTIONS and 405 behaviour is recorded;
+  - CI jobs run in parallel;
+  - the K2 envelope exemption is permanent, while setting headers directly is interim.
+
+  Developer B then set S-03 `Ready` and approved the GHSA-vfj7-8cjw-p6xm exception on the agent's recommendation (governance §14). D-40 now checks `npm audit --json` against `audit-exceptions.json`. Log: `logs/2026-10-15-s03-blocker-resolution.md`.
+
+Log: `logs/2026-10-15-s03-analysis-decisions.md`.
 
 ---
 
@@ -177,10 +194,10 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 - **Dependencies:** add every package selected in `spec/governance.md` in one lockfile commit: node-pg-migrate (D-08), vitest and @playwright/test (D-09), zod (D-22) and @node-rs/argon2 (D-11). Pin them and the existing caret devDependencies exactly. S-03 and S-04 then use these pins and change no lockfile. The D-08 TLS check for the pinned node-pg-migrate version is recorded in the handoff. *(Revised 13 Oct: Playwright and argon2 moved here from S-03/S-04.)*
 - **No seed script:** it moves to R-04 (D-35).
 **Acceptance Criteria:**
-- [ ] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
-- [ ] Integration tests check: unique `(movie_id, author_id)`; rating 1–10 check; partial unique open report per `(reporter_id, review_id)`; unique `(target_user_id, review_id)` strike; unique `ModerationWork` revision key.
-- [ ] Integration tests also check: `ON DELETE RESTRICT`; AIBudgetDay budget CHECK; `NULLS NOT DISTINCT` on a null `model_id`.
-- [ ] K1 tests cover:
+- [x] Migration applies cleanly to an empty local PostgreSQL and is re-runnable without drift.
+- [x] Integration tests check: unique `(movie_id, author_id)`; rating 1–10 check; partial unique open report per `(reporter_id, review_id)`; unique `(target_user_id, review_id)` strike; unique `ModerationWork` revision key.
+- [x] Integration tests also check: `ON DELETE RESTRICT`; AIBudgetDay budget CHECK; `NULLS NOT DISTINCT` on a null `model_id`.
+- [x] K1 tests cover:
   - commit, rollback on throw and on an error Result
   - nested call throws immediately
   - stale `Tx` throws
@@ -189,11 +206,11 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
   - statement timeout
   - deadlock → `TransactionConflict`
   - `probe()` 2 s limit
-- [ ] Config unit tests cover each D-37 rule, and no secret value appears in error output.
-- [ ] Runtime role has exactly the D-32 privileges: no UPDATE or DELETE on AuditEntry, no DDL, no access to bookkeeping. The `anon`/`authenticated` roles cannot read app tables (local test).
-- [ ] AT-18 direct-access check on the Supabase development project is human-run when the initial migration is applied there, and recorded in the S-01 handoff.
-- [ ] No secrets in the repo. `.env.example` has placeholders for every new variable.
-- [ ] `AGENTS.md` Commands names the Vitest command(s).
+- [x] Config unit tests cover each D-37 rule, and no secret value appears in error output.
+- [x] Runtime role has exactly the D-32 privileges: no UPDATE or DELETE on AuditEntry, no DDL, no access to bookkeeping. The `anon`/`authenticated` roles cannot read app tables (local test).
+- [x] AT-18 direct-access check on the Supabase development project is human-run when the initial migration is applied there, and recorded in the S-01 handoff.
+- [x] No secrets in the repo. `.env.example` has placeholders for every new variable.
+- [x] `AGENTS.md` Commands names the Vitest command(s).
 
 ### Task S-02: HTTP/API kernel
 
@@ -206,13 +223,45 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task S-03: Test harness, CI checks, health endpoints
 
-**Owner:** B. **Depends on:** S-01, S-00 (B2). **Reqs:** DEP-02 (checks portion), AT-26, verification.md 11.1.
-**Allowed paths:** Playwright config and `tests/e2e/`, `package.json` scripts, `.github/workflows/ci.yml`, `src/app/api/v1/health/`.
-**Description:** The Vitest unit and PostgreSQL-integration harness lands in S-01. S-03 configures Playwright (package pinned in S-01; Chromium only, D-09) and wires every runner into CI with nonzero exit on failure, using a `postgres:17` service container. Add a CI workflow for lint, type-check, unit+integration tests, build and secret scan (gitleaks + built-asset canary, D-29), with no deploy or provider secrets in PR jobs. Add `GET /health/live` and `/health/ready` exactly as in api.md.
+**Owner:** B. **Depends on:** S-01 (merged), S-00 (B2). **Reqs:** DEP-02 (checks portion), SEC-07, AT-26, api.md 8.4 health contract, verification.md 11.1, D-18, D-28, D-29, D-36, D-38–D-42, governance §14 approved exceptions. Contract amendment AM-06 (contracts §18) is approved by both developers.
+**Allowed paths:**
+- `.github/workflows/ci.yml` (do not modify `deploy-markbind.yml`)
+- `.gitleaks.toml`, `scripts/check-bundle-canary.mjs`
+- `audit-exceptions.json`, `scripts/check-audit.mjs` (D-40)
+- `playwright.config.ts`, `tests/e2e/`
+- `src/app/api/v1/health/`, `src/server/services/health/`
+- `src/server/composition.ts`: readiness wiring only (D-38)
+- `tests/unit/health/`, `tests/unit/ci/` (`check-audit.mjs`), `tests/integration/api/health/`
+- `tests/setup/`: the e2e wrapper (D-42), plus moving shared loopback and role code out of the integration harness without changing its behaviour
+- `package.json` scripts only (no lockfile change)
+- the `AGENTS.md` Commands section
+**Description:** The Vitest unit and PostgreSQL-integration harness landed in S-01. S-03 has three parts:
+- **Playwright (D-42).** Configure Playwright (package pinned in S-01; Chromium only) with a health smoke spec.
+- **CI (D-40, D-41).** Add `ci.yml` with the jobs `lint-typecheck`, `unit`, `integration`, `e2e`, `build-secret-scan` and `dependency-audit`. Every job exits nonzero on failure. Jobs use only synthetic values and contain no deploy or provider secrets.
+- **Health endpoints (D-38, D-39).** Add `GET /health/live` and `/health/ready` exactly as in api.md. Health never uses the K2 error envelope (api.md 8.4, AM-06). A#1 (K2) is not merged, so as an interim measure both handlers set `Cache-Control: no-store` and `X-Request-Id` directly, and the PR says so.
+- **Dependency audit (D-40).** `scripts/check-audit.mjs` checks `npm audit --json` against `audit-exceptions.json`, which mirrors governance §14. It starts with one entry, GHSA-vfj7-8cjw-p6xm, reviewed by 2026-11-15.
 **Acceptance Criteria:**
-- [ ] AT-26: live returns 200 without DB access; ready returns 503 on a DB outage or missing core config and 200 when AI is down; both use no-store, generic shapes and a 2 s probe.
-- [ ] CI runs on PRs to `master` and fails on a deliberately failing test (demonstrated once, then reverted).
-- [ ] `AGENTS.md` Commands updated with the Playwright command. Readiness uses K1 `probe()` (D-36).
+- [ ] AT-26, live: live returns 200 `{"status":"ok"}` without importing the composition root or touching the database, including when core config is invalid.
+- [ ] AT-26, ready: ready returns 503 `{"status":"unavailable"}`:
+  - when the probe rejects;
+  - when the probe exceeds 2 s;
+  - when core config is missing or invalid, without opening a connection;
+  - on an unexpected throw.
+
+  Ready returns 200 `{"status":"ready"}` when AI is disabled or misconfigured, or when `CRON_SECRET` is missing.
+- [ ] Both health responses:
+  - carry `no-store` and a server-generated `X-Request-Id`, with no `Set-Cookie`;
+  - ignore an inbound `X-Request-Id`;
+  - have bodies with exactly the documented keys;
+  - contain no hostnames, error text or stack;
+  - are reached anonymously without redirects;
+  - make no provider call and no write.
+- [ ] Each 503 logs one D-39 line with no values or error text. Both handlers run at request time (D-38), shown by a test or by the build output.
+- [ ] CI runs on PRs to `master`. A throwaway branch off the S-03 branch, with a PR that is closed unmerged, shows CI failing once on a deliberately failing test and once on a synthetic secret (D-41). The S-03 PR links both runs, and its own history contains neither. gitleaks checksum verification fails closed on a mismatch.
+- [ ] The e2e wrapper drops its database and login role even when a test fails, and the integration harness behaves as before (D-31, D-42).
+- [ ] `dependency-audit` passes with the GHSA-vfj7-8cjw-p6xm entry. Tests of `check-audit.mjs` show it fails on an unlisted high or critical advisory, on an entry past `reviewBy`, and on a stale entry.
+- [ ] HEAD on a health route returns the GET headers. The framework's OPTIONS and 405 responses are not asserted on (D-38).
+- [ ] `AGENTS.md` Commands lists `npm run test:e2e` and `npm run check:secrets`. Readiness uses K1 `probe()` (D-36).
 
 ### Task S-04: Identity
 
