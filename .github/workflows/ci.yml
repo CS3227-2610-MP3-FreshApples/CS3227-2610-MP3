@@ -43,6 +43,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # LayoutProps, PageProps and RouteContext are generated into .next/types, which a fresh checkout lacks.
+      - name: Generate Next.js route types
+        run: npx next typegen
+
       - name: Type-check
         run: npx tsc --noEmit
 

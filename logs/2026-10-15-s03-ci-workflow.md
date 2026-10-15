@@ -39,6 +39,7 @@
 | ---: | --- | --- | --- | --- |
 | 1 | Human | Implement S-03 commit 1 (pasted prompt) | Files written; checks run (§8) | Working-tree diff; this log |
 | 2 | Human | First CI run: `npm ci` failed in all five jobs (`Missing: @emnapi/runtime@1.11.3`, `@emnapi/core@1.11.3`); "pick whichever you recommend" | Reproduced with npm 11.21.0 (11.6.2 passes). Regenerated the lockfile with `npm@11.21.0 install --package-lock-only --ignore-scripts` | Human delegated the choice among: regenerate, pin npm, or both |
+| 3 | Human | `lint-typecheck` failed: `src/app/layout.tsx(9,50): error TS2304: Cannot find name 'LayoutProps'` | Reproduced in a clean `git archive` export: `tsc` fails without `.next/types`. Added a `npx next typegen` step before `tsc` (the Next.js 16.4 CLI docs recommend `next typegen && tsc --noEmit` for CI) | Local check passed only because `.next/types` and the gitignored `next-env.d.ts` were left over from earlier builds |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
@@ -75,6 +76,7 @@
 | `tests/unit/ci/check-audit.test.ts`, `tests/unit/ci/check-bundle-canary.test.ts` | New: synthetic-fixture unit tests |
 | `package.json` | Added `check:secrets` script |
 | `package-lock.json` | Regenerated with npm 11.21.0. It adds 8 optional WebAssembly entries (`@emnapi/core` and `@emnapi/runtime` 1.11.3 at the top level; 6 packages bundled inside `@tailwindcss/oxide-wasm32-wasi`) and drops 16 `"peer": true` metadata flags. No existing package's version or integrity changed |
+| `.github/workflows/ci.yml` (fix) | `lint-typecheck` runs `npx next typegen` before `npx tsc --noEmit` |
 | `logs/2026-10-15-s03-ci-workflow.md` | This summary |
 
 - Dependencies added or changed: no direct dependency changed. The lockfile gained 8 optional transitive entries (see above).
@@ -87,6 +89,7 @@
 | --- | --- | --- | --- |
 | `npm ci --dry-run` with npm 11.21.0, before the lockfile fix | Scratch copy | FAIL, reproducing CI (`Missing: @emnapi/...`); npm 11.6.2 passed | Session output |
 | `npm ci --dry-run` with npm 11.6.2 and 11.21.0, after the lockfile fix | Local | PASS on both | Session output |
+| `npx tsc --noEmit` in a clean export, then `npx next typegen && npx tsc --noEmit` | Scratch copy | FAIL (reproduces CI), then PASS | Session output |
 | After the lockfile fix: audit gate (npm 11.6.2; npm 11.21.0 also reports the same 5 high entries), lint, type-check, unit tests, `npm run build` | Local | PASS | Session output |
 | `npm run test:unit` | Local, Windows, Node 24.12.0 | PASS (3 files, 128 tests) | Session output |
 | `npm run lint` | Local | PASS | Session output |
@@ -115,6 +118,7 @@
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
 | CI's exact npm version is not pinned | A future npm could tighten lockfile checks again | thegrimbee | Accept, or pin it later through `packageManager` |
+| `AGENTS.md` Commands lists `npx tsc --noEmit` alone, which fails on a fresh clone | Developers following it get the same error | thegrimbee | Note `npx next typegen` first, in the S-03 commit 3 Commands update |
 | D-41 defines no commit range for `workflow_dispatch` | A manual run skips the commit-range scan (the built-asset scans still run) | thegrimbee | Record a decision (for example, full-history scan) or accept |
 | A push whose `before` is all zeros or not in history makes `git log` fail | That push run fails rather than passing; not expected for pushes to `master` | thegrimbee | Accept, or record handling in D-41 |
 | `scripts/check-secrets.mjs` is outside the listed paths | Scope deviation | thegrimbee | Approve, or ask for an inline alternative |
