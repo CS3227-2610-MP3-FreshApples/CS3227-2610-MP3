@@ -99,7 +99,7 @@ Minor inconsistencies to note but not to block on:
   - CI jobs run in parallel;
   - the K2 envelope exemption is permanent, while setting headers directly is interim.
 
-  Developer B then set S-03 `Ready` and approved the GHSA-vfj7-8cjw-p6xm exception on the agent's recommendation (governance §14). D-40 now checks `npm audit --json` against `audit-exceptions.json`. Log: `logs/2026-10-15-s03-blocker-resolution.md`.
+  Developer B then set S-03 `Ready` and approved the GHSA-vfj7-8cjw-p6xm exception on the agent's recommendation (governance §14). D-40 now checks `npm audit --json` against `audit-exceptions.json`. Log: `logs/2026-10-15-s03-analysis-decisions.md` (follow-up addendum).
 
 Log: `logs/2026-10-15-s03-analysis-decisions.md`.
 

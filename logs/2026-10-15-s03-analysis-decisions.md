@@ -137,3 +137,96 @@
 Reviewer: Gabriel
 Verification date: 15 Oct 2026
 Corrections or notes: NIL
+
+---
+
+## Addendum: S-03 follow-up session (2026-10-15)
+
+> A separate chat session on the same day, appended here at the human's request. The verification in §12 above covers only the first session; this addendum has its own verification block.
+
+### A1. Metadata and scope
+
+| Field | Value |
+| --- | --- |
+| Branch / starting revision | `chore/ci-test-harness`, `9f77b53` plus the uncommitted edits from the first session |
+| Participating agent roles | Analyst (subagent, read-only); main Claude Code session |
+| Human owner/reviewer | thegrimbee |
+| Permitted paths/actions | `spec/`, `workflow/`, `references/DEV-B-COMMIT-PLAN.md` (gitignored, local only), `logs/`. No application code, tests, dependencies or git writes |
+| Verification status | awaiting human verification |
+
+### A2. Interaction timeline
+
+| Seq. | Actor | Request | Action/result |
+| ---: | --- | --- | --- |
+| 1 | Human | `[agent: analyst]` S-03 analysis, read-only | 10 blockers, 13 G/W/T examples (9 negative), 7 conflicts; relayed in chat |
+| 2 | Human | "Fix the blockers and the PLAN/contracts conflicts as you see fit" (delegated) | Spec, plan, contract and prompt edits (A3). S-03 moved `Ready` → `Spec review` because the spec changed after `Ready` |
+| 3 | Human | Explain AM-06; does the agent recommend it? | Explained; recommended approval, with a later switch to a K2 header helper |
+| 4 | Human | S-03 set `Ready`; Lim-ZY approved AM-06; default branch already `master`; decide the advisory per the agent's recommendation | Exception approved in §14 on the human's instruction; D-40 audit check defined |
+| 5 | Human | Architect prompt and commit message | Supplied in chat (P-2 filled in for S-03; `docs(spec)` message) |
+| 6 | Human | Append the missing session log to this file | This addendum. The separate log file written earlier in the session had been removed from disk |
+
+### A3. Decisions
+
+| Item | Decision-maker | Status | Rationale | Artifacts |
+| --- | --- | --- | --- | --- |
+| Negative-path CI evidence from a throwaway PR closed unmerged | Agent (delegated) | proposed | A reverted commit stays in the D-41 `base..head` range; no allowlist entry or history rewrite | D-41, PLAN S-03, DEV-B prompts |
+| Per-run e2e LOGIN role that inherits `app_runtime` | Agent | proposed | `app_runtime` stays NOLOGIN and is never altered cluster-wide | D-31, D-42 |
+| E2E lifecycle: a Node wrapper under `tests/setup/`; `test:e2e` does not build; the CI job builds with e2e values; port 3100 | Agent | proposed | Playwright 1.64.0 starts `webServer` before `globalSetup` (checked in the runner source) | D-42 |
+| Local `check:secrets` scans `origin/master..HEAD` and `.next/static`, without building; the canary runs in CI only | Agent | proposed | The CI event ranges do not exist locally | D-41 |
+| Readiness input is a two-variant value | Agent | proposed | D-39 needs the variable names; a validity flag would be control coupling | D-38 |
+| HEAD served by GET; OPTIONS and 405 are an exception to the api.md 8.1 `X-Request-Id` rule | Agent | proposed | Next.js 16.4.0 auto-implements HEAD and OPTIONS (checked in the source) | D-38, api.md 8.4 |
+| CI jobs run in parallel; DEP-02 arrows give logical order | Agent | proposed | Branch protection requires every job anyway | D-40 |
+| K2 envelope exemption permanent; setting headers directly interim | Human (interim); agent (scope); Lim-ZY approved AM-06 | approved | Permanence follows from the api.md 8.4 "even on failure" rule | D-38, contracts §18 |
+| GHSA-vfj7-8cjw-p6xm exception | thegrimbee, on the agent's recommendation | approved, review by 2026-11-15 | Dev-only ESLint chain; no patched `braces` exists (3.0.3 is the latest); the only fix downgrades `eslint-config-next` to 14 | governance §14 |
+| `scripts/check-audit.mjs` and `audit-exceptions.json` (unlisted, expired or stale entries fail) | Agent | proposed; added after `Ready` | `npm audit` has no ignore list, so an approved exception could not otherwise pass | D-40, tech-stack, PLAN, COMMIT-PLAN, DEV-B |
+| `contracts.md` source-revision line updated to `9f77b53` | Agent | factual | It was stale | contracts header |
+
+### A4. Changed files
+
+| Path | Change |
+| --- | --- |
+| `spec/governance.md` | §14 approved exception; D-31 e2e login role; D-38 methods, K2 scope, readiness input; D-40 job order and audit check; D-41 negative evidence and local use; D-42 build, env, database, lifecycle |
+| `spec/api.md` | Health contract: HEAD, OPTIONS and 405 note |
+| `spec/tech-stack.md` | Dependency-scanning row |
+| `workflow/contracts.md` | Source-revision line; AM-06 scope clarified |
+| `workflow/PLAN.md` | Tracker; §3 follow-up note; S-03 paths, description and acceptance |
+| `workflow/COMMIT-PLAN.md` | B#2 paths and audit note |
+| `references/DEV-B-COMMIT-PLAN.md` | B#2 prompts and human checks (gitignored) |
+| `logs/2026-10-15-s03-analysis-decisions.md` | This addendum |
+
+Dependencies added or changed: none. Unrelated files changed: no.
+
+### A5. Verification evidence
+
+| Command/check | Result |
+| --- | --- |
+| `npm audit --audit-level=high` | 5 high entries, all from GHSA-vfj7-8cjw-p6xm |
+| `npm audit --omit=dev --audit-level=high` | PASS |
+| `npm view braces versions` | 3.0.3 is the latest release |
+| Lint, type-check, build, tests | SKIPPED (documentation-only change) |
+
+### A6. Security notes
+
+- The analyst report and the npm advisory data were treated as untrusted data.
+- The agent proposed the security exception; the human approved it. It expires, and the audit check fails on unlisted, expired or stale entries.
+- E2E passwords and secrets are specified as randomly generated per run and never printed.
+
+### A7. Gaps and next actions
+
+| Gap | Owner | Next action |
+| --- | --- | --- |
+| The D-40 audit-check mechanism was added after S-03 was set `Ready` | thegrimbee | Confirm it, or reset S-03 to `Spec review` |
+| GHSA-vfj7-8cjw-p6xm exception expires 2026-11-15 | thegrimbee | Renew or remove the entry after re-review |
+| Architect review (P-2) | thegrimbee | Run it, then save the output to `workflow/handoffs/S-03/` |
+
+### A8. Human verification (addendum)
+
+- [x] Summary matches the actual interaction and outcomes.
+- [x] Requirement IDs and decisions are traceable to recorded sources.
+- [x] Changed files and command results match the working tree and evidence.
+- [x] Secrets, credentials, personal data, and raw production data are absent.
+- [x] Agent proposals and unresolved questions are labelled accurately.
+
+Reviewer: Gabriel
+Verification date: 15 Oct 2026
+Corrections or notes: NIL
