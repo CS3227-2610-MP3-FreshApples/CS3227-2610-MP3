@@ -23,7 +23,8 @@
       "src": "DeveloperGuide.md",
       "title": "Developer Guide",
       "headings": {
-        "developer-guide": "Developer Guide"
+        "developer-guide": "Developer Guide",
+        "database-roles-operator-step": "Database roles (operator step)"
       },
       "headingKeywords": {}
     },
