@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **proposed, awaiting human approval**. Planning date: 12 October 2026 (SGT). Source revision: `d1c0265` (`master`); S-01 revisions below are against `682c010`. S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 revisions below are against `9f77b53`.
+Status: **approved; current branch includes the implemented S-02 work awaiting PR review/merge**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 is implemented on `feat/http-api-kernel` through `c51c92e`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -16,10 +16,10 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 
 | Task | Owner | Title | Depends on | Target | State |
 | --- | --- | --- | --- | --- | --- |
-| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
+| S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts approved; implementation tasks unblocked) | — | 12 Oct | Merged (spec/contract approval recorded) |
 | S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
-| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Ready |
-| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Ready |
+| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Human review |
+| S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Draft |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
@@ -155,8 +155,8 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 **Acceptance Criteria:**
 - [x] B1–B6, B9–B13 recorded in `spec/` with human approval. B7/B8 have an owner and a dated resolution plan. *(D-08–D-25 recorded and confirmed 12 Oct; B7/B8 owners and deadlines recorded; session log verified.)*
 - [x] `workflow/contracts.md` lists K1–K12 with provider, consumer, approved signature and lock order. *(Approved by both developers, 12 Oct.)*
-- [ ] `AGENTS.md` Commands section names the selected test commands. *(Moved to S-01 for Vitest and S-03 for Playwright, 13 Oct.)*
-- [ ] This plan's tracker is updated: tasks with no remaining blockers move to `Draft`.
+- [x] `AGENTS.md` Commands section names the selected test commands. *(Vitest recorded in S-01; Playwright and CI commands recorded in S-03.)*
+- [x] This plan's tracker is updated to reflect the approved and merged foundations and the remaining dependency-blocked tasks.
 
 ### Task S-01: Config, database access, migrations, initial schema
 

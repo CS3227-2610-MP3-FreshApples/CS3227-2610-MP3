@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `9f77b53` (`master`, PR #5), which includes S-00 and S-01. The S-01 amendments in §17 (D-36) were written against `682c010`, and the S-03 amendment in §18 (D-38) against `9f77b53`. **They are approved by Developer B and still need approval from Developer A.**
+Source revision: `c51c92e` on `feat/http-api-kernel`, based on `ee62bd1` (`master`, PR #6). S-00, S-01 and S-03 contract decisions are approved by both developers; S-02 clarification AM-07 is recorded below and approved by both developers.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
