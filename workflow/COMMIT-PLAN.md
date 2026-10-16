@@ -1,6 +1,6 @@
 # FreshApples Commit Plan (two developers)
 
-Status: **proposed, awaiting human approval**. Companion to [PLAN.md](PLAN.md). Base revision: `d1c0265` (`master`); S-01-related rows revised against `682c010` (D-30–D-37). B#1 merged in PR #5 (`9f77b53`); B#2 revised against `9f77b53` (D-38–D-42).
+Status: **approved; current branch records S-02 implementation awaiting PR review/merge**. Companion to [PLAN.md](PLAN.md). S-01 merged in PR #5 (`9f77b53`); S-03 merged in PR #6 (`ee62bd1`); S-02 implementation is on `feat/http-api-kernel` through `c51c92e`.
 
 This plan sets the order in which each developer opens PRs, which files each PR may touch, and which **sync points** require something to be on `master` first. Commit messages below are templates: humans make the commits (`AGENTS.md` § Git). Requirement IDs in messages are copied from `spec/`. Task IDs appear only in PR titles and bodies.
 
@@ -53,8 +53,8 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 
 | # | Task | Branch | Commit message templates | Paths | Needs | State |
 | --- | --- | --- | --- | --- | --- | --- |
-| A#0 | S-00 | `chore/spec-decisions` (joint) | `docs(spec): record migration, test, auth and data-model decisions` | `spec/`, `AGENTS.md`, `workflow/contracts.md` | — | Planned |
-| A#1 | S-02 | `feat/http-api-kernel` | `feat(http): add error envelope and request id (SEC-05)` · `feat(http): add strict JSON body parsing and pagination` · `feat(http): add If-Match/ETag helpers` · `test(http): cover api.md status mappings` | `src/server/http/`, `tests/unit/http/` | SP-0 | Planned |
+| A#0 | S-00 | `chore/spec-decisions` (joint) | `docs(spec): record migration, test, auth and data-model decisions` | `spec/`, `AGENTS.md`, `workflow/contracts.md` | — | Completed (decisions/contracts approved) |
+| A#1 | S-02 | `feat/http-api-kernel` | `docs(http): clarify request identity contract (SEC-05)` · `feat(http): add API kernel primitives (SEC-05)` · `test(http): cover API boundary cases (SEC-05)` | `src/server/http/`, `tests/unit/http/` | SP-0 | Implemented; awaiting PR review/merge (`c51c92e`) |
 | A#2 | S-07 | `feat/ui-shell` | `feat(ui): add /app and /admin layout shells` · `feat(ui): add accessible form, table, pagination, confirm dialog` | `src/components/`, `src/app/layout.tsx`, group layouts | SP-0 | Planned |
 | A#3 | S-04 | `feat/identity-sessions` | `feat(identity): register and login with Argon2id (FR-01, SEC-02)` · `feat(identity): hashed sessions, logout and me (SEC-03)` · `feat(identity): CSRF and same-origin checks (SEC-04)` · `feat(identity): role/status guards and session revocation (SEC-01)` · `feat(identity): login throttling (SEC-06)` · `chore(identity): admin provisioning command (DEP-04)` | identity services/repos, `src/app/api/v1/auth/`, auth pages, tests | SP-1, B#3 limiter | Planned |
 | A#4 | U-01 | `feat/catalogue-public` | `feat(catalogue): public movie list, search and detail (FR-02)` · `feat(announcements): public published list (FR-07)` · `feat(ui): movie browse and detail pages` | catalogue read queries, `src/app/api/v1/movies/` (GET), `…/announcements/` (GET), pages | SP-1 | Planned |
