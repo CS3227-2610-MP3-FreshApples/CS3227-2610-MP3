@@ -241,6 +241,67 @@ Design decision D-42 (Playwright harness): The configuration is `playwright.conf
 - **Lifecycle:** Playwright 1.64.0 starts `webServer` before `globalSetup`, so the database cannot be prepared in `globalSetup`. Instead, `npm run test:e2e` runs a Node.js wrapper under `tests/setup/` with no new dependency. The wrapper prepares the database and login role, runs `playwright test` with the e2e environment, and then drops the database and the login role even when tests fail. It exits with Playwright's exit code. It may share the loopback check and role creation with the integration harness.
 - **Initial suite:** S-03 adds a health smoke spec (live and ready return their exact bodies and `no-store`, and are reached anonymously without redirects), so the suite is never empty. User and Admin journeys are added in R-02.
 
+Design decision D-43 (rate-limit windows and admission): The shared limiter (D-12) works as follows.
+- **Clock:** windows are computed from the database clock (`now()`), never the application server's clock.
+- **Windows:** fixed and aligned to the Unix epoch. `window_start` is `to_timestamp(floor(extract(epoch FROM now()) / windowSeconds) * windowSeconds)`, and the window ends `windowSeconds` later.
+- **Admission:** a consume of `units` is admitted when the window's count plus `units` is at most the limit, and the count then grows by `units`. Otherwise it is rejected and the count is unchanged (security.md). "10 per minute" therefore admits the 10th mutation in a window and rejects the 11th.
+- **Atomicity:** the check and the increment are one `INSERT … ON CONFLICT … DO UPDATE … WHERE` statement in the limiter's own short transaction (data-model.md "Lock order"). Concurrent callers on different connections cannot exceed the limit.
+- **Read-only check:** reports allowed when one more unit would be admitted (count below the limit). It creates no row.
+- **Retry-After:** a rejection carries `ceil(window end − now())` seconds, at least 1, from the same database clock, sent as integer seconds in the `Retry-After` header.
+- **Input validity:** `limit` and `units` are positive integers. `windowSeconds` is a positive integer of at most 86,400. A `units` value above `limit` could never be admitted, so the limiter throws instead of returning a retry time. Like every limiter failure, that throw fails closed (security.md). Callers keep each request within the limit; S-06 defines how AI execution handles a token estimate that exceeds `soc_tokens`.
+- **When consumers call it:** once per request, after authentication and CSRF checks and before the request opens its transaction. A request that later fails validation still counts.
+- **Accepted risk:** concurrent login attempts can all pass the read-only check before any failure is counted, so a burst may get a few guesses beyond the limit in one window. Concurrency per instance bounds this; the limit is an initial target (ASM-10). Accepted by thegrimbee on 16 October 2026.
+
+Design decision D-44 (rate-limit keys, policies and client IP):
+- **Key format:** `bucket_key` is `<limit name>:<subject>`. The subject is one of:
+  - `account:<UUID in lowercase>` for per-User limits;
+  - `env` for the per-environment SoC limits;
+  - `email:<hmac>` for normalized emails;
+  - `ip:<hmac>` for client IPs.
+- **HMAC:** `<hmac>` is lowercase hex HMAC-SHA256 keyed with `RATE_LIMIT_KEY_SECRET` over the UTF-8 string `<limit name>:email:<normalized email>` or `<limit name>:ip:<client IP>`. Account UUIDs are not personal contact data and are stored raw. Rotating `RATE_LIMIT_KEY_SECRET` resets email and IP counts; this is accepted.
+- **Normalization:** Identity normalizes emails before building a key. The limiter receives an already normalized email and an already derived client IP.
+- **Client IP:**
+  - In `development` and `production`, the client IP is the trimmed `x-real-ip` header value. `X-Forwarded-For` and every other client-supplied header are ignored.
+  - In `local` and `test`, and in hosted environments when `x-real-ip` is absent or empty, the client IP is the fixed placeholder `unknown`.
+  - The derivation is a server-only helper in the API kernel, chosen by `APP_ENV` in the composition root. It is two named functions, not a mode flag.
+- **Fixed policies:** constants in the limiter module, which are initial targets (ASM-10). Changing one is a spec change.
+  - `login_failure_email` and `login_failure_ip`: 5 per 900 seconds.
+  - `review_mutation`: 10 per 60 seconds per account.
+  - `report_create`: 5 per 3,600 seconds per account.
+- **SoC policies:** `soc_requests` (`SOC_LLM_REQUESTS_PER_MINUTE` per 60 seconds) and `soc_tokens` (`SOC_LLM_TOKENS_PER_MINUTE` per 60 seconds) use the `env` subject. AI execution builds them from AI configuration (S-06). Both variables are required for AI to be enabled.
+- **Login sequence (SEC-06):**
+  - Login checks both login-failure limits before verifying the password. If either rejects, it returns 429 `rate_limited` with the larger retry time and does not verify the password.
+  - After a failed verification, it consumes one unit on each limit and returns the generic credential error, whatever the consume outcomes. A rejected consume at that point only means the count has already reached the limit.
+  - A successful verification consumes nothing.
+
+Design decision D-45 (rate-limit purge): The limiter exposes a purge operation that deletes at most 1,000 RateLimitWindow rows per call in its own short transaction. It deletes rows whose `window_start` is earlier than `now()` minus the longest fixed policy window (currently 3,600 seconds). Every such window has ended, because no window is longer than that. The review-moderation cron route (DEP-10) calls the purge once per invocation after the cron secret is verified and before its sweep. A purge failure is logged under D-47's rules and does not stop the sweep.
+
+Design decision D-46 (audit entry validation and request IDs): The audit module validates each entry with a strict zod schema (D-22) before inserting it. A violation throws, so the caller's transaction rolls back. The rules:
+- **Vocabularies:** `action` and `target_type` must come from the unions in `workflow/contracts.md` §8. They are unconstrained text in the database (D-33) but closed in code, and adding a value is a contract PR.
+- **Identifiers:** `target_id`, a non-null `actor_id` and `request_id` are UUIDs.
+- **Metadata shape:** metadata is a flat object of at most 20 keys. Keys match `^[a-z][a-zA-Z0-9_]{0,63}$`. Values are strings of at most 1,000 code points, finite numbers, booleans or null.
+- **Forbidden keys:** these key names are rejected, compared case-insensitively with underscores removed: `password`, `passwordhash`, `token`, `sessiontoken`, `csrftoken`, `secret`, `email`, `body`, `explanation`, `snapshot`, `evidencesnapshot`, `prompt`, `response` and `output`. This check is defence in depth. Callers remain responsible for what they place in values, and their tests assert their metadata.
+- **Storage:** `created_at` comes from the database clock.
+- **Request IDs:**
+  - For an HTTP request, including the cron routes, `request_id` is the response's `X-Request-Id`.
+  - An operator command, such as Admin provisioning, generates one random UUID per run, uses it for every entry of that run and may print it.
+- **No read API:** the audit module offers no read, update or delete operation.
+
+Design decision D-47 (security event logs): Denied and failed attempts (security.md, architecture 9.5) are written as one JSON line per event with `console.warn`. They go through a server-only security-log interface in the audit module.
+- **Events:**
+  - `auth.login_failed`: a password verification failed.
+  - `auth.login_throttled`: a login was rejected by a login-failure limit.
+  - `auth.csrf_failed`: a 403 `csrf_failed` response.
+  - `access.denied`: a 403 `forbidden` response.
+  - `rate_limit.rejected`: a 429 from any other limit.
+  - `rate_limit.purge_failed`: a D-45 purge failure.
+  - 401, 409 and 422 responses are not logged.
+- **Fields:** `event`, `outcome` (`failed`, `throttled` or `denied`, determined by the event) and `requestId`. When applicable, a line also carries `actorId` (the authenticated account's UUID), `limit` (the limit name) and `code` (the api.md error code).
+- **Never logged:** emails, IP addresses, bucket keys, passwords, tokens, cookies, request bodies, error messages, stack traces and SQLSTATEs.
+- **Failure handling:** writing a line never throws.
+- **Storage:** lines stay in Vercel runtime logs, as for D-39.
+- **Ownership:** S-05 provides the interface, the console implementation and a recording fake. The API kernel and Identity emit the events.
+
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
 ## 15. References

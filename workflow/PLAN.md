@@ -21,7 +21,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Ready |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
-| S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Draft |
+| S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Ready |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Blocked |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
@@ -275,11 +275,23 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task S-05: Audit and shared rate limiter
 
-**Owner:** B. **Depends on:** S-01. **Reqs:** security.md audit and limits, SEC-06, SEC-11.
-**Description:** K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID (no passwords, report bodies or prompts), with no API to edit it. K6 limiter backed by PostgreSQL (RateLimitWindow, D-12) that returns `Retry-After`.
+**Owner:** B. **Depends on:** S-01. **Reqs:** security.md audit and limits, SEC-06, SEC-10 (audit part), SEC-11 (throttle and quota counters only; bounded concurrency and retries are S-06), D-12, D-43–D-47.
+**Allowed paths:** `src/server/services/{audit,rate-limit}/`, `src/server/repositories/{audit,rate-limit}/`, K5/K6/security-log wiring in `src/server/composition.ts`, `tests/support/fakes/`, matching unit and integration tests. No migration: the tables, index and grants exist (S-01). The K2 client-IP helper (AM-08) and the event emission in K2 and Identity (AM-10) belong to S-02 and S-04.
+**Description:**
+- K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID, with no API to read, edit or delete entries. It validates each entry under D-46: no passwords, session tokens, report explanations or snapshots, review bodies, or provider prompts or responses.
+- `SecurityLog` with a console implementation (D-47).
+- K6 limiter backed by PostgreSQL (RateLimitWindow, D-12): windows and admission (D-43), keys and fixed policies (D-44), `purgeExpired()` (D-45). It returns `retryAfterSeconds` for `Retry-After`.
+- Fakes and contract suites for K5, K6 and `SecurityLog` (contracts §1 rules 6–7).
 **Acceptance Criteria:**
-- [ ] Audit write rolls back with its transaction (integration test).
-- [ ] Limiter is correct under concurrent calls from two connections and returns a retry time.
+- [ ] Audit write rolls back with its transaction (integration test). `app_runtime` cannot UPDATE or DELETE `app.audit_entry`.
+- [ ] K5 rejects an unknown action, a non-UUID id, nested or oversized metadata and each forbidden key name, and the transaction rolls back (D-46).
+- [ ] Limiter is correct under concurrent calls from two connections: 2N calls admit exactly N, and it returns a retry time.
+- [ ] The limit-th call is admitted and the next is rejected. A rejected `consume` does not increment. `check` creates no row. `units > limit` throws (D-43).
+- [ ] `retryAfterSeconds` is at least 1 and does not exceed the time to the window end. A new window admits again (D-43).
+- [ ] No stored `bucket_key` contains a raw email or IP, and a different secret gives a different key (D-44).
+- [ ] A database failure makes `consume` and `check` throw, never admit (P-10).
+- [ ] `purgeExpired()` deletes only rows older than the longest window, and at most 1,000 per call (D-45).
+- [ ] Security log lines contain only the D-47 fields, and the K6 fake fails closed.
 
 ### Task S-06: AI runtime (shared)
 
