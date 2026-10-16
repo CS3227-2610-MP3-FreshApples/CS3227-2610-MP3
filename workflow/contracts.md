@@ -418,14 +418,14 @@ export interface AuditLog { record(tx: Tx, entry: AuditEntryInput): Promise<void
 // src/server/services/rate-limit/
 export type RateLimitKey = Brand<string, "RateLimitKey">;
 export type RateLimitName =
-  | "login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create" | "soc_requests" | "soc_tokens";
+  | "login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create" | "soc_requests";
 export interface RateLimitPolicy { readonly limit: number; readonly windowSeconds: number }
 export type RateLimitOutcome =
   | { readonly allowed: true }
   | { readonly allowed: false; readonly retryAfterSeconds: number }; // computed from window end
 
 export interface RateLimiter {
-  /** Atomic upsert-increment of RateLimitWindow by `units` (tokens for SoC TPM, otherwise 1). */
+  /** Atomic upsert-increment of RateLimitWindow by `units` (1 for every current policy). */
   consume(key: RateLimitKey, policy: RateLimitPolicy, units: number): Promise<RateLimitOutcome>;
   /** Read-only check (e.g. login before verifying a password). */
   check(key: RateLimitKey, policy: RateLimitPolicy): Promise<RateLimitOutcome>;
@@ -434,7 +434,7 @@ export interface RateLimitKeys {
   forAccount(limit: RateLimitName, accountId: AccountId): RateLimitKey;
   forEmail(limit: RateLimitName, normalizedEmail: string): RateLimitKey; // HMAC(RATE_LIMIT_KEY_SECRET)
   forClientIp(limit: RateLimitName, ip: string): RateLimitKey;           // HMAC(RATE_LIMIT_KEY_SECRET)
-  forEnvironment(limit: RateLimitName): RateLimitKey;                    // SoC per-minute quotas
+  forEnvironment(limit: RateLimitName): RateLimitKey;                    // SoC per-minute request quota
 }
 ```
 
@@ -442,7 +442,7 @@ export interface RateLimitKeys {
 - **Resolved (O-18):**
   - Whether a rejected `consume` still increments.
   - Whether a successful login clears failure counts.
-  - The `RateLimitName` values. **Approved:** `login_failure_email`, `login_failure_ip`, `review_mutation`, `report_create`, `soc_requests`, `soc_tokens`.
+  - The `RateLimitName` values. **Approved:** `login_failure_email`, `login_failure_ip`, `review_mutation`, `report_create`, `soc_requests`. `soc_tokens` was removed by D-48 (SoC documents no tokens-per-minute limit; AM-11).
 - **Locks / Tx:** **own short Tx**. It must be called with no Tx open (§1 rule 8).
 - **Fake:** an unscripted key returns `{ allowed: false, retryAfterSeconds: 60 }`.
 - **Amended (§19, AM-07, AM-08):** windows, admission, input validity and purge (D-43, D-45); key format, policies, client IP and the login sequence (D-44).
@@ -636,8 +636,8 @@ export interface SchedulerLeases {
 ```
 
 **How `run` executes:**
-1. Own short Tx: acquire the `ai_execution` SchedulerLease, increment AIBudgetDay by the reserved cost in microdollars (estimated input tokens and `maxOutputTokens` priced per ai.md AI-03, D-25), and insert AIBudgetReservation and a running AIJob with its dedup key and lease (P-13 order). It also consumes the K6 SoC per-minute quotas in their own Tx.
-2. Provider attempts with no Tx: 30 s per attempt, at most 2 attempts, jitter honouring Retry-After, within the 75 s deadline.
+1. Own short Tx: acquire the `ai_execution` SchedulerLease, increment AIBudgetDay by the reserved cost in microdollars (estimated input tokens and `maxOutputTokens` priced per ai.md AI-03, D-25), and insert AIBudgetReservation and a running AIJob with its dedup key and lease (P-13 order). It also consumes the K6 SoC per-minute request quota in its own Tx.
+2. Provider attempts with no Tx: 30 s per attempt, at most 2 attempts, jitter honouring Retry-After when present (D-48), within the 75 s deadline.
 3. `validate`.
 4. Publish Tx: the `publish` callback takes its domain locks, then the controller locks the AIJob and verifies the lease and running status, last (P-08). Any error rolls the transaction back.
 5. Own short Tx in `finally`: reconcile the reservation (unknown usage is charged at the reserved amount) and release `ai_execution`.
@@ -833,3 +833,11 @@ export function createConsoleSecurityLog(): SecurityLog;
 | AM-08 | K6 keys and policies, and the K2 client-IP helper. These cover the `bucket_key` format, HMAC-SHA256 over `<limit>:email:` and `<limit>:ip:`, and raw account UUIDs. They also cover the fixed `RATE_LIMIT_POLICIES` and the SoC policies built by K10 from AI configuration. The composition root injects `clientIpFromVercelHeaders` for `development` and `production` and `placeholderClientIp` otherwise. The S-04 login sequence is check, verify, then consume on failure, with the generic error whatever the consume outcome | D-44, SEC-06 |
 | AM-09 | K5 validates every entry with a strict zod schema and throws on a violation. It checks the closed unions, UUID ids and request ID, and flat scalar metadata of at most 20 keys with values of at most 1,000 code points. It also rejects the forbidden key names. Operator commands generate one request ID per run. Metadata is passed to SQL as a JSON string cast to `jsonb`, because `SqlParam` has no object variant (AM-05 unchanged) | D-46 |
 | AM-10 | `SecurityLog` beside K5, with a console implementation and a recording fake in `tests/support/fakes/`. K2 `runRoute` records `access.denied`, `auth.csrf_failed` and `rate_limit.rejected`. Identity records `auth.login_failed` and `auth.login_throttled`. The composition root builds `createAuditLog`, `createRateLimiter`, `createRateLimitKeys` and `createConsoleSecurityLog` from valid core configuration | D-47, D-23 |
+
+## 20. D-48 amendment (16 October 2026)
+
+Approved by both developers (Lim-ZY and thegrimbee) on 16 October 2026.
+
+| ID | Amendment | Basis |
+| --- | --- | --- |
+| AM-11 | K6 `RateLimitName` drops `soc_tokens`; `soc_requests` is the only SoC policy, and every current `consume` uses 1 unit. K10 consumes only `soc_requests` before dispatch. `SOC_LLM_TOKENS_PER_MINUTE` is removed from AI configuration. Retries honour `Retry-After` only when the provider sends one | D-48, D-44 |

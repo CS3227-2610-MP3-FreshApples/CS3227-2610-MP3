@@ -47,7 +47,6 @@ export interface AiSettings {
   };
   readonly quotas: {
     readonly requestsPerMinute: number;
-    readonly tokensPerMinute: number;
   };
   readonly budget: {
     readonly dailyMicrodollars: number;
