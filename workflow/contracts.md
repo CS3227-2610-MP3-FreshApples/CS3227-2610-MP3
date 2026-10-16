@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `9f77b53` (`master`, PR #5), which includes S-00 and S-01. The S-01 amendments in §17 (D-36) were written against `682c010`, and the S-03 amendment in §18 (D-38) against `9f77b53`. **They are approved by Developer B and still need approval from Developer A.**
+Source revision: `9f77b53` (`master`, PR #5), which includes S-00 and S-01. The S-01 amendments in §17 (D-36) were written against `682c010`, the S-03 amendment in §18 (D-38) against `9f77b53`, and the S-05 amendments in §19 (D-43–D-47) against `a8ab805`. **§17 and §19 are approved by Developer B and still need approval from Developer A. §18 is approved by both.**
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -408,6 +408,7 @@ export interface AuditLog { record(tx: Tx, entry: AuditEntryInput): Promise<void
 - **Resolved (O-17):** the action, target-type and result vocabularies, and whether denied or failed attempts are audited. Auditing them would need an own-Tx variant, because the caller's Tx rolls back.
 - **Locks / Tx:** inside the caller's Tx, as a later-table insert.
 - **Fake:** an in-memory recorder that tests assert against. It never silently drops entries.
+- **Amended (§19, AM-09, AM-10):** entry validation and request IDs (D-46); the security-event log for denied and failed attempts (D-47).
 
 ## 9. K6 — Shared rate limiter
 
@@ -417,14 +418,14 @@ export interface AuditLog { record(tx: Tx, entry: AuditEntryInput): Promise<void
 // src/server/services/rate-limit/
 export type RateLimitKey = Brand<string, "RateLimitKey">;
 export type RateLimitName =
-  | "login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create" | "soc_requests" | "soc_tokens";
+  | "login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create" | "soc_requests";
 export interface RateLimitPolicy { readonly limit: number; readonly windowSeconds: number }
 export type RateLimitOutcome =
   | { readonly allowed: true }
   | { readonly allowed: false; readonly retryAfterSeconds: number }; // computed from window end
 
 export interface RateLimiter {
-  /** Atomic upsert-increment of RateLimitWindow by `units` (tokens for SoC TPM, otherwise 1). */
+  /** Atomic upsert-increment of RateLimitWindow by `units` (1 for every current policy). */
   consume(key: RateLimitKey, policy: RateLimitPolicy, units: number): Promise<RateLimitOutcome>;
   /** Read-only check (e.g. login before verifying a password). */
   check(key: RateLimitKey, policy: RateLimitPolicy): Promise<RateLimitOutcome>;
@@ -433,7 +434,7 @@ export interface RateLimitKeys {
   forAccount(limit: RateLimitName, accountId: AccountId): RateLimitKey;
   forEmail(limit: RateLimitName, normalizedEmail: string): RateLimitKey; // HMAC(RATE_LIMIT_KEY_SECRET)
   forClientIp(limit: RateLimitName, ip: string): RateLimitKey;           // HMAC(RATE_LIMIT_KEY_SECRET)
-  forEnvironment(limit: RateLimitName): RateLimitKey;                    // SoC per-minute quotas
+  forEnvironment(limit: RateLimitName): RateLimitKey;                    // SoC per-minute request quota
 }
 ```
 
@@ -441,9 +442,10 @@ export interface RateLimitKeys {
 - **Resolved (O-18):**
   - Whether a rejected `consume` still increments.
   - Whether a successful login clears failure counts.
-  - The `RateLimitName` values. **Approved:** `login_failure_email`, `login_failure_ip`, `review_mutation`, `report_create`, `soc_requests`, `soc_tokens`.
+  - The `RateLimitName` values. **Approved:** `login_failure_email`, `login_failure_ip`, `review_mutation`, `report_create`, `soc_requests`. `soc_tokens` was removed by D-48 (SoC documents no tokens-per-minute limit; AM-11).
 - **Locks / Tx:** **own short Tx**. It must be called with no Tx open (§1 rule 8).
 - **Fake:** an unscripted key returns `{ allowed: false, retryAfterSeconds: 60 }`.
+- **Amended (§19, AM-07, AM-08):** windows, admission, input validity and purge (D-43, D-45); key format, policies, client IP and the login sequence (D-44).
 
 ## 10. K7 — Catalogue: Movie locks and review-change marker
 
@@ -634,8 +636,8 @@ export interface SchedulerLeases {
 ```
 
 **How `run` executes:**
-1. Own short Tx: acquire the `ai_execution` SchedulerLease, increment AIBudgetDay by the reserved cost in microdollars (estimated input tokens and `maxOutputTokens` priced per ai.md AI-03, D-25), and insert AIBudgetReservation and a running AIJob with its dedup key and lease (P-13 order). It also consumes the K6 SoC per-minute quotas in their own Tx.
-2. Provider attempts with no Tx: 30 s per attempt, at most 2 attempts, jitter honouring Retry-After, within the 75 s deadline.
+1. Own short Tx: acquire the `ai_execution` SchedulerLease, increment AIBudgetDay by the reserved cost in microdollars (estimated input tokens and `maxOutputTokens` priced per ai.md AI-03, D-25), and insert AIBudgetReservation and a running AIJob with its dedup key and lease (P-13 order). It also consumes the K6 SoC per-minute request quota in its own Tx.
+2. Provider attempts with no Tx: 30 s per attempt, at most 2 attempts, jitter honouring Retry-After when present (D-48), within the 75 s deadline.
 3. `validate`.
 4. Publish Tx: the `publish` callback takes its domain locks, then the controller locks the AIJob and verifies the lease and running status, last (P-08). Any error rolls the transaction back.
 5. Own short Tx in `finally`: reconcile the reservation (unknown usage is charged at the reserved amount) and release `ai_execution`.
@@ -730,7 +732,7 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 | O-14 | K3 owns the cron-secret guard (`requireCronCaller`); both cron routes use it | §6 below |
 | O-15 | Vercel `x-real-ip`; fixed placeholder locally; verify against Vercel docs before release | security.md |
 | O-16 | Non-USER status target returns 403 `forbidden` | api.md 8.4 |
-| O-17 | `AuditResult` is `applied` or `no_op`; action and target-type vocabularies are the unions in §8; denied and failed attempts go to structured logs only | security.md, data-model.md |
+| O-17 | `AuditResult` is `applied` or `no_op`; action and target-type vocabularies are the unions in §8; denied and failed attempts go to structured logs only | security.md and data-model.md (result vocabulary, structured logs); the action and target-type unions are recorded only in §8 (open vocabularies, D-33); log format D-47 |
 | O-18 | A rejected `consume` does not increment; login failures counted only after failed verification; success does not reset; names as in §9 | security.md |
 | O-19 | User mutation on a missing or archived Movie returns 404 | api.md |
 | O-20 | K7 summary-schedule additions accepted | PLAN.md §5 K7 |
@@ -768,7 +770,7 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 
 ## 17. S-01 amendments (13 October 2026)
 
-These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; Developer A (Lim-ZY) approval pending.** No consumer code depends on them yet.
+These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; Developer A (Lim-ZY) approved.** No consumer code depends on them yet.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
@@ -785,3 +787,57 @@ This amendment came from the S-03 analysis. Developer B (thegrimbee) decided tha
 | ID | Change | Spec basis |
 | --- | --- | --- |
 | AM-06 | The two health Route Handlers are outside K2's error envelope permanently. They do not use `runRoute` or `errorResponse`, because the health contract requires the minimal bodies at every status, including after an unexpected throw. While K2 is unmerged (Developer B's interim decision), they also set `Cache-Control: no-store`, the JSON content type and a server-generated `X-Request-Id` themselves. K2 needs no change. If K2 later exports a header helper with identical behaviour, the health handlers may adopt it. The §1 rule 3 sentence "`runRoute` turns a throw into a safe generic error" does not apply to health routes | D-38, api.md 8.4 health contract |
+
+## 19. S-05 amendments (16 October 2026)
+
+These amendments came from the S-05 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by Developer B; approved by Developer A (Lim-ZY).** AM-08 adds a K2 helper and fixes the K6 login sequence for S-04, and AM-10 makes K2 and Identity emit security events. Both affect Developer A's modules. No consumer code depends on these amendments yet.
+
+```ts
+// src/server/services/rate-limit/ (AM-07, AM-08)
+export interface RateLimiter {
+  consume(key: RateLimitKey, policy: RateLimitPolicy, units: number): Promise<RateLimitOutcome>;
+  check(key: RateLimitKey, policy: RateLimitPolicy): Promise<RateLimitOutcome>;
+  /** Own short Tx; deletes at most 1,000 expired rows and returns how many it deleted (D-45). */
+  purgeExpired(): Promise<number>;
+}
+export const RATE_LIMIT_POLICIES: Readonly<
+  Record<"login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create", RateLimitPolicy>
+>; // D-44 values
+export function createRateLimiter(deps: { database: Database; sql: Sql }): RateLimiter;
+export function createRateLimitKeys(deps: { secret: string }): RateLimitKeys; // config.core.rateLimitKeySecret
+
+// src/server/http/ (K2, AM-08)
+export type ClientIpResolver = (headers: Headers) => string;
+export function clientIpFromVercelHeaders(headers: Headers): string; // trimmed x-real-ip, else "unknown"
+export function placeholderClientIp(headers: Headers): string;       // always "unknown"
+
+// src/server/services/audit/ (AM-09, AM-10)
+export function createAuditLog(deps: { sql: Sql }): AuditLog;
+export type SecurityEvent =
+  | "auth.login_failed" | "auth.login_throttled" | "auth.csrf_failed"
+  | "access.denied" | "rate_limit.rejected" | "rate_limit.purge_failed";
+export interface SecurityEventInput {
+  readonly event: SecurityEvent;
+  readonly requestId: RequestId;
+  readonly actorId?: AccountId;
+  readonly limit?: RateLimitName;
+  readonly code?: string; // api.md 8.1 error code
+}
+export interface SecurityLog { record(entry: SecurityEventInput): void } // never throws
+export function createConsoleSecurityLog(): SecurityLog;
+```
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-07 | K6 windows, admission and input validity. These cover the epoch-aligned database-clock windows, admission when `count + units <= limit` through one atomic statement, and the read-only `check` (count below the limit, no row created). They also cover `retryAfterSeconds = ceil(window end − now())` with a minimum of 1, and a throw when `limit`, `windowSeconds` or `units` is invalid or `units > limit`. New `purgeExpired()`, called once per invocation by the review-moderation cron route | D-43, D-45 |
+| AM-08 | K6 keys and policies, and the K2 client-IP helper. These cover the `bucket_key` format, HMAC-SHA256 over `<limit>:email:` and `<limit>:ip:`, and raw account UUIDs. They also cover the fixed `RATE_LIMIT_POLICIES` and the SoC policies built by K10 from AI configuration. The composition root injects `clientIpFromVercelHeaders` for `development` and `production` and `placeholderClientIp` otherwise. The S-04 login sequence is check, verify, then consume on failure, with the generic error whatever the consume outcome | D-44, SEC-06 |
+| AM-09 | K5 validates every entry with a strict zod schema and throws on a violation. It checks the closed unions, UUID ids and request ID, and flat scalar metadata of at most 20 keys with values of at most 1,000 code points. It also rejects the forbidden key names. Operator commands generate one request ID per run. Metadata is passed to SQL as a JSON string cast to `jsonb`, because `SqlParam` has no object variant (AM-05 unchanged) | D-46 |
+| AM-10 | `SecurityLog` beside K5, with a console implementation and a recording fake in `tests/support/fakes/`. K2 `runRoute` records `access.denied`, `auth.csrf_failed` and `rate_limit.rejected`. Identity records `auth.login_failed` and `auth.login_throttled`. The composition root builds `createAuditLog`, `createRateLimiter`, `createRateLimitKeys` and `createConsoleSecurityLog` from valid core configuration | D-47, D-23 |
+
+## 20. D-48 amendment (16 October 2026)
+
+Approved by both developers (Lim-ZY and thegrimbee) on 16 October 2026.
+
+| ID | Amendment | Basis |
+| --- | --- | --- |
+| AM-11 | K6 `RateLimitName` drops `soc_tokens`; `soc_requests` is the only SoC policy, and every current `consume` uses 1 unit. K10 consumes only `soc_requests` before dispatch. `SOC_LLM_TOKENS_PER_MINUTE` is removed from AI configuration. Retries honour `Retry-After` only when the provider sends one | D-48, D-44 |

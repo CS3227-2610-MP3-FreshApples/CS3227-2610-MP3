@@ -53,14 +53,13 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | SESSION_SECRET | High-entropy environment-specific secret for session/CSRF signing |
 | SESSION_TTL_SECONDS | Default 28800 |
 | RATE_LIMIT_KEY_SECRET | High-entropy environment-specific secret used only to HMAC email and IP rate-limit keys (D-12) |
-| SOC_LLM_BASE_URL | Verified HTTPS endpoint reachable from Vercel, without a trailing `/v1`; the adapter appends versioned paths |
-| SOC_LLM_API_KEY | Server-only secret; final auth mapping depends on verified SoC contract |
-| SOC_LLM_MODEL | Verified permitted model identifier |
-| SOC_LLM_REQUESTS_PER_MINUTE | Verified allocation or environment partition, no guessed default. The team allocation is 90 requests per minute (OQ-01); development and production values must sum to at most 90. Production 60, development 30 (D-25) |
-| SOC_LLM_TOKENS_PER_MINUTE | Verified allocation/partition if applicable |
+| SOC_LLM_BASE_URL | `https://soclaas-api.comp.nus.edu.sg` (D-48): HTTPS, reachable from Vercel, without a trailing `/v1`; the adapter appends versioned paths |
+| SOC_LLM_API_KEY | Server-only secret, sent as `Authorization: Bearer <key>` (SoCLaaS keys have the form `clsk_<prefix>_<secret>`). Keys are issued per SoC account; rotating a key disables the old one at once (D-48) |
+| SOC_LLM_MODEL | `default`, the SoCLaaS operator-managed alias (D-48); confirm with `GET /v1/models` that the key can use it before enabling AI |
+| SOC_LLM_REQUESTS_PER_MINUTE | Verified allocation or environment partition, no guessed default. The SoCLaaS default limit is 90 requests per minute per API key (OQ-01, D-48); development and production values must sum to at most 90. Production 60, development 30 (D-25) |
 | AI_DAILY_BUDGET_MICRODOLLARS | Required positive budget when AI is enabled; counted per UTC calendar day (D-13, D-25). Production 53,333,333; development 26,666,666 (sum within the USD 80/day allocation) |
-| SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK | Verified input price of SOC_LLM_MODEL in microdollars per million tokens; no guessed default; missing value disables AI |
-| SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK | Verified output price of SOC_LLM_MODEL in microdollars per million tokens; no guessed default; missing value disables AI |
+| SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK | Input price of SOC_LLM_MODEL in microdollars per million tokens, as reported by `GET /v1/models`: 411810 on 16 October 2026 (D-48); no default; missing value disables AI |
+| SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK | Output price of SOC_LLM_MODEL in microdollars per million tokens, as reported by `GET /v1/models`: 1456571 on 16 October 2026 (D-48); no default; missing value disables AI |
 | AI_ENABLED | Explicit boolean; false until provider validation succeeds |
 | AI_PROVIDER | soc_llm or fake. fake selects the deterministic adapter for local, test and development use (D-16); configuration validation rejects fake when APP_ENV is production |
 | AI_MAX_CONCURRENT_REQUESTS | Default 1 per environment, enforced through PostgreSQL |

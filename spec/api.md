@@ -113,7 +113,7 @@ Logical events ReviewChanged, ReviewModerated, MovieVisibilityChanged, ReportCre
 
 ### 8.4 External Integrations
 
-SoC LLM is the required runtime AI provider. Its actual endpoint, authentication scheme, models, quotas and retention behaviour must be verified against the course guide before integration. Do not assume compatibility with any vendor SDK. The provider adapter isolates those differences. SOC_LLM_BASE_URL excludes the /v1 path segment; the adapter appends versioned paths. Do not rely on a provider JSON response mode; validate returned content (AI-01, AI-02).
+SoC LLM (SoCLaaS) is the required runtime AI provider. Per the SoC DocHub guides checked on 16 October 2026 (D-48), it is an OpenAI-compatible gateway at https://soclaas-api.comp.nus.edu.sg. Requests send `Authorization: Bearer <key>` and the adapter uses `POST /v1/chat/completions`; `GET /v1/models` lists the models visible to the key. Gateway errors have the shape `{"error": "<message>"}`: 400 invalid request, 401 missing or invalid key, 403 model or feature not allowed, 429 rate or budget limit, 5xx provider or gateway fault. The guides do not cover retention or permitted data; no further verification is needed (D-48). The adapter calls the HTTP API directly, without a vendor SDK, and isolates provider differences. SOC_LLM_BASE_URL excludes the /v1 path segment; the adapter appends versioned paths. Do not rely on a provider JSON response mode; validate returned content (AI-01, AI-02).
 
 GitHub Actions is the team-managed CI/CD mechanism; GitHub Pages is the required product website host. Next.js frontend/backend are hosted on Vercel and PostgreSQL on Supabase. No external movie API is required.
 
