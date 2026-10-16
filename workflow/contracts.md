@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `9f77b53` (`master`, PR #5), which includes S-00 and S-01. The S-01 amendments in §17 (D-36) were written against `682c010`, the S-03 amendment in §18 (D-38) against `9f77b53`, and the S-05 amendments in §19 (D-43–D-47) against `a8ab805`. **§17 and §19 are approved by Developer B and still need approval from Developer A. §18 is approved by both.**
+Source revision: `c51c92e` on `feat/http-api-kernel`, based on `ee62bd1` (`master`, PR #6). S-00, S-01 and S-03 contract decisions are approved by both developers; S-02 clarification AM-07 is recorded below and approved by both developers.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -295,6 +295,7 @@ export function noContentResponse(): Response; // 204
 ```
 
 - **Outcomes:** the §2.2 mapping. Every response carries `Cache-Control: no-store` (**Approved, P-06**, until caching has invalidation tests). Error bodies are `{ error: { code, message, fieldErrors?, requestId } }`.
+- **Request identity:** `runRoute` generates one server-side `RequestId`, passes it to the handler, and decorates the returned response with `X-Request-Id` before returning it. `errorResponse` uses the same ID in both the response header and `error.requestId`. Response helpers do not accept a request-ID parameter, so successful responses cannot omit the header when returned through `runRoute`.
 - **Resolved (see §16):**
   - O-06: status for unknown mutation fields (400 or 422), oversize bodies (413 is not in api.md), unsupported content types (415 is not in api.md), and unexpected faults (500 is not in api.md).
   - O-07: If-Match and ETag value format.
@@ -770,7 +771,7 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 
 ## 17. S-01 amendments (13 October 2026)
 
-These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; Developer A (Lim-ZY) approved.** No consumer code depends on them yet.
+These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; approved by Developer A (Lim-ZY).** No consumer code depends on them yet.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
@@ -841,3 +842,11 @@ Approved by both developers (Lim-ZY and thegrimbee) on 16 October 2026.
 | ID | Amendment | Basis |
 | --- | --- | --- |
 | AM-11 | K6 `RateLimitName` drops `soc_tokens`; `soc_requests` is the only SoC policy, and every current `consume` uses 1 unit. K10 consumes only `soc_requests` before dispatch. `SOC_LLM_TOKENS_PER_MINUTE` is removed from AI configuration. Retries honour `Retry-After` only when the provider sends one | D-48, D-44 |
+
+## 21. S-02 clarification (16 October 2026)
+
+This clarification resolves the request-ID behavior for K2. **Status: approved by both developers.**
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-07 | K2 `runRoute` generates the server-side `RequestId` and decorates every returned response with `X-Request-Id`. Successful-response helpers retain their existing signatures; `errorResponse` places the same ID in the error body and header. | api.md §8.1; K2 §5; P-06; O-10 |
