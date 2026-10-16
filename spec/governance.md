@@ -296,7 +296,7 @@ Design decision D-47 (security event logs): Denied and failed attempts (security
   - `rate_limit.rejected`: a 429 from any other limit.
   - `rate_limit.purge_failed`: a D-45 purge failure.
   - 401, 409 and 422 responses are not logged.
-- **Fields:** `event`, `outcome` (`failed`, `throttled` or `denied`, determined by the event) and `requestId`. When applicable, a line also carries `actorId` (the authenticated account's UUID), `limit` (the limit name) and `code` (the api.md error code).
+- **Fields:** `event`, `outcome` (`failed`, `throttled` or `denied`, determined by the event) and `requestId`. The outcomes are: `auth.login_failed` and `rate_limit.purge_failed` → `failed`; `auth.login_throttled` and `rate_limit.rejected` → `throttled`; `access.denied` and `auth.csrf_failed` → `denied` (thegrimbee, 16 October 2026). When applicable, a line also carries `actorId` (the authenticated account's UUID), `limit` (the limit name) and `code` (the api.md error code).
 - **Never logged:** emails, IP addresses, bucket keys, passwords, tokens, cookies, request bodies, error messages, stack traces and SQLSTATEs.
 - **Failure handling:** writing a line never throws.
 - **Storage:** lines stay in Vercel runtime logs, as for D-39.
