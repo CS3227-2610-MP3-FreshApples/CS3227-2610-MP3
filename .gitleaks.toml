@@ -1,0 +1,9 @@
+# gitleaks configuration (D-29, D-41). Used by the CI build-secret-scan job and `npm run check:secrets`.
+title = "CS3227-2610-MP3"
+
+[extend]
+useDefault = true
+
+# The allowlist is empty. A false positive may be allowed only through a reviewed [[allowlists]] entry
+# that carries a justification comment (security.md "Development-process security"). Never allowlist a
+# real secret; rotate it instead.

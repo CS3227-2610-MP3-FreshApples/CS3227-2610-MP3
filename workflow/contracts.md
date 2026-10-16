@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `682c010` (branch `feat/db-foundation`), which includes the merged S-00 changes. The S-01 amendments in §17 (D-36) are working-tree edits on top of it. **They are approved by Developer B and still need approval from Developer A.**
+Source revision: `9f77b53` (`master`, PR #5), which includes S-00 and S-01. The S-01 amendments in §17 (D-36) were written against `682c010`, and the S-03 amendment in §18 (D-38) against `9f77b53`. **They are approved by Developer B and still need approval from Developer A.**
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -777,3 +777,11 @@ These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated
 | AM-03 | `SessionId` (§2.1, K3 `Principal`) is backed by the new `Session.id` column | data-model.md Session row |
 | AM-04 | §3.1 rule 3 now matches data-model.md: rate-limit and AI-budget rows are updated only in their own short transactions. Behaviour is unchanged (P-04) | data-model.md "Lock order (D-20)" |
 | AM-05 | K1 returns `bigint` as `number`, and throws above `Number.MAX_SAFE_INTEGER`. `SqlParam` is unchanged | tech-stack.md "Database driver" |
+
+## 18. S-03 amendment (15 October 2026)
+
+This amendment came from the S-03 analysis. Developer B (thegrimbee) decided that health handlers set their headers directly while A#1 (K2) is unmerged, and delegated the remaining choices to the agent's recommendations. **Status: approved by Developer B; approved by Developer A (Lim-ZY)**
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-06 | The two health Route Handlers are outside K2's error envelope permanently. They do not use `runRoute` or `errorResponse`, because the health contract requires the minimal bodies at every status, including after an unexpected throw. While K2 is unmerged (Developer B's interim decision), they also set `Cache-Control: no-store`, the JSON content type and a server-generated `X-Request-Id` themselves. K2 needs no change. If K2 later exports a header helper with identical behaviour, the health handlers may adopt it. The §1 rule 3 sentence "`runRoute` turns a throw into a safe generic error" does not apply to health routes | D-38, api.md 8.4 health contract |

@@ -15,7 +15,8 @@ Status: selected on 8 October 2026. This supplements sections 6, 10 and 14.
 | Authentication | `@node-rs/argon2` (Argon2id) with in-repo opaque server-side sessions (D-11) |
 | Testing | Vitest for unit/integration tests; Playwright for end-to-end tests (D-09) |
 | Input validation | zod schemas in strict mode (D-22) |
-| Secret scanning | gitleaks CLI, pinned release with checksum verification (D-29) |
+| Secret scanning | gitleaks CLI v8.30.1, pinned release with checksum verification (D-29, D-41) |
+| Dependency scanning | `npm audit --json` checked by `scripts/check-audit.mjs` in CI; high and critical fail unless approved in governance §14 (D-40) |
 | Runtime AI | SoC LLM, called only from Next.js server code |
 | CI/CD | GitHub Actions required checks; Vercel Git integration deployment from reviewed `master` (D-18) |
 | Product information website | GitHub Pages, as required by the course |

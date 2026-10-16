@@ -93,7 +93,11 @@ Suggested future artifacts:
 | OQ-08 | Confirm repo naming requirement and official deadline; the product name is resolved as FreshApples | Before release |
 | OQ-09 | Verify host meets backup, restore and performance targets | Before production acceptance |
 
-Approved exceptions: none.
+Approved exceptions:
+
+| Advisory | Scope | Justification | Approved | Review by |
+| --- | --- | --- | --- | --- |
+| GHSA-vfj7-8cjw-p6xm (`braces` <=3.0.3, stack-exhaustion denial of service through deeply nested patterns; high) | Development only: `eslint-config-next` 16.4.0 → `@next/eslint-plugin-next` → `fast-glob` → `micromatch` → `braces` 3.0.3. It accounts for all five high entries in `npm audit` on 15 October 2026 | ESLint applies it only to the repository's own file patterns, never to untrusted input, and it never runs at runtime. `npm audit --omit=dev` reports nothing. No patched `braces` release exists (3.0.3 is the latest), so `overrides` cannot fix it. The only automatic fix downgrades `eslint-config-next` to 14.x, which does not match Next.js 16 | thegrimbee, 15 October 2026, on the agent's recommendation | 15 November 2026, or earlier if a fixed `braces` or `eslint-config-next` is published |
 
 Design decision D-01: Automatically screen every new Review and changed/resubmitted body for profanity. No Admin request initiates screening. Save pending, publish only current clean output, and hold suspected/uncertain content for human review. Admins can approve/hide with an audited reason. AI does not accept Reports or apply account sanctions.
 
@@ -155,7 +159,7 @@ Design decision D-29 (secret scanning): SEC-07 secret scanning uses the gitleaks
 
 Design decision D-30 (local/test database TLS): Database TLS is either CA-verified or absent, never unverified. In `APP_ENV=local` or `test` only, `DATABASE_CA_CERT` may be omitted, and then the runtime pool and the migration runner connect without TLS, but only to a loopback host (`localhost`, `127.0.0.1` or `::1`). This covers the D-10 container and the GitHub Actions service container. In `development` and `production`, `DATABASE_CA_CERT` is required and a missing value is invalid core configuration. The migration runner verifies TLS against the same project CA in `DATABASE_CA_CERT`; no separate migration CA variable is added.
 
-Design decision D-31 (database roles): Migrations never create login roles or set passwords. In each Supabase project an operator creates `app_runtime` (LOGIN, password entered outside the repository and logs) before the first migration; the procedure goes in the developer guide (R-04). The test harness creates `app_runtime`, `anon` and `authenticated` as synthetic roles in the disposable database before migrating, so the same migration files run unchanged locally, in CI and on Supabase, and fail loudly if a role is missing.
+Design decision D-31 (database roles): Migrations never create login roles or set passwords. In each Supabase project an operator creates `app_runtime` (LOGIN, password entered outside the repository and logs) before the first migration; the procedure goes in the developer guide (R-04). The test harness creates `app_runtime`, `anon` and `authenticated` as synthetic roles in the disposable database before migrating, so the same migration files run unchanged locally, in CI and on Supabase, and fail loudly if a role is missing. These synthetic roles stay `NOLOGIN`. For end-to-end runs only (D-42), the harness also creates a per-run login role with a uniquely generated name and a randomly generated synthetic password. The role is a member of `app_runtime` with `INHERIT`, so it holds exactly `app_runtime`'s privileges, and it is dropped when the run ends. The harness never gives `app_runtime` itself `LOGIN` or a password, and it never prints the password.
 
 Design decision D-32 (runtime privileges): `app_runtime` receives `USAGE` on schema `app` and exactly the table privileges listed in [data-model.md](data-model.md) "Runtime privileges". It has no `TRUNCATE`, `REFERENCES`, `TRIGGER` or DDL rights. `DELETE` is granted only where a recorded behaviour needs it. Retention purges (OQ-05) add grants in a later migration when their design is approved. Every migration that adds a table grants its privileges explicitly; default privileges are not used.
 
@@ -168,6 +172,74 @@ Design decision D-35 (synthetic seed): The synthetic seed script (DEP-04) create
 Design decision D-36 (transaction conflicts and readiness probe): The transaction helper (K1) converts PostgreSQL deadlock (40P01) and serialization (40001) failures into a typed `TransactionConflict` error that carries no driver types. The API kernel (K2) maps it to 409 `conflict`; it is never retried automatically. K1 also exposes a separate `probe()` operation for readiness that runs a read-only query with a 2-second limit covering both connection acquisition and the query; ordinary transactions keep the 5-second limits.
 
 Design decision D-37 (configuration validity): Configuration is validated with zod (D-22 extended to environment variables) once per server instance in the composition root. Validity rules are listed in [deployment.md](deployment.md) 10.3. AI configuration never makes core configuration invalid: invalid or incomplete AI settings, including `AI_PROVIDER=fake` when `APP_ENV=production`, disable AI and are reported by variable name in server logs. Validation messages name variables, never values.
+
+Design decision D-38 (health handlers): The api.md health contract is implemented as follows.
+- `GET /api/v1/health/live` and `GET /api/v1/health/ready` are Node.js-runtime Route Handlers that export only `GET`. Next.js answers `HEAD` by calling the `GET` handler, so `HEAD` responses carry the same headers without a body. Next.js generates the responses for `OPTIONS` (the `Allow` header) and for other methods (405). These framework-generated responses are outside the health shape contract and are the one exception to the api.md 8.1 `X-Request-Id` rule.
+- Both handlers run at request time: they call `connection()` from `next/server` before doing any work, so they are never prerendered under `cacheComponents` (they never read build-time config).
+- Every health response carries `Cache-Control: no-store`, a JSON content type and a server-generated UUID `X-Request-Id` (api.md 8.1). It carries no `Set-Cookie`. Inbound request IDs, cookies and session headers are ignored.
+- Health handlers never use the K2 error envelope, at any status. This is permanent: it follows from the api.md 8.4 rule that health responses keep their minimal shapes even on failure.
+- Setting the headers directly in the handlers is Developer B's interim decision while the K2 kernel (S-02) is unmerged, so the handlers do not import `src/server/http/`. Once K2 merges, they may switch to a K2 header helper only if the behaviour stays identical.
+- Liveness reads no configuration and does not import the composition root, the database or any adapter. It returns 200 `{ "status": "ok" }` whenever the process can run the handler, including when core configuration is invalid.
+- Readiness returns 503 `{ "status": "unavailable" }` without opening a database connection when core configuration is invalid (D-28). Otherwise it calls K1 `probe()` (D-36) once and returns 200 `{ "status": "ready" }` if it resolves or 503 if it rejects or times out. Any unexpected exception in the readiness path also returns 503 with the same body.
+- The readiness decision is a server-only function under `src/server/services/health/`. The composition root builds its input from `config.core` and `database` as one of two values:
+  - invalid configuration, carrying the variable names from the core-configuration issues (needed by D-39);
+  - valid configuration, carrying the probe operation.
+
+  The function does not receive a validity flag alongside both values, because that would be control coupling (AGENTS.md).
+- Flood protection at the edge relies on Vercel's platform protection; the application adds no limiter to health routes, because a limiter would need database access. R-04 records what the Hobby plan provides.
+- Accepted risk: the per-instance pool has one connection, so readiness can report 503 while a request holds that connection for more than 2 seconds.
+
+Design decision D-39 (readiness failure logs): Each 503 readiness response writes exactly one JSON line with `console.error`, fields `event` = `health.ready.unavailable`, `requestId`, `reason` and, for configuration failures only, `variables`.
+- `reason` is one of `core_config_invalid`, `database_unavailable` (probe rejected or timed out) or `unexpected_error`.
+- `variables` lists the variable names from the configuration issues, never their values.
+- The line never contains error messages, stack traces, SQLSTATEs, hostnames, connection strings or versions.
+- Successful health responses are not logged. These logs stay in Vercel runtime logs, which only project members can read. No log drain is configured without a new decision.
+
+Design decision D-40 (CI checks): `.github/workflows/ci.yml` implements the DEP-02 checks.
+- **Triggers:** `pull_request` targeting `master`, `push` to `master` and `workflow_dispatch`. It never uses `pull_request_target`.
+- **Workflow settings:** `permissions: contents: read`. A concurrency group per ref cancels superseded runs. Node.js 24 everywhere (`actions/setup-node`), and the Vercel project's Node.js version is set to the same major version (R-04). Every action is pinned to a full commit SHA with a version comment.
+- **Secrets:** no job reads repository secrets or deploy credentials. All environment values in CI are synthetic. No job deploys (D-18).
+- **Jobs, whose names are the required status checks a human configures:**
+  - `lint-typecheck`: `npm ci`, `npm run lint`, `npx tsc --noEmit`.
+  - `unit`: `npm run test:unit`.
+  - `integration`: `npm run test:integration` against a `postgres:17` service bound to loopback (D-10).
+  - `e2e`: the Playwright suite (D-42).
+  - `build-secret-scan`: the build, gitleaks and canary checks (D-41).
+  - `dependency-audit`: `npm audit --json` over all dependencies, checked by `scripts/check-audit.mjs` (no new dependency). High and critical advisories fail the job. An accepted advisory is recorded in §14 "Approved exceptions" with its advisory ID, justification and review date, never suppressed silently. npm has no ignore list, so the approved advisories are mirrored in `audit-exceptions.json` at the repository root, with entries `{ "id": "GHSA-…", "reviewBy": "YYYY-MM-DD" }`. The script fails when:
+    - a high or critical advisory's GHSA ID is not listed;
+    - a listed entry is past its `reviewBy` date (UTC);
+    - a listed entry no longer matches any reported advisory, so stale entries are removed.
+
+    A pull request that changes `audit-exceptions.json` must change §14 in the same pull request. `--omit=dev`, `continue-on-error` and lowering the audit level are not used.
+- **Job order:** the jobs run in parallel, with no `needs:` between them. The arrows in DEP-02 give the logical order of the checks, not a required job sequence. Each job installs from the lockfile itself, and branch protection requires every job to pass.
+- **Formatting:** DEP-02's formatting check is satisfied by the ESLint step. No separate formatter is adopted.
+- **Security tests:** DEP-02's security tests are the security-relevant tests inside the unit, integration and e2e projects (for example configuration redaction, runtime privileges and later the access matrix), together with `build-secret-scan` and `dependency-audit`. There is no separate security test command.
+
+Design decision D-41 (secret scan pin and canary): The pinned gitleaks release is v8.30.1. CI downloads `gitleaks_8.30.1_linux_x64.tar.gz` and checks it against SHA-256 `551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb` (taken from the release's checksums file) before extracting it.
+- **Commit-range scan:** with full fetch depth, gitleaks scans the pull request commit range (`base..head`) on `pull_request` and the pushed range (`before..after`) on `push`, using `gitleaks git --log-opts`.
+- **Build:** the `build-secret-scan` job runs `npm run build` once with distinctive synthetic canary values for every server-only secret: `DATABASE_URL` and `MIGRATION_DATABASE_URL` (canary in the password), `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET`, `CRON_SECRET` and `SOC_LLM_API_KEY`. `DATABASE_CA_CERT` is a public CA certificate and is not a canary.
+- **Built-asset checks:** the job then runs `gitleaks dir .next/static`. `scripts/check-bundle-canary.mjs` fails if any canary value appears in any file under `.next/static`.
+- **New secrets:** a pull request that adds a server-only secret to deployment.md 10.3 adds it to the canary list in the same pull request.
+- **Configuration:** `.gitleaks.toml` extends the default rules and starts with an empty allowlist; each entry needs a justification comment and human review.
+- **Negative-path evidence:** a commit stays in the scanned range after it is reverted. The S-03 evidence that CI fails on a failing test and on a synthetic secret therefore comes from a throwaway branch off the S-03 branch, with its own pull request that is closed without merging, and the S-03 pull request links those failing runs. The secret is a synthetic value that matches a default gitleaks rule. Producing this evidence never uses an allowlist entry, a history rewrite or a weakened scan.
+- **Local use:** `npm run check:secrets` needs gitleaks on `PATH` and otherwise fails with a clear message. It runs:
+  - `gitleaks git` over the commits on the current branch that are not on `origin/master` (`origin/master..HEAD`);
+  - `gitleaks dir .next/static`.
+
+  It does not build. If `.next/static` is missing, it fails and tells the developer to run `npm run build` first. The canary check runs only in CI, because it needs the canary build.
+- **Pin changes:** changing the version or checksum requires a reviewed pull request that updates this decision.
+
+Design decision D-42 (Playwright harness): The configuration is `playwright.config.ts` at the repository root. It sets `testDir: tests/e2e` and one Chromium project (D-09).
+- **Command:** the script is `npm run test:e2e`, which runs the wrapper described under Lifecycle. It is recorded in `AGENTS.md` Commands when S-03 lands.
+- **Build:** `npm run test:e2e` does not build; run `npm run build` first. The `e2e` CI job runs `npm run build` itself with the e2e environment below. It does not reuse the canary build from `build-secret-scan`.
+- **App under test:** Playwright's `webServer` starts the production build with `next start` on `127.0.0.1` port 3100, using:
+  - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false`;
+  - no `DATABASE_CA_CERT` (D-30);
+  - `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET` and `CRON_SECRET` generated randomly for each run, distinct and at least 32 characters (deployment.md 10.3);
+  - `DATABASE_URL` naming the run's database and login role.
+- **Database:** the server is the loopback PostgreSQL 17 named by `TEST_DATABASE_URL`, and the same loopback-only refusal as the integration harness applies (D-10, D-30). Each run creates a uniquely named database, creates the synthetic D-31 roles and applies every migration, then creates the per-run login role from D-31. The app connects as that login role, so it holds exactly `app_runtime`'s privileges.
+- **Lifecycle:** Playwright 1.64.0 starts `webServer` before `globalSetup`, so the database cannot be prepared in `globalSetup`. Instead, `npm run test:e2e` runs a Node.js wrapper under `tests/setup/` with no new dependency. The wrapper prepares the database and login role, runs `playwright test` with the e2e environment, and then drops the database and the login role even when tests fail. It exits with Playwright's exit code. It may share the loopback check and role creation with the integration harness.
+- **Initial suite:** S-03 adds a health smoke spec (live and ready return their exact bodies and `no-store`, and are reached anonymously without redirects), so the suite is never empty. User and Admin journeys are added in R-02.
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
