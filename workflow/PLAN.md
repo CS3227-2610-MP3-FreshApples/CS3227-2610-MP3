@@ -18,7 +18,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | --- | --- | --- | --- | --- | --- |
 | S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts recorded 12 Oct; test commands and tracker pending) | — | 12 Oct | Draft |
 | S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
-| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Blocked |
+| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Ready |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Ready |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Draft |

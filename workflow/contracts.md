@@ -295,6 +295,7 @@ export function noContentResponse(): Response; // 204
 ```
 
 - **Outcomes:** the §2.2 mapping. Every response carries `Cache-Control: no-store` (**Approved, P-06**, until caching has invalidation tests). Error bodies are `{ error: { code, message, fieldErrors?, requestId } }`.
+- **Request identity:** `runRoute` generates one server-side `RequestId`, passes it to the handler, and decorates the returned response with `X-Request-Id` before returning it. `errorResponse` uses the same ID in both the response header and `error.requestId`. Response helpers do not accept a request-ID parameter, so successful responses cannot omit the header when returned through `runRoute`.
 - **Resolved (see §16):**
   - O-06: status for unknown mutation fields (400 or 422), oversize bodies (413 is not in api.md), unsupported content types (415 is not in api.md), and unexpected faults (500 is not in api.md).
   - O-07: If-Match and ETag value format.
@@ -768,7 +769,7 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 
 ## 17. S-01 amendments (13 October 2026)
 
-These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; Developer A (Lim-ZY) approval pending.** No consumer code depends on them yet.
+These amendments came from the S-01 analysis. Developer B (thegrimbee) delegated the choices to the agent's recommendations. **Status: approved by Developer B; approved by Developer A (Lim-ZY).** No consumer code depends on them yet.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
@@ -785,3 +786,11 @@ This amendment came from the S-03 analysis. Developer B (thegrimbee) decided tha
 | ID | Change | Spec basis |
 | --- | --- | --- |
 | AM-06 | The two health Route Handlers are outside K2's error envelope permanently. They do not use `runRoute` or `errorResponse`, because the health contract requires the minimal bodies at every status, including after an unexpected throw. While K2 is unmerged (Developer B's interim decision), they also set `Cache-Control: no-store`, the JSON content type and a server-generated `X-Request-Id` themselves. K2 needs no change. If K2 later exports a header helper with identical behaviour, the health handlers may adopt it. The §1 rule 3 sentence "`runRoute` turns a throw into a safe generic error" does not apply to health routes | D-38, api.md 8.4 health contract |
+
+## 19. S-02 clarification (16 October 2026)
+
+This clarification resolves the request-ID behavior for K2. **Status: approved by both developers.**
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-07 | K2 `runRoute` generates the server-side `RequestId` and decorates every returned response with `X-Request-Id`. Successful-response helpers retain their existing signatures; `errorResponse` places the same ID in the error body and header. | api.md §8.1; K2 §5; P-06; O-10 |
