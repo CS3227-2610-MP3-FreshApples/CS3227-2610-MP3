@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
+    "test:e2e": "node tests/setup/e2e-run.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "check:secrets": "node scripts/check-secrets.mjs"
   },
