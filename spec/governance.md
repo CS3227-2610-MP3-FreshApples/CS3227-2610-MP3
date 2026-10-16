@@ -83,7 +83,7 @@ Suggested future artifacts:
 
 | ID | Decision needed | Resolution required by |
 | --- | --- | --- |
-| OQ-01 | Verify models, context, quotas, retention and permitted data. Endpoint and API-key authentication from Vercel confirmed 11 October 2026 by a human-run smoke test. Verified team allocation, human-reported 12 October 2026: 90 requests per minute; budget 80,000,000 microdollars (USD 80) per day and 800,000,000 microdollars (USD 800) per month. Still unverified: permitted model and its per-token prices, context size, tokens per minute, retention and permitted data; owner Developer B (thegrimbee). Interim operating posture until verified: D-16 | Before provider integration and production enablement |
+| OQ-01 | Verify models, context, quotas, retention and permitted data. Endpoint and API-key authentication from Vercel confirmed 11 October 2026 by a human-run smoke test. Limits, human-reported 12 October 2026 and checked against the SoCLaaS usage-limits guide on 16 October 2026: the default per-API-key limits are 90 requests per minute and a budget of 80,000,000 microdollars (USD 80) per day and 800,000,000 microdollars (USD 800) per month; SoC may also apply lifetime credits and model access policy, and may adjust the limits. No tokens-per-minute limit is documented. Endpoint, authentication and error shape were checked against the guides, and the model (`default`, then an alias of `qwen3.6:35b`), per-token prices and context length against a human-run `GET /v1/models` with the project key, on 16 October 2026 (D-48). Retention and permitted data are not covered by the guides and need no further verification (thegrimbee, 16 October 2026; D-48). **Resolved 16 October 2026.** Interim operating posture: D-16 | Before provider integration and production enablement |
 | OQ-02 | Verify regions and environment-specific SoC quota partitioning. Resolved 11 October 2026 (human-verified): Vercel Hobby eligibility, repository deployment including by non-owner contributors, Supabase two-project allocation, and SoC LLM and Supabase reachability from Vercel (see `logs/`). Stack selection is resolved | Before infrastructure implementation |
 | OQ-03 | Confirm proposed account recovery scope; report privacy and anonymous summary access are resolved | Before respective product flows |
 | OQ-04 | Finalize profanity policy text and contested-decision process; default three-incident suspension and reinstatement cycle are specified. Policy storage, versioning and initial language scope are resolved by D-17. Owner: Developer B (thegrimbee), target before A-03 acceptance | Before moderation/AI acceptance |
@@ -123,13 +123,13 @@ Design decision D-11 (authentication): Hash passwords with `@node-rs/argon2` (Ar
 
 Design decision D-12 (rate limiting): Enforce SEC-06, the review/report limits in [security.md](security.md) and SEC-11 request throttles through one shared fixed-window counter table (RateLimitWindow in [data-model.md](data-model.md)) with an atomic upsert-increment. A fixed window may admit up to twice a limit across a window boundary; this is accepted while limits remain initial targets (ASM-10). Keys containing emails or IP addresses store an HMAC under `RATE_LIMIT_KEY_SECRET`, never the raw value.
 
-Design decision D-13 (AI capacity and budget): The single active AI execution per environment (AI-03) is a SchedulerLease row named `ai_execution`. The daily budget uses the AIBudgetDay and AIBudgetReservation tables, in microdollars (D-25). Per-minute SoC request and token quotas use RateLimitWindow keys. Budget days are UTC calendar days.
+Design decision D-13 (AI capacity and budget): The single active AI execution per environment (AI-03) is a SchedulerLease row named `ai_execution`. The daily budget uses the AIBudgetDay and AIBudgetReservation tables, in microdollars (D-25). The per-minute SoC request quota uses a RateLimitWindow key; there is no token quota (D-48). Budget days are UTC calendar days.
 
 Design decision D-14 (CSRF): SEC-04 uses a stateless HMAC token signed with `SESSION_SECRET` and bound to the session, plus an Origin/same-origin check on every unsafe method. Anonymous unsafe requests (`/auth/register`, `/auth/login`) use a signed pre-session token in a cookie. No CSRF table or Session column is added.
 
 Design decision D-15 (provider configuration names): The SoC variables are the `SOC_LLM_*` names in [deployment.md](deployment.md) 10.3. `.env.example` lists every 10.3 variable with placeholders and no guessed model default.
 
-Design decision D-16 (SoC interim posture): Until OQ-01 is resolved, development uses the deterministic fake adapter and production runs with `AI_ENABLED=false`. Obtain quota and budget figures from the SoC portal's budget-visibility interface and confirm retention with course staff. Development and production receive fixed sub-budgets whose sum fits the verified allocation (D-25); no cross-environment coordinator is built.
+Design decision D-16 (SoC interim posture): Until OQ-01 is resolved, development uses the deterministic fake adapter and production runs with `AI_ENABLED=false`. Obtain quota and budget figures from the SoC portal's budget-visibility interface and confirm retention with course staff. Development and production receive fixed sub-budgets whose sum fits the verified allocation (D-25); no cross-environment coordinator is built. OQ-01 was resolved on 16 October 2026 (D-48). This posture stays in force until a human records its end; production AI enablement still requires provider validation (deployment.md 10.3).
 
 Design decision D-17 (profanity policy): The policy is a versioned static artifact in source under `src/server`, and its version identifier is the `policy_version` recorded by AI jobs and moderation results. It is not stored in or edited through the database. The initial supported language is English (ASM-08). The policy text and contested-decision process remain open under OQ-04.
 
@@ -241,11 +241,83 @@ Design decision D-42 (Playwright harness): The configuration is `playwright.conf
 - **Lifecycle:** Playwright 1.64.0 starts `webServer` before `globalSetup`, so the database cannot be prepared in `globalSetup`. Instead, `npm run test:e2e` runs a Node.js wrapper under `tests/setup/` with no new dependency. The wrapper prepares the database and login role, runs `playwright test` with the e2e environment, and then drops the database and the login role even when tests fail. It exits with Playwright's exit code. It may share the loopback check and role creation with the integration harness.
 - **Initial suite:** S-03 adds a health smoke spec (live and ready return their exact bodies and `no-store`, and are reached anonymously without redirects), so the suite is never empty. User and Admin journeys are added in R-02.
 
+Design decision D-43 (rate-limit windows and admission): The shared limiter (D-12) works as follows.
+- **Clock:** windows are computed from the database clock (`now()`), never the application server's clock.
+- **Windows:** fixed and aligned to the Unix epoch. `window_start` is `to_timestamp(floor(extract(epoch FROM now()) / windowSeconds) * windowSeconds)`, and the window ends `windowSeconds` later.
+- **Admission:** a consume of `units` is admitted when the window's count plus `units` is at most the limit, and the count then grows by `units`. Otherwise it is rejected and the count is unchanged (security.md). "10 per minute" therefore admits the 10th mutation in a window and rejects the 11th.
+- **Atomicity:** the check and the increment are one `INSERT … ON CONFLICT … DO UPDATE … WHERE` statement in the limiter's own short transaction (data-model.md "Lock order"). Concurrent callers on different connections cannot exceed the limit.
+- **Read-only check:** reports allowed when one more unit would be admitted (count below the limit). It creates no row.
+- **Retry-After:** a rejection carries `ceil(window end − now())` seconds, at least 1, from the same database clock, sent as integer seconds in the `Retry-After` header.
+- **Input validity:** `limit` and `units` are positive integers. `windowSeconds` is a positive integer of at most 86,400. A `units` value above `limit` could never be admitted, so the limiter throws instead of returning a retry time. Like every limiter failure, that throw fails closed (security.md). Callers keep each request within the limit.
+- **When consumers call it:** once per request, after authentication and CSRF checks and before the request opens its transaction. A request that later fails validation still counts.
+- **Accepted risk:** concurrent login attempts can all pass the read-only check before any failure is counted, so a burst may get a few guesses beyond the limit in one window. Concurrency per instance bounds this; the limit is an initial target (ASM-10). Accepted by thegrimbee on 16 October 2026.
+
+Design decision D-44 (rate-limit keys, policies and client IP):
+- **Key format:** `bucket_key` is `<limit name>:<subject>`. The subject is one of:
+  - `account:<UUID in lowercase>` for per-User limits;
+  - `env` for the per-environment SoC limits;
+  - `email:<hmac>` for normalized emails;
+  - `ip:<hmac>` for client IPs.
+- **HMAC:** `<hmac>` is lowercase hex HMAC-SHA256 keyed with `RATE_LIMIT_KEY_SECRET` over the UTF-8 string `<limit name>:email:<normalized email>` or `<limit name>:ip:<client IP>`. Account UUIDs are not personal contact data and are stored raw. Rotating `RATE_LIMIT_KEY_SECRET` resets email and IP counts; this is accepted.
+- **Normalization:** Identity normalizes emails before building a key. The limiter receives an already normalized email and an already derived client IP.
+- **Client IP:**
+  - In `development` and `production`, the client IP is the trimmed `x-real-ip` header value. `X-Forwarded-For` and every other client-supplied header are ignored.
+  - In `local` and `test`, and in hosted environments when `x-real-ip` is absent or empty, the client IP is the fixed placeholder `unknown`.
+  - The derivation is a server-only helper in the API kernel, chosen by `APP_ENV` in the composition root. It is two named functions, not a mode flag.
+- **Fixed policies:** constants in the limiter module, which are initial targets (ASM-10). Changing one is a spec change.
+  - `login_failure_email` and `login_failure_ip`: 5 per 900 seconds.
+  - `review_mutation`: 10 per 60 seconds per account.
+  - `report_create`: 5 per 3,600 seconds per account.
+- **SoC policy:** `soc_requests` (`SOC_LLM_REQUESTS_PER_MINUTE` per 60 seconds) uses the `env` subject. AI execution builds it from AI configuration (S-06). The variable is required for AI to be enabled. There is no tokens-per-minute policy (D-48).
+- **Login sequence (SEC-06):**
+  - Login checks both login-failure limits before verifying the password. If either rejects, it returns 429 `rate_limited` with the larger retry time and does not verify the password.
+  - After a failed verification, it consumes one unit on each limit and returns the generic credential error, whatever the consume outcomes. A rejected consume at that point only means the count has already reached the limit.
+  - A successful verification consumes nothing.
+
+Design decision D-45 (rate-limit purge): The limiter exposes a purge operation that deletes at most 1,000 RateLimitWindow rows per call in its own short transaction. It deletes rows whose `window_start` is earlier than `now()` minus the longest fixed policy window (currently 3,600 seconds). Every such window has ended, because no window is longer than that. The review-moderation cron route (DEP-10) calls the purge once per invocation after the cron secret is verified and before its sweep. A purge failure is logged under D-47's rules and does not stop the sweep.
+
+Design decision D-46 (audit entry validation and request IDs): The audit module validates each entry with a strict zod schema (D-22) before inserting it. A violation throws, so the caller's transaction rolls back. The rules:
+- **Vocabularies:** `action` and `target_type` must come from the unions in `workflow/contracts.md` §8. They are unconstrained text in the database (D-33) but closed in code, and adding a value is a contract PR.
+- **Identifiers:** `target_id`, a non-null `actor_id` and `request_id` are UUIDs.
+- **Metadata shape:** metadata is a flat object of at most 20 keys. Keys match `^[a-z][a-zA-Z0-9_]{0,63}$`. Values are strings of at most 1,000 code points, finite numbers, booleans or null.
+- **Forbidden keys:** these key names are rejected, compared case-insensitively with underscores removed: `password`, `passwordhash`, `token`, `sessiontoken`, `csrftoken`, `secret`, `email`, `body`, `explanation`, `snapshot`, `evidencesnapshot`, `prompt`, `response` and `output`. This check is defence in depth. Callers remain responsible for what they place in values, and their tests assert their metadata.
+- **Storage:** `created_at` comes from the database clock.
+- **Request IDs:**
+  - For an HTTP request, including the cron routes, `request_id` is the response's `X-Request-Id`.
+  - An operator command, such as Admin provisioning, generates one random UUID per run, uses it for every entry of that run and may print it.
+- **No read API:** the audit module offers no read, update or delete operation.
+
+Design decision D-47 (security event logs): Denied and failed attempts (security.md, architecture 9.5) are written as one JSON line per event with `console.warn`. They go through a server-only security-log interface in the audit module.
+- **Events:**
+  - `auth.login_failed`: a password verification failed.
+  - `auth.login_throttled`: a login was rejected by a login-failure limit.
+  - `auth.csrf_failed`: a 403 `csrf_failed` response.
+  - `access.denied`: a 403 `forbidden` response.
+  - `rate_limit.rejected`: a 429 from any other limit.
+  - `rate_limit.purge_failed`: a D-45 purge failure.
+  - 401, 409 and 422 responses are not logged.
+- **Fields:** `event`, `outcome` (`failed`, `throttled` or `denied`, determined by the event) and `requestId`. When applicable, a line also carries `actorId` (the authenticated account's UUID), `limit` (the limit name) and `code` (the api.md error code).
+- **Never logged:** emails, IP addresses, bucket keys, passwords, tokens, cookies, request bodies, error messages, stack traces and SQLSTATEs.
+- **Failure handling:** writing a line never throws.
+- **Storage:** lines stay in Vercel runtime logs, as for D-39.
+- **Ownership:** S-05 provides the interface, the console implementation and a recording fake. The API kernel and Identity emit the events.
+
+Design decision D-48 (SoCLaaS facts and model): Recorded by thegrimbee on 16 October 2026 after checking the SoC DocHub SoCLaaS guides (access, API, quickstart, usage-limits and models pages).
+- **Endpoint and authentication:** the gateway is OpenAI-compatible at `https://soclaas-api.comp.nus.edu.sg`. Requests send `Authorization: Bearer <key>`. Keys have the form `clsk_<prefix>_<secret>`, are issued per SoC account, and rotating a key disables the old one at once. Gateway errors have the shape `{"error": "<message>"}` (api.md 8.4).
+- **Limits:** the limits are SoCLaaS defaults per API key: 90 requests per minute, USD 80 per day and USD 800 per month, reset on UTC boundaries. SoC may also apply lifetime credits and model access policy, and may adjust the limits. The D-25 partition stays; it is safe whether the environments share one key or use separate keys. The application does not enforce lifetime credits or the monthly cap; SoC 429 responses defer work (AI-03). Expected usage is low, so this is accepted (thegrimbee, 16 October 2026).
+- **No token quota:** SoCLaaS documents no tokens-per-minute limit. `SOC_LLM_TOKENS_PER_MINUTE` and the `soc_tokens` rate limit are removed. The input token cap (8,000) and the output caps (AI-03) still apply. Removing `soc_tokens` from the K6 contract was approved by both developers (Lim-ZY and thegrimbee) on 16 October 2026.
+- **Model:** `SOC_LLM_MODEL` is `default`, the SoCLaaS operator-managed alias (thegrimbee, 16 October 2026). A human-run `GET /v1/models` with the project key on 16 October 2026 reported it as an alias of `qwen3.6:35b`, with a context length of 262,144 tokens and prices of 411,810 microdollars per million input tokens and 1,456,571 per million output tokens.
+- **Prices:** the source is `GET /v1/models` (`soclaas.input_microdollars_per_million_tokens` and `soclaas.output_microdollars_per_million_tokens`). The models guide page lists outdated prices and is not used for them. SoC uses prices only for rate control.
+- **Alias risk:** operators can repoint `default`, so its target, prices and behaviour can change without notice. The recorded model ID stays `default`, so job dedup keys and summary provenance do not detect the change, and the configured prices can drift from the real ones. This is accepted (thegrimbee, 16 October 2026). When the target changes, re-read `GET /v1/models` and update the price variables. Trial models (`x-test-1`, `x-test-2`) are not used.
+- **Reasoning output (open, S-06):** the quickstart sends `"reasoning_effort": "none"` with Qwen and Gemma models. Whether the adapter sends it is not decided. Reasoning output could use up the 1,000- and 1,200-token output caps (AI-03).
+- **Retry-After:** the guides do not document a `Retry-After` header. Retries honour it when present and otherwise use jittered backoff (AI-03).
+- **Retention and permitted data:** the guides say only that SoCLaaS records API usage and request metadata for reporting, quotas and auditing. They say nothing about prompt retention or permitted data. thegrimbee decided on 16 October 2026 that no further verification is needed, which resolves OQ-01. Provider inputs stay minimal (security.md).
+
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.
 - User's project proposal and requested 15-section structure, supplied in this conversation on 8 October 2026.
-- [SoC LLM guide](https://dochub.comp.nus.edu.sg/cf/guides/soclaas/start): referenced by the brief; access attempt during drafting failed, so provider details remain unverified.
+- [SoC LLM guide](https://dochub.comp.nus.edu.sg/cf/guides/soclaas/start): referenced by the brief. Its access, API, quickstart, usage-limits, models, GUI and project-ideas pages were saved locally (not committed) and checked on 16 October 2026 (D-48). Retention and permitted data are not covered; no further verification is needed (D-48).
 - Repository README: project identifier CS3227-2610-MP3.

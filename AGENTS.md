@@ -127,7 +127,8 @@ Open decisions already recorded in `spec/governance.md` must be resolved by thei
 - Integration tests: set `TEST_DATABASE_URL=postgresql://postgres:<local-password>@127.0.0.1:5432/postgres` in the shell, then `npm run test:integration`. The run refuses non-loopback hosts, creates a throwaway database with the synthetic D-31 roles, applies every migration, truncates application tables before each test file and drops the database at the end. Both test commands exit nonzero on failure.
 - Apply migrations (operator release step, DEP-03; take the backup first): set `MIGRATION_DATABASE_URL` and `DATABASE_CA_CERT`, then `npm run db:migrate`. It runs node-pg-migrate over `src/server/db/migrations/` in schema `app` with its bookkeeping in `app` (D-26, D-27), with CA-verified TLS. TLS is skipped only with `APP_ENV=local` or `test`, no `DATABASE_CA_CERT` and a loopback host (D-30).
 
-Playwright end-to-end tests (D-09) have no command yet. Do not invent one; add it when the end-to-end harness is set up.
+- End-to-end tests (D-09, D-42): run `npm run build` first, then, with the same loopback `TEST_DATABASE_URL` and Chromium installed (`npx playwright install chromium`), `npm run test:e2e`. It does not build. It refuses non-loopback hosts, creates a throwaway migrated database, the synthetic D-31 roles and a per-run login role in `app_runtime`, generates per-run secrets, runs `playwright test` against `next start` on `127.0.0.1:3100`, then drops the database and the login role and exits with Playwright's code. Extra arguments go to `playwright test`.
+- Secret scan (D-41): with gitleaks on `PATH` and after `npm run build`, `npm run check:secrets`. It scans the commits in `origin/master..HEAD` and `.next/static`, and does not build.
 
 ## Agent Workflow and Roles
 

@@ -28,7 +28,6 @@ const AI_ENV = {
   SOC_LLM_API_KEY,
   SOC_LLM_MODEL: "synthetic-model",
   SOC_LLM_REQUESTS_PER_MINUTE: "60",
-  SOC_LLM_TOKENS_PER_MINUTE: "100000",
   AI_DAILY_BUDGET_MICRODOLLARS: "53333333",
   SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: "150000",
   SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK: "600000",
@@ -72,7 +71,7 @@ describe("parseConfig — valid configuration", () => {
       value: {
         provider: "soc_llm",
         soc: { baseUrl: "https://llm.example.test/api", apiKey: SOC_LLM_API_KEY, model: "synthetic-model" },
-        quotas: { requestsPerMinute: 60, tokensPerMinute: 100000 },
+        quotas: { requestsPerMinute: 60 },
         budget: {
           dailyMicrodollars: 53333333,
           inputPriceMicrodollarsPerMTok: 150000,
@@ -273,7 +272,6 @@ describe("parseConfig — AI configuration (D-16, D-28, D-37)", () => {
     "SOC_LLM_API_KEY",
     "SOC_LLM_MODEL",
     "SOC_LLM_REQUESTS_PER_MINUTE",
-    "SOC_LLM_TOKENS_PER_MINUTE",
     "AI_DAILY_BUDGET_MICRODOLLARS",
     "SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK",
     "SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK",
@@ -283,6 +281,12 @@ describe("parseConfig — AI configuration (D-16, D-28, D-37)", () => {
     expect(config.core.valid).toBe(true);
     expect(config.ai.enabled).toBe(false);
     expect(!config.ai.enabled && issueVariables(config.ai.issues)).toContain(variable);
+  });
+
+  it("ignores a leftover SOC_LLM_TOKENS_PER_MINUTE, which is no longer a setting (D-48)", () => {
+    const config = parseConfig(envWith({ SOC_LLM_TOKENS_PER_MINUTE: "not-a-number" }));
+
+    expect(config.ai.enabled).toBe(true);
   });
 
   it("requires the SoC variables for the fake provider too", () => {
@@ -329,7 +333,6 @@ describe("parseConfig — AI configuration (D-16, D-28, D-37)", () => {
 
   it.each([
     ["SOC_LLM_REQUESTS_PER_MINUTE", "0"],
-    ["SOC_LLM_TOKENS_PER_MINUTE", "-5"],
     ["AI_DAILY_BUDGET_MICRODOLLARS", "1.5"],
     ["SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK", "free"],
     ["AI_MAX_CONCURRENT_REQUESTS", "0"],
@@ -371,7 +374,6 @@ describe("parseConfig — secret handling", () => {
       SOC_LLM_API_KEY: "",
       SOC_LLM_MODEL: "",
       SOC_LLM_REQUESTS_PER_MINUTE: "leak-marker-rpm",
-      SOC_LLM_TOKENS_PER_MINUTE: "leak-marker-tpm",
       AI_DAILY_BUDGET_MICRODOLLARS: "leak-marker-budget",
       SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: "leak-marker-in",
       SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK: "leak-marker-out",

@@ -23,7 +23,6 @@ const aiSchema = z.strictObject({
   SOC_LLM_API_KEY: z.string({ error: REQUIRED }),
   SOC_LLM_MODEL: z.string({ error: REQUIRED }),
   SOC_LLM_REQUESTS_PER_MINUTE: integerString(1),
-  SOC_LLM_TOKENS_PER_MINUTE: integerString(1),
   AI_DAILY_BUDGET_MICRODOLLARS: integerString(1),
   SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: integerString(1),
   SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK: integerString(1),
@@ -78,7 +77,6 @@ export function parseAiConfig(env: EnvRecord, appEnv: string | undefined): AiCon
       soc: { baseUrl: parsed.SOC_LLM_BASE_URL, apiKey: parsed.SOC_LLM_API_KEY, model: parsed.SOC_LLM_MODEL },
       quotas: {
         requestsPerMinute: parsed.SOC_LLM_REQUESTS_PER_MINUTE,
-        tokensPerMinute: parsed.SOC_LLM_TOKENS_PER_MINUTE,
       },
       budget: {
         dailyMicrodollars: parsed.AI_DAILY_BUDGET_MICRODOLLARS,

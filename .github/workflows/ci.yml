@@ -107,6 +107,56 @@ jobs:
       - name: Integration tests
         run: npm run test:integration
 
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    services:
+      # Same disposable loopback PostgreSQL 17 as the integration job (D-10, D-42).
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 127.0.0.1:5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/postgres
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install from lockfile
+        run: npm ci
+
+      # Chromium only (D-09), at the version the locked @playwright/test expects.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Its own build with the static D-42 values, not the canary build from build-secret-scan. The database
+      # URL and secrets are generated per run by npm run test:e2e and are not needed at build time.
+      - name: Build
+        env:
+          APP_ENV: test
+          PUBLIC_APP_URL: http://127.0.0.1:3100
+          AI_PROVIDER: fake
+          AI_ENABLED: "false"
+        run: npm run build
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
   build-secret-scan:
     name: build-secret-scan
     runs-on: ubuntu-latest

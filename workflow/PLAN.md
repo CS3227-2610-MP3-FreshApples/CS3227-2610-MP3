@@ -21,7 +21,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Human review |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
-| S-05 | B | Audit and shared rate-limit primitives | S-01 | 14 Oct | Draft |
+| S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Ready |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Blocked |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
@@ -71,7 +71,7 @@ Under `AGENTS.md` § Ambiguity, nobody resolves these by inference. Each one blo
 | B4 | **Auth and password-hashing library** (DEP-04 needs a maintained library; SEC-02 needs Argon2id) | Identity cannot start | S-04 | **Resolved:** D-11 `@node-rs/argon2` + in-repo opaque sessions |
 | B5 | **Data-model gaps.** `spec/data-model.md` has no storage for (a) login-failure throttling (SEC-06), (b) per-User review/report rate limits with "shared enforcement" (`spec/security.md`), (c) AI token-budget reservations (AI-03 "PostgreSQL reservations"), or (d) CSRF token binding (SEC-04) | The initial schema migration would have to guess tables | S-01, S-04, S-05, S-06 | **Resolved:** (a)(b) D-12 RateLimitWindow; (c) D-13 `ai_execution` lease + AIBudgetDay/AIBudgetReservation, UTC days; (d) D-14 stateless HMAC CSRF token, no table |
 | B6 | **Env-var naming conflict.** `.env.example` uses `SOCLAAS_BASE_URL/API_KEY/MODEL`, but `spec/deployment.md` 10.3 uses `SOC_LLM_BASE_URL/API_KEY/MODEL` | The config contract is ambiguous | S-01 config, S-06 | **Resolved:** D-15 `SOC_LLM_*`; `.env.example` updated. `/v1` base-URL convention resolved by D-24 (contracts O-27: base URL excludes `/v1`) |
-| B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model were unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) | **Partly resolved:** 90 RPM; USD 80/day and USD 800/month, in microdollars (OQ-01). D-16 interim posture remains. D-25: budget in microdollars, prod 2/3 (60 RPM, 53,333,333 µ$/day), dev 1/3 (30 RPM, 26,666,666 µ$/day). Still open: model and prices, context, TPM, retention; owner Developer B (thegrimbee), before provider integration and production enablement |
+| B7 | **OQ-01: SoC models and quotas.** The API guide confirms an OpenAI-compatible gateway, `GET /v1/models`, and 429 for both rate and budget limits. Numeric RPM/TPM/budget and the permitted model were unverified | `SOC_LLM_REQUESTS_PER_MINUTE`, `AI_DAILY_TOKEN_BUDGET` and the input-token cap cannot be set | S-06 live config; real AI in R-01/R-04 (fake-based work can proceed) | **Resolved (16 Oct, D-48):** 90 RPM; USD 80/day and USD 800/month, in microdollars (OQ-01). D-16 interim posture remains. D-25: budget in microdollars, prod 2/3 (60 RPM, 53,333,333 µ$/day), dev 1/3 (30 RPM, 26,666,666 µ$/day). D-48 (16 Oct): limits are SoCLaaS per-key defaults; no TPM limit exists, so `SOC_LLM_TOKENS_PER_MINUTE` and `soc_tokens` are removed; model `default` alias (then `qwen3.6:35b`; 262,144 context; 411,810/1,456,571 µ$ per Mtok from `GET /v1/models`). Open for S-06: whether the adapter sends `reasoning_effort`. Retention and permitted data: not covered by the guides; no further verification needed. D-16 posture stays until a human ends it |
 | B8 | **OQ-04: profanity policy text and version** | AI-02 says to review and version the policy before enabling screening | A-03 acceptance | **Partly resolved:** D-17 versioned static policy file in source, English only. Policy text still open (OQ-04); owner Developer B (thegrimbee), before A-03 acceptance (target 17 Oct) |
 | B9 | **OQ-06: developer names and final ownership** | Ownership and handoffs need names | All tasks (assignment) | **Resolved:** A = Lim-ZY, B = thegrimbee. Tester accounts still open (OQ-06) |
 | B10 | **Deployment mode.** Vercel Git integration (confirmed working) vs the DEP-02 GitHub Actions pipeline. Should automatic production deploys be disabled? | Release gate design | R-04 | **Resolved:** D-18 Vercel Git integration, Actions as required checks, branch protection on `master`; DEP-02 revised |
@@ -275,11 +275,23 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task S-05: Audit and shared rate limiter
 
-**Owner:** B. **Depends on:** S-01. **Reqs:** security.md audit and limits, SEC-06, SEC-11.
-**Description:** K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID (no passwords, report bodies or prompts), with no API to edit it. K6 limiter backed by PostgreSQL (RateLimitWindow, D-12) that returns `Retry-After`.
+**Owner:** B. **Depends on:** S-01. **Reqs:** security.md audit and limits, SEC-06, SEC-10 (audit part), SEC-11 (throttle and quota counters only; bounded concurrency and retries are S-06), D-12, D-43–D-47.
+**Allowed paths:** `src/server/services/{audit,rate-limit}/`, `src/server/repositories/{audit,rate-limit}/`, K5/K6/security-log wiring in `src/server/composition.ts`, `tests/support/fakes/`, matching unit and integration tests. No migration: the tables, index and grants exist (S-01). The K2 client-IP helper (AM-08) and the event emission in K2 and Identity (AM-10) belong to S-02 and S-04.
+**Description:**
+- K5 `audit.record(tx, …)` stores actor, target, action, result, minimal metadata and request ID, with no API to read, edit or delete entries. It validates each entry under D-46: no passwords, session tokens, report explanations or snapshots, review bodies, or provider prompts or responses.
+- `SecurityLog` with a console implementation (D-47).
+- K6 limiter backed by PostgreSQL (RateLimitWindow, D-12): windows and admission (D-43), keys and fixed policies (D-44), `purgeExpired()` (D-45). It returns `retryAfterSeconds` for `Retry-After`.
+- Fakes and contract suites for K5, K6 and `SecurityLog` (contracts §1 rules 6–7).
 **Acceptance Criteria:**
-- [ ] Audit write rolls back with its transaction (integration test).
-- [ ] Limiter is correct under concurrent calls from two connections and returns a retry time.
+- [ ] Audit write rolls back with its transaction (integration test). `app_runtime` cannot UPDATE or DELETE `app.audit_entry`.
+- [ ] K5 rejects an unknown action, a non-UUID id, nested or oversized metadata and each forbidden key name, and the transaction rolls back (D-46).
+- [ ] Limiter is correct under concurrent calls from two connections: 2N calls admit exactly N, and it returns a retry time.
+- [ ] The limit-th call is admitted and the next is rejected. A rejected `consume` does not increment. `check` creates no row. `units > limit` throws (D-43).
+- [ ] `retryAfterSeconds` is at least 1 and does not exceed the time to the window end. A new window admits again (D-43).
+- [ ] No stored `bucket_key` contains a raw email or IP, and a different secret gives a different key (D-44).
+- [ ] A database failure makes `consume` and `check` throw, never admit (P-10).
+- [ ] `purgeExpired()` deletes only rows older than the longest window, and at most 1,000 per call (D-45).
+- [ ] Security log lines contain only the D-47 fields, and the K6 fake fails closed.
 
 ### Task S-06: AI runtime (shared)
 
