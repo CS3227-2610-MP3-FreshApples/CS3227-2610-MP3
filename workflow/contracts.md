@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `c51c92e` on `feat/http-api-kernel`, based on `ee62bd1` (`master`, PR #6). S-00, S-01 and S-03 contract decisions are approved by both developers; S-02 clarification AM-07 is recorded below and approved by both developers.
+Source revision: `0b870da` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment and the S-02 clarification AM-12 (§17–§21) are approved by both developers. The B#4 amendments in §22 are proposed and await approval.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -164,7 +164,7 @@ Each step names the contract that performs it. "Unlocked read" is rule 2.
 6. Review `FOR UPDATE`, or insert under the unique `(movie_id, author_id)`. Re-verify ownership and If-Match.
 7. Write the Review.
 8. K9 `enqueue` on create, resubmit or body edit, or K9 `cancelForDeletedReview` on delete (ModerationWork).
-9. K7 `markReviewsChanged`, only if public eligibility changed.
+9. K7 `markReviewsChanged`, only if the set of eligible Reviews changed or the rating or body of a Review that was eligible before the write changed (§22 AM-13, D-51).
 10. Commit.
 11. After commit, K9 `attemptAfterCommit` (no Tx held; K10 uses its own short transactions).
 12. Unlocked read of the Review for the response.
@@ -475,10 +475,11 @@ export interface SummarySchedule {
 
 - **Outcomes:** **Resolved (O-19):** the HTTP status for a User mutation on an archived Movie (404 like public reads, or 409).
 - **Rules:**
-  - Call `markReviewsChanged` only when public eligibility actually changed. No-op mutations must not advance the revision (data-model).
+  - Call `markReviewsChanged` only when the set of eligible Reviews changed, or when the rating or body of a Review that was eligible before the mutation changed. No-op mutations must not advance the revision (data-model). **Amended (§22, AM-13):** this replaces "only when public eligibility actually changed", so a rating-only edit of an eligible Review advances the revision (D-51).
   - Eligibility requires an active Movie, so outside Catalogue's own archive/restore it is never called for an archived Movie.
 - **Locks / Tx:** inside the caller's Tx, Movie at position 2. The caller may already hold only Account locks.
 - **Fake:** lock functions return `not_found` unless a test seeds the Movie. The marker records calls.
+- **Amended (§22, AM-13):** the columns each operation writes, the lock-then-check order for archived Movies, and `Movie.version` left unchanged (D-51).
 
 ## 11. K8 — Review transitions and moderation reads
 
@@ -580,6 +581,7 @@ export interface ModerationDispatcher {
   - O-31: the exact policy file path (D-17) and the policy text (OQ-04).
 - **Locks / Tx:** `enqueue` and `cancelForDeletedReview` run inside the caller's Tx as later-table writes (ModerationWork). `attemptAfterCommit` uses K10's own short transactions.
 - **Fake:** `enqueue` and `cancelForDeletedReview` record calls. `attemptAfterCommit` returns `"deferred"`, so the Review stays pending.
+- **Amended (§22, AM-14, AM-15):** `enqueue` writes `model_id` NULL and takes its prompt and policy versions from module constants. The supersede and cancel status sets, and idempotency on (review, revision, prompt, policy), are defined there. The production `attemptAfterCommit` stub writes nothing (D-49, D-50, D-52).
 
 ## 13. K10 — AI runtime: provider and execution controller
 
@@ -658,6 +660,8 @@ A crash leaves the leases to expire. Later access or sweeps mark the job stale.
 **Fakes:**
 - `FakeLlmProvider` is deterministic and scriptable: success with usage, success with unknown usage, malformed JSON, `rate_limited`, `timeout`. Unscripted calls return `unavailable`.
 - The controller stub given to A before B#5 returns `{ kind: "disabled" }`, so work stays pending.
+- **Amended (§22, AM-15):** the controller stub is production code in `src/server/services/ai/runtime/`, writes nothing and is wired by the composition root until S-06. `complete` takes an `AbortSignal` in place of a deadline value, and the model is fixed at construction (D-52, api.md 8.2).
+- **Amended (§22, AM-16):** the fake's script order, malformed output, `hang`, abort and `modelId` behaviour (D-53).
 
 ## 14. K11 — Report evidence snapshot and receipt projection
 
@@ -849,4 +853,15 @@ This clarification resolves the request-ID behavior for K2. **Status: approved b
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
-| AM-07 | K2 `runRoute` generates the server-side `RequestId` and decorates every returned response with `X-Request-Id`. Successful-response helpers retain their existing signatures; `errorResponse` places the same ID in the error body and header. | api.md §8.1; K2 §5; P-06; O-10 |
+| AM-12 (renumbered from a duplicate AM-07 on 17 October 2026; `logs/2026-10-16-s02-http-api-kernel.md` cites it as AM-07) | K2 `runRoute` generates the server-side `RequestId` and decorates every returned response with `X-Request-Id`. Successful-response helpers retain their existing signatures; `errorResponse` places the same ID in the error body and header. | api.md §8.1; K2 §5; P-06; O-10 |
+
+## 22. B#4 amendments (17 October 2026)
+
+These amendments came from the B#4 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers.** AM-13 changes the rule that U-02 (Developer A) follows when calling `markReviewsChanged`, so it also needs Lim-ZY's approval. No consumer code depends on these amendments yet. Signatures are unchanged.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-13 | K7. A Review mutation calls `markReviewsChanged` when the set of eligible Reviews changes, or when it changes the rating or body of a Review that was eligible before it. A rating-only edit of an eligible Review therefore advances the revision. This resolves a conflict between §10 and §3.3 ("only if public eligibility changed") and data-model.md, FR-08 and AI-01, which count every edit of an eligible Review. `markReviewsChanged` sets `reviews_revision`, `summary_pending_since` and `updated_at` only. It leaves `Movie.version` and the summary attempt columns unchanged. The lock functions lock first and then report `archived`. `recordSummaryAttempt` sets the last and next attempt times. `recordSummaryPublished` clears pending state and sets the success time, but only for an active Movie at the published revision; otherwise it returns `stale` with no write | D-51 |
+| AM-14 | K9 `ModerationWorkQueue`. `enqueue` writes `model_id` NULL, and its prompt and policy versions come from moderation-module constants (`review-screening-prompt-v1`, `profanity-policy-v0` until OQ-04). It does nothing when a row exists for the same review, revision, prompt and policy, and never reactivates a final row. It supersedes `pending`, `running` and `needs_manual_review` rows of lower revisions. `cancelForDeletedReview` cancels the same three statuses and is a no-op when there are none. Both operations run in the caller's Tx and are real in B#4, with integration tests | D-49, D-50 |
+| AM-15 | K9 and K10 stubs. The production `attemptAfterCommit` stub returns `"deferred"`, and the controller stub returns `{ kind: "disabled" }`. Neither writes anything or calls the provider. The composition root wires both until A-03 and S-06 replace them, and constructs no LLM provider before S-06. The LLM adapter fixes its model at construction and takes an `AbortSignal` as its deadline | D-52, api.md 8.2 |
+| AM-16 | K10 `FakeLlmProvider`. Scripted outcomes are consumed in order, and the script running out gives `unavailable`. "Malformed JSON" means a success whose content fails `validate`; `malformed_response` is scripted separately. A new `hang` outcome waits for abort. An aborted signal gives `timeout`, and the promise never rejects. `modelId` is a required constructor argument, which the composition root sets from `SOC_LLM_MODEL`. Requests are recorded for inspection. No randomness or clock | D-53 |
