@@ -21,7 +21,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Human review |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
-| S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Ready |
+| S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Merged (PR #9, `56314c3`) |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Blocked |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
