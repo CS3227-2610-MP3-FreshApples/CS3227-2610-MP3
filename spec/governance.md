@@ -233,7 +233,7 @@ Design decision D-42 (Playwright harness): The configuration is `playwright.conf
 - **Command:** the script is `npm run test:e2e`, which runs the wrapper described under Lifecycle. It is recorded in `AGENTS.md` Commands when S-03 lands.
 - **Build:** `npm run test:e2e` does not build; run `npm run build` first. The `e2e` CI job runs `npm run build` itself with the e2e environment below. It does not reuse the canary build from `build-secret-scan`.
 - **App under test:** Playwright's `webServer` starts the production build with `next start` on `127.0.0.1` port 3100, using:
-  - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false`;
+  - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false` (R-02 enables AI with the marker fake, D-57);
   - no `DATABASE_CA_CERT` (D-30);
   - `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET` and `CRON_SECRET` generated randomly for each run, distinct and at least 32 characters (deployment.md 10.3);
   - `DATABASE_URL` naming the run's database and login role.
@@ -312,6 +312,91 @@ Design decision D-48 (SoCLaaS facts and model): Recorded by thegrimbee on 16 Oct
 - **Reasoning output (open, S-06):** the quickstart sends `"reasoning_effort": "none"` with Qwen and Gemma models. Whether the adapter sends it is not decided. Reasoning output could use up the 1,000- and 1,200-token output caps (AI-03).
 - **Retry-After:** the guides do not document a `Retry-After` header. Retries honour it when present and otherwise use jittered backoff (AI-03).
 - **Retention and permitted data:** the guides say only that SoCLaaS records API usage and request metadata for reporting, quotas and auditing. They say nothing about prompt retention or permitted data. thegrimbee decided on 16 October 2026 that no further verification is needed, which resolves OQ-01. Provider inputs stay minimal (security.md).
+
+Design decision D-49 (moderation prompt and policy versions): ModerationWork, AIJob and ReviewModeration record the following version identifiers (AI-02, D-17). Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Source:** both values are string constants exported by the moderation module. The prompt version lives in `src/server/services/ai/moderation/`. The policy version lives beside the policy artifact in `src/server/services/ai/moderation/policy/` (D-17). Neither is read from configuration or the database.
+- **Format:** `<name>-v<integer>`. The initial values are `review-screening-prompt-v1` and `profanity-policy-v0`.
+- **v0 is unreviewed:** until OQ-04 records the reviewed policy text, the policy version is `profanity-policy-v0` and the policy artifact holds no policy text. AI-02 forbids enabling screening before the policy is reviewed, so v0 work is screened only by the fake provider (D-16). The reviewed policy starts at `profanity-policy-v1`.
+- **Version change (the policy migration AI-02 requires):** when either constant changes, `pending` work recorded under the old versions is superseded at its next dispatch or sweep. Work for the current versions replaces it, so the current text is screened again under the new versions. `needs_manual_review` work, completed assessments and Admin decisions are kept and never re-screened automatically. An assessment made under other versions is never reused. The moderation module (A-03) implements this.
+
+Design decision D-50 (ModerationWork queue writes): K9 `enqueue` and `cancelForDeletedReview` work as follows. Both run inside the caller's review-write transaction after the Review lock (contracts §3.3). Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Model:** `enqueue` writes `model_id` NULL. The first dispatch sets it from `SOC_LLM_MODEL` (A-03). The queue therefore never reads AI configuration, and its idempotency does not depend on whether AI is enabled.
+- **Idempotency:** if the Review already has a row with the same content revision, prompt version and policy version, `enqueue` inserts nothing for that revision, whatever that row's `model_id` or status. Otherwise it inserts one row with status `pending`, `execution_count` 0, `next_attempt_at` `now()` and `last_attempt_at` NULL. `enqueue` never reactivates a row in a final status. Reactivating work when an admin-hidden Review is restored (AI-02) belongs to the moderation module, not to `enqueue`.
+- **Supersession:** in the same call, every row of the Review with a lower content revision and status `pending`, `running` or `needs_manual_review` becomes `superseded`. Rows for the same revision are not changed. A late result for a superseded `running` row is rejected, because completion requires status `running` (A-03) and the K8 revision guard.
+- **Cancellation:** `cancelForDeletedReview` sets every row of the Review with status `pending`, `running` or `needs_manual_review` to `cancelled`. With no such row it does nothing. Rows that are `completed`, `superseded` or `cancelled` are unchanged. The admin-hide cancellation (A-04) uses the same set of statuses.
+- **Side effects:** both operations set `updated_at` (D-33). Neither changes `execution_count`, `last_attempt_at` or any Review row, and neither calls the provider. An unknown Review violates the foreign key, so the call throws and the caller's transaction rolls back.
+
+Design decision D-51 (Movie locks, review-change marker and summary schedule): K7 works as follows. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Locks:** `lockActiveMovieForUpdate` takes `FOR UPDATE`, and `lockActiveMovieShared` takes `FOR SHARE`, before checking `archived_at`. On an archived Movie they return `archived` while holding the lock, and the caller rolls back. Holding the lock is what makes archiving serialize with review writes (FR-05 edge case).
+- **When a Review mutation advances the marker:** when the set of eligible Reviews changes, or when the mutation changes the rating or body of a Review that is eligible before it. A rating-only edit of an eligible Review therefore advances it, because the rating changes the aggregate and the summary input (FR-08, INV-09, AI-01). A rating-only edit of a pending, flagged, hidden or deleted Review does not. A mutation that changes nothing never advances it (data-model.md).
+- **`markReviewsChanged`:** sets `reviews_revision` + 1, `summary_pending_since = coalesce(summary_pending_since, now())` and `updated_at = now()`, and returns the new revision. It does not change `Movie.version`, which stays the If-Match token for Admin Movie edits, archive and restore (api.md 8.1). It does not change `summary_next_attempt_at` or `summary_last_attempt_at`, because new changes do not bypass backoff (AI-01). It does not inspect the lock's `archived` flag, because archive and restore call it after changing `archived_at`. Other callers reach it only for active Movies, because eligibility requires one.
+- **`recordSummaryAttempt`:** sets `summary_last_attempt_at = now()`, `summary_next_attempt_at` to the given time and `updated_at`. It does not change the revision or the pending time.
+- **`recordSummaryPublished`:** when the Movie is active and `reviews_revision` equals the published revision, it sets `summary_pending_since` NULL, `summary_last_success_at = now()` and `updated_at`. It leaves `summary_next_attempt_at` as the attempt set it. Otherwise it returns `stale` and writes nothing.
+
+Design decision D-52 (contract stubs before the AI runtime): The contract-stub task (B#4) delivers the real K7 (D-51) and the real K9 `ModerationWorkQueue` (D-50), with PostgreSQL integration tests. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Stubs:** two stubs are production code. `attemptAfterCommit` in the moderation module returns `deferred`, and the K10 controller stub in `src/server/services/ai/runtime/` returns `disabled`. Neither calls the provider or writes anything. They leave ModerationWork columns unchanged, so never-attempted work keeps its place in the sweep order (AI-02). They create no AIJob, lease, budget or rate-limit rows, and they change no Review. A-03 replaces the dispatcher stub and S-06 replaces the controller stub.
+- **Wiring:** the composition root wires both stubs and does not construct an LLM provider until S-06. Production may run the stubs, because they fail closed and production AI stays disabled under D-16 either way. R-04 verifies that the real implementations are wired before D-16's posture ends.
+- **Fakes:** the call-recording fakes live in `tests/support/fakes/`. The deterministic LLM fake lives in `src/server/adapters/soc-llm/` (contracts §1 rule 6, D-16).
+- **Adapter shape:** the adapter fixes its model when it is constructed (from `SOC_LLM_MODEL`) and exposes it as `modelId`. The deadline is passed as an `AbortSignal` that the controller derives from the attempt timeout and the execution deadline. This is how K10 meets api.md 8.2.
+
+Design decision D-53 (deterministic LLM fake): `FakeLlmProvider` (D-16, D-52) behaves as follows. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Script:** each `complete` call consumes the next scripted outcome in order. Once the script is used up, each call returns `unavailable` (contracts §13). An aborted call also consumes its outcome, so call counts stay predictable.
+- **Outcomes:** success with usage; success with unknown usage (`usage: null`); malformed output; any `LlmFailure` (`rate_limited` with or without `retryAfterSeconds`, `timeout`, `unavailable`, `rejected`, `malformed_response`); and `hang`, which settles only when the signal aborts.
+- **Malformed output:** a success whose `content` is not valid JSON or breaks the output schema. This is what a real gateway returns when the model writes bad output, and the caller's `validate` rejects it as `invalid_output` (AI-02 sends that to manual review). `malformed_response` stays a separate failure for a gateway reply the adapter itself cannot parse.
+- **Abort:** if the signal is already aborted when `complete` is called, or aborts while the call is pending (only `hang` is ever pending), the result is `timeout`. The fake never rejects its promise.
+- **Scope (D-57):** tests construct it directly. The composition root never builds it; running servers use the marker fake instead.
+- **Model:** the constructor requires a model ID, and `modelId` reports it unchanged. There is no default model ID.
+- **Inspection:** the fake records each request's messages and `maxOutputTokens`, so tests can check input bounding and prompt/data separation (AI-04). It never logs them.
+- **Determinism:** no randomness, wall clock or network. Responses do not depend on message content.
+
+Design decision D-54 (moderation work for hidden or deleted Reviews): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Author edits:** FR-03 lets an author edit or delete their own Review whether or not an Admin has hidden it, and the User API is unchanged. An edit never changes `hidden_at`, so the author still cannot undo a hide (FR-03). A body edit or resubmission of a hidden Review increments `content_revision`, resets clearance to `pending` and calls K9 `enqueue`, like any other (AI-02: every body edit saves pending work).
+- **Dispatch:** neither `attemptAfterCommit` nor the recovery sweep sends a hidden or deleted Review to the provider. The dispatcher re-reads the Review in a transaction that holds the Review lock (D-58). If the Review is hidden or deleted, it sets that work `cancelled` and returns `not_current`. This is the AI-02 cancellation of work for admin-hidden Reviews. It creates no AIJob and changes no `execution_count`. It reserves no budget and consumes no rate limit.
+- **Sweep selection:** due-work selection excludes work whose Review is hidden or deleted, so such work never takes the sweep's one-Review slot. The re-read under the lock covers a hide or delete that races the selection.
+- **Archived Movies:** unchanged. Work is deferred until the Movie is restored (AI-02).
+
+Design decision D-55 (reactivation when a hidden Review is restored): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **When:** in the A-04 restore transaction, after K8 `restoreHiddenReview` succeeds, the moderation module acts only when the Review's `moderation_state` is `pending` and it is not deleted. Restore never undoes a deletion (data-model.md), and flagged or cleared Reviews need no screening (AI-02).
+- **Which row:** the row for the Review's current content revision under the current prompt and policy versions (D-49).
+  - If that row is `cancelled`, it becomes `pending` in place with `next_attempt_at = now()` and `updated_at` set. Its `execution_count`, `last_attempt_at` and `model_id` are kept, so the three-execution limit still counts per content revision (AI-02). Work already at the limit moves to `needs_manual_review` at its next dispatch without a provider call.
+  - If that row is in any other status, nothing changes.
+  - If there is no such row (for example after a version change), one row is inserted exactly as D-50 `enqueue` inserts it.
+- **Only this transition leaves `cancelled`.** `enqueue` still never reactivates a final row (D-50). Rows for other revisions or versions stay as they are.
+- **No dispatch from the restore route:** the Admin restore request makes no provider call. The recovery sweep screens the reactivated work, and no Admin action is needed to start it (AI-02).
+
+Design decision D-56 (no live screening under the unreviewed policy): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation. AI-02 forbids screening before the policy is reviewed, and D-49 records `profanity-policy-v0` as unreviewed.
+- **Rule:** when AI is enabled with `AI_PROVIDER=soc_llm` and the policy version is `profanity-policy-v0`, the composition root wires the D-52 dispatcher stub instead of the real dispatcher. It also logs one configuration issue naming `AI_PROVIDER` (D-37, values never logged). With `AI_PROVIDER=fake`, or with a reviewed policy version, it wires the real dispatcher. Summaries are unaffected.
+- **Form:** two named constructors chosen in the composition root, not a flag passed into the moderation module (contracts §1 rule 2). A unit test covers the choice.
+- **Effect:** review work stays `pending` and durable. Once a reviewed version ships, D-49's version-change rule supersedes the v0 work and screens the current text again.
+- **Owners:** the S-06 and A-03 wiring implements this rule, and R-04 verifies it.
+
+Design decision D-57 (LLM fake in running servers): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Which fake:** when `AI_PROVIDER=fake`, the composition root builds `MarkerFakeLlmProvider` in `src/server/adapters/soc-llm/`, with `modelId` from `SOC_LLM_MODEL`. The scripted `FakeLlmProvider` (D-53) is used only by tests that construct services directly.
+- **Markers:** the outcome comes from the first marker of the form `[fake-llm:<outcome>]` in a `user`-role message. The system message is never scanned. The outcomes are:
+  - `clean`: a valid AI-02 `no_profanity_detected` output;
+  - `flag`: a valid AI-02 `uncertain` output with no matches;
+  - `summary`: a valid AI-01 summary output;
+  - `invalid`: content that fails `validate`;
+  - `unavailable`, `rejected`, and `rate_limited` with `retryAfterSeconds` null;
+  - `timeout`: the call waits until the signal aborts and then returns `timeout`.
+- **Fail closed:** no marker, or an unknown marker, gives `unavailable`, so the fake never clears a Review unless the text asks it to (contracts §1 rule 6). A marker that does not fit the feature gives that feature's invalid-output path.
+- **Canned outputs and usage:** the outputs are constants beside the fake, and unit tests check them against the AI-02 and AI-01 output schemas. Usage is a fixed constant.
+- **No state:** the fake holds no script, no request log and no mutable field (D-23). Concurrent requests and parallel Playwright workers therefore get predictable outcomes, and no review text is kept in memory. It never logs content.
+- **E2E (amends D-42):** when R-02 adds the AI journeys, the e2e environment sets `AI_ENABLED=true` and `AI_PROVIDER=fake`. It uses synthetic placeholders for the SoC variables: `SOC_LLM_BASE_URL=https://fake-llm.invalid`, a non-secret placeholder `SOC_LLM_API_KEY`, `SOC_LLM_MODEL=fake-model`, and the required numeric variables. The fake never reads the URL or key. Local and development use the same placeholders. Until R-02, the e2e environment keeps `AI_ENABLED=false`.
+- **Test design:** a summary request contains several review bodies, and the first marker wins. E2E fixtures therefore keep the moderation markers of reviews submitted through the UI out of the samples that carry a `summary` marker, for example by using a different Movie.
+- **Accepted risk:** in development, any User can choose their own Review's screening outcome with a marker. Development holds only synthetic data (DEP-04), and production cannot select the fake (D-37, `src/server/config/ai.ts`). Accepted by thegrimbee (delegated) on 17 October 2026.
+
+Design decision D-58 (ModerationWork locking): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Rule:** every insert or update of a ModerationWork row happens in a transaction that holds its Review's `FOR UPDATE` lock, taken in the D-20 order (Movie, then Review). This covers:
+  - `enqueue` and `cancelForDeletedReview` in the review write;
+  - A-04 approve, hide and restore (D-55);
+  - the report-acceptance hide (A-05);
+  - every A-03 transaction that claims, cancels (D-54), completes or routes work to manual review.
+- **Why:** under that lock, D-50's check followed by an insert cannot race. The database key also includes `model_id` (`NULLS NOT DISTINCT`), so it cannot enforce D-50 idempotency on its own. No migration is needed.
+- **Position:** ModerationWork rows are locked after Movie and Review (D-20, "other tables afterwards"), and before the AIJob lease check in a publish transaction (P-08). No transaction locks ModerationWork and then a Movie or Review. Several rows of one Review are locked in ascending ID order (D-20).
+- **K10 bookkeeping:** an A-03 transaction that writes ModerationWork never writes K10 bookkeeping rows (SchedulerLease, AIBudgetDay, AIBudgetReservation, AIJob creation). Those stay in K10's own short transactions (P-04, P-13).
+- **Unlocked selection:** due-work selection is an unlocked read, and the locking transaction re-checks status and Review state.
+- **Scope:** which columns a claim changes, and when `execution_count` advances, are A-03's. Capacity deferral still consumes no execution (AI-02).
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
