@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **approved; current branch includes the implemented S-02 work awaiting PR review/merge**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 is implemented on `feat/http-api-kernel` through `c51c92e`.
+Status: **approved; S-02 is merged to `master`; S-07/A#2 is ready for implementation on `feat/ui-shell`**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -18,12 +18,12 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | --- | --- | --- | --- | --- | --- |
 | S-00 | Both (human) | Resolve blocking decisions and freeze contracts (decisions and contracts approved; implementation tasks unblocked) | — | 12 Oct | Merged (spec/contract approval recorded) |
 | S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
-| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Human review |
+| S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Merged (PR #8, `315ef06`) |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Ready |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
-| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Blocked |
+| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Ready (D-49 approved) |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
