@@ -315,6 +315,34 @@ Design decision D-48 (SoCLaaS facts and model): Recorded by thegrimbee on 16 Oct
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
+Design decision D-49 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026
+Below is the decided layout structure to follow for NextJS frontend:
+```markdown
+src/app/
+├── layout.tsx                    # global HTML, metadata, global styles
+├── page.tsx                      # public home: /
+├── (public)/
+│   ├── movies/
+│   │   ├── page.tsx              # /movies
+│   │   └── [id]/page.tsx         # /movies/:id
+│   └── announcements/page.tsx    # /announcements
+├── app/
+│   ├── layout.tsx                # User shell: /app
+│   ├── page.tsx                  # User overview
+│   ├── reviews/page.tsx          # /app/reviews
+│   └── reports/page.tsx          # /app/reports
+└── admin/
+    ├── layout.tsx                # Admin shell: /admin
+    ├── page.tsx                  # Admin overview
+    ├── movies/page.tsx           # /admin/movies
+    ├── reviews/page.tsx          # /admin/reviews
+    ├── reports/page.tsx          # /admin/reports
+    ├── announcements/page.tsx   # /admin/announcements
+    └── users/page.tsx            # /admin/users
+```
+
+`(public)` is a true Next.js route group and does not affect URLs. `app/` and `admin/` should remain real folders because `/app` and `/admin` are required URL prefixes.
+
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.
