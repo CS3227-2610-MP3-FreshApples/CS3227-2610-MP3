@@ -2,6 +2,7 @@ import "server-only";
 
 import { parseConfig, type AppConfig } from "./config";
 import { createDatabase, type Database, type Sql } from "./db";
+import { createDisabledAiExecutionController, type AiExecutionController } from "./services/ai/runtime";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
   createMovieLocks,
@@ -46,6 +47,9 @@ export const reviewsChangedMarker: ReviewsChangedMarker | null =
 /** K7 summary-schedule writes (O-20, D-51); `null` exactly when `database` is. */
 export const summarySchedule: SummarySchedule | null =
   database === null ? null : createSummarySchedule({ sql: database });
+
+/** K10 controller stub (D-52): returns `disabled` until S-06. No LLM provider is constructed before then. */
+export const aiExecutionController: AiExecutionController = createDisabledAiExecutionController();
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();
