@@ -2,7 +2,7 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
-Source revision: `0b870da` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment and the S-02 clarification AM-12 (§17–§21) are approved by both developers. The B#4 amendments in §22 are proposed and await approval.
+Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -18,7 +18,7 @@ Source revision: `0b870da` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-0
 3. **Results for expected outcomes.** Domain outcomes return `Result`. Only infrastructure faults (database unreachable, programming error) throw, and K2 `runRoute` turns a throw into a safe generic error. The one typed throw is K1's `TransactionConflict` (§2.4, D-36), which `runRoute` maps to 409 `conflict`.
 4. **Ready-to-use constructors.** Use `createX(deps)` with dependencies injected as the narrow interfaces below. There is no `init()`/`start()`. Vendor types (`pg`, provider responses) never cross a contract.
 5. **No module-level mutable state.** See O-03 for the composition root.
-6. **Fakes fail closed.** A fake never authorizes, clears a Review, admits a rate-limited request or changes an account unless a test scripts it to. Fakes live in `tests/support/fakes/`. The one exception is the K10 deterministic provider fake, which local, dev and E2E runs need (D-16). It lives in `src/server/adapters/soc-llm/`, and production must not be able to select it (O-28).
+6. **Fakes fail closed.** A fake never authorizes, clears a Review, admits a rate-limited request or changes an account unless a test scripts it to. Fakes live in `tests/support/fakes/`. The one exception is the K10 provider fakes, which local, dev and E2E runs need (D-16, D-53, D-57). They live in `src/server/adapters/soc-llm/`, and production must not be able to select it (O-28).
 7. **Contract tests.** The provider merges the interface, the fake and a contract test suite first (COMMIT-PLAN §2 rule 1). The same suite runs against the fake and the real implementation.
 8. **Never open a transaction while holding one.** The pool has one connection per instance (tech-stack "Database driver"). Any function documented as **own Tx** must be called with no transaction open in the same request, or the request deadlocks on its own connection.
 
@@ -152,7 +152,7 @@ export class TransactionConflict extends Error { readonly kind = "transaction_co
 
 ### 3.3 Per-operation lock sequences
 
-Each step names the contract that performs it. "Unlocked read" is rule 2.
+Each step names the contract that performs it. "Unlocked read" is rule 2. Every ModerationWork write holds its Review's `FOR UPDATE` lock and comes after the Movie and Review locks (D-58, §23 AM-17).
 
 **Review write (create, resubmit, body or rating edit, delete), U-02, A**
 
@@ -215,7 +215,7 @@ This serializes with report acceptance on the Account lock (AT-25).
 
 1. Tx: K8 `lockReviewForTransition` (Movie `FOR UPDATE`, then Review `FOR UPDATE`).
 2. K8 `approveHeldReview`, `hideReview` or `restoreHiddenReview` with If-Match. This calls `markReviewsChanged` internally when eligibility changes.
-3. ModerationWork: supersede on approve, cancel on hide, reactivate on restore when still pending (B-internal).
+3. ModerationWork: supersede on approve, cancel on hide, reactivate on restore when still pending (B-internal; D-55, §23 AM-17).
 4. K5 `record`.
 5. Commit.
 
@@ -560,7 +560,7 @@ Otherwise they return `stale`, and on an archived Movie they return `movie_archi
 // src/server/services/ai/moderation/
 export interface ModerationWorkQueue {
   /** In the review-write Tx after the Review lock. Creates pending work for
-   *  (review, revision, model, prompt, policy); supersedes older revisions; idempotent on the unique key. */
+   *  (review, revision, prompt, policy) with model_id NULL; supersedes older revisions (D-50). */
   enqueue(tx: Tx, reviewId: ReviewId, contentRevision: ContentRevision): Promise<void>;
   /** In the author-deletion Tx after the Review lock. Cancels outstanding work. */
   cancelForDeletedReview(tx: Tx, reviewId: ReviewId): Promise<void>;
@@ -582,13 +582,14 @@ export interface ModerationDispatcher {
 - **Locks / Tx:** `enqueue` and `cancelForDeletedReview` run inside the caller's Tx as later-table writes (ModerationWork). `attemptAfterCommit` uses K10's own short transactions.
 - **Fake:** `enqueue` and `cancelForDeletedReview` record calls. `attemptAfterCommit` returns `"deferred"`, so the Review stays pending.
 - **Amended (§22, AM-14, AM-15):** `enqueue` writes `model_id` NULL and takes its prompt and policy versions from module constants. The supersede and cancel status sets, and idempotency on (review, revision, prompt, policy), are defined there. The production `attemptAfterCommit` stub writes nothing (D-49, D-50, D-52).
+- **Amended (§23, AM-17):** work for hidden or deleted Reviews is cancelled at dispatch and excluded from sweep selection (D-54). Restore reactivates the current row (D-55). Every ModerationWork write holds the Review lock (D-58).
 
 ## 13. K10 — AI runtime: provider and execution controller
 
 **Provider → consumer:** B → A. **Spec basis:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md §8.2 and §8.4, D-13, D-15, D-16; AT-10.
 
 ```ts
-// src/server/adapters/soc-llm/ — imported only by src/server/services/ai/runtime/
+// src/server/adapters/soc-llm/ — imported only by src/server/services/ai/runtime/, the composition root (D-23) and tests/
 export interface LlmMessage { readonly role: "system" | "user"; readonly content: string }
 export interface TokenUsage { readonly inputTokens: number; readonly outputTokens: number }
 export type LlmFailure =
@@ -661,6 +662,7 @@ A crash leaves the leases to expire. Later access or sweeps mark the job stale.
 - `FakeLlmProvider` is deterministic and scriptable: success with usage, success with unknown usage, malformed JSON, `rate_limited`, `timeout`. Unscripted calls return `unavailable`.
 - The controller stub given to A before B#5 returns `{ kind: "disabled" }`, so work stays pending.
 - **Amended (§22, AM-15):** the controller stub is production code in `src/server/services/ai/runtime/`, writes nothing and is wired by the composition root until S-06. `complete` takes an `AbortSignal` in place of a deadline value, and the model is fixed at construction (D-52, api.md 8.2).
+- **Amended (§23, AM-18):** running servers use the stateless `MarkerFakeLlmProvider`; the scripted fake is for tests only (D-57). With `soc_llm` and the v0 policy, the composition root wires the dispatcher stub (D-56).
 - **Amended (§22, AM-16):** the fake's script order, malformed output, `hang`, abort and `modelId` behaviour (D-53).
 
 ## 14. K11 — Report evidence snapshot and receipt projection
@@ -857,7 +859,7 @@ This clarification resolves the request-ID behavior for K2. **Status: approved b
 
 ## 22. B#4 amendments (17 October 2026)
 
-These amendments came from the B#4 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers.** AM-13 changes the rule that U-02 (Developer A) follows when calling `markReviewsChanged`, so it also needs Lim-ZY's approval. No consumer code depends on these amendments yet. Signatures are unchanged.
+These amendments came from the B#4 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026**, including AM-13, which changes the rule that U-02 (Developer A) follows when calling `markReviewsChanged`. No consumer code depends on these amendments yet. Signatures are unchanged.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
@@ -865,3 +867,12 @@ These amendments came from the B#4 analysis. Developer B (thegrimbee) delegated 
 | AM-14 | K9 `ModerationWorkQueue`. `enqueue` writes `model_id` NULL, and its prompt and policy versions come from moderation-module constants (`review-screening-prompt-v1`, `profanity-policy-v0` until OQ-04). It does nothing when a row exists for the same review, revision, prompt and policy, and never reactivates a final row. It supersedes `pending`, `running` and `needs_manual_review` rows of lower revisions. `cancelForDeletedReview` cancels the same three statuses and is a no-op when there are none. Both operations run in the caller's Tx and are real in B#4, with integration tests | D-49, D-50 |
 | AM-15 | K9 and K10 stubs. The production `attemptAfterCommit` stub returns `"deferred"`, and the controller stub returns `{ kind: "disabled" }`. Neither writes anything or calls the provider. The composition root wires both until A-03 and S-06 replace them, and constructs no LLM provider before S-06. The LLM adapter fixes its model at construction and takes an `AbortSignal` as its deadline | D-52, api.md 8.2 |
 | AM-16 | K10 `FakeLlmProvider`. Scripted outcomes are consumed in order, and the script running out gives `unavailable`. "Malformed JSON" means a success whose content fails `validate`; `malformed_response` is scripted separately. A new `hang` outcome waits for abort. An aborted signal gives `timeout`, and the promise never rejects. `modelId` is a required constructor argument, which the composition root sets from `SOC_LLM_MODEL`. Requests are recorded for inspection. No randomness or clock | D-53 |
+
+## 23. B#4 architect-review amendments (17 October 2026)
+
+These amendments came from the architect review of §22. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.** D-54 records how U-02 treats edits of admin-hidden Reviews, and D-57 amends the D-42 e2e environment used by R-02, so both affect Developer A's work. No consumer code depends on these amendments yet. Signatures are unchanged.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-17 | K9 and the moderation module. An author may still edit a hidden Review, and the edit calls `enqueue`. The dispatcher re-reads the Review under its lock, and for a hidden or deleted Review it cancels the work and returns `not_current` with no AIJob, budget or execution count. Sweep selection skips such work. On restore of a pending, undeleted Review, the current-version row moves from `cancelled` back to `pending` in place, keeping `execution_count`; if there is no such row, one is inserted as `enqueue` would. This is the only transition out of `cancelled`. Every ModerationWork write holds the Review `FOR UPDATE` lock, after Movie and Review and before the AIJob lease check, and never shares a transaction with K10 bookkeeping | D-54, D-55, D-58 |
+| AM-18 | K10 and the composition root. When `AI_PROVIDER=fake`, the composition root builds the stateless `MarkerFakeLlmProvider` (D-57), with the outcome chosen by the first `[fake-llm:<outcome>]` marker in user content and `unavailable` when there is none. `FakeLlmProvider` (D-53) is test-only. With `soc_llm` and `profanity-policy-v0`, the composition root wires the dispatcher stub and logs one issue naming `AI_PROVIDER` (D-56). The adapter may be imported by the AI runtime, the composition root and `tests/` | D-56, D-57, D-23 |

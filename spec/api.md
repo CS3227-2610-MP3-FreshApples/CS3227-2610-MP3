@@ -105,7 +105,7 @@ Examples:
 
 No network RPC is required. Define typed services for authenticateSession, authorize, createReview, changeReviewVisibility, submitReport, decideReport, prepareSummaryInput, prepareReviewModerationInput, enqueueReviewModeration, applyReviewClearance, recoverReviewModeration, runScheduledSummaries, acceptReportAndApplyThreshold, startAIExecution and publishValidatedResult.
 
-The SoC adapter accepts bounded messages, configured model, output token budget and deadline; returns content and safe usage metadata or a typed error. The model is fixed when the adapter is constructed, and the deadline is passed as an abort signal (D-52). Only AI orchestration may call it.
+The SoC adapter accepts bounded messages, an output token budget and a deadline, and uses the configured model; it returns content and safe usage metadata or a typed error. The model is fixed when the adapter is constructed, and the deadline is passed as an abort signal (D-52). Only AI orchestration may call it.
 
 ### 8.3 Events
 
