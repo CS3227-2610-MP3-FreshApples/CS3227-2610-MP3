@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **approved; S-02 is merged to `master`; S-07/A#2 is ready for implementation on `feat/ui-shell`**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`.
+Status: **approved; S-02 is merged to `master`; S-07/A#2 is implemented on `feat/ui-shell` and awaiting human review**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -23,7 +23,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Ready |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
-| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Ready (D-49 approved) |
+| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Human review (implemented on `feat/ui-shell`) |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
