@@ -2,6 +2,12 @@ import "server-only";
 
 import { parseConfig, type AppConfig } from "./config";
 import { createDatabase, type Database, type Sql } from "./db";
+import {
+  createDeferredModerationDispatcher,
+  createModerationWorkQueue,
+  type ModerationDispatcher,
+  type ModerationWorkQueue,
+} from "./services/ai/moderation";
 import { createDisabledAiExecutionController, type AiExecutionController } from "./services/ai/runtime";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
@@ -50,6 +56,13 @@ export const summarySchedule: SummarySchedule | null =
 
 /** K10 controller stub (D-52): returns `disabled` until S-06. No LLM provider is constructed before then. */
 export const aiExecutionController: AiExecutionController = createDisabledAiExecutionController();
+
+/** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
+export const moderationWorkQueue: ModerationWorkQueue | null =
+  database === null ? null : createModerationWorkQueue({ sql: database });
+
+/** K9 dispatcher stub (D-52): returns `deferred` and writes nothing until B#7 (A-03) wires the real one. */
+export const moderationDispatcher: ModerationDispatcher = createDeferredModerationDispatcher();
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();
