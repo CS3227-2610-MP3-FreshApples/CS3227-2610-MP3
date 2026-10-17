@@ -3,6 +3,14 @@ import "server-only";
 import { parseConfig, type AppConfig } from "./config";
 import { createDatabase, type Database, type Sql } from "./db";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
+import {
+  createMovieLocks,
+  createReviewsChangedMarker,
+  createSummarySchedule,
+  type MovieLocks,
+  type ReviewsChangedMarker,
+  type SummarySchedule,
+} from "./services/catalogue";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 
@@ -27,6 +35,17 @@ export const rateLimiter: RateLimiter | null =
 export const rateLimitKeys: RateLimitKeys | null = config.core.valid
   ? createRateLimitKeys({ secret: config.core.value.rateLimitKeySecret })
   : null;
+
+/** K7 Movie lock functions (D-51); `null` exactly when `database` is. */
+export const movieLocks: MovieLocks | null = database === null ? null : createMovieLocks({ sql: database });
+
+/** K7 review-change marker (D-51); `null` exactly when `database` is. */
+export const reviewsChangedMarker: ReviewsChangedMarker | null =
+  database === null ? null : createReviewsChangedMarker({ sql: database });
+
+/** K7 summary-schedule writes (O-20, D-51); `null` exactly when `database` is. */
+export const summarySchedule: SummarySchedule | null =
+  database === null ? null : createSummarySchedule({ sql: database });
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();
