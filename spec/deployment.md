@@ -62,10 +62,10 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK | Output price of SOC_LLM_MODEL in microdollars per million tokens, as reported by `GET /v1/models`: 1456571 on 16 October 2026 (D-48); no default; missing value disables AI |
 | AI_ENABLED | Explicit boolean; false until provider validation succeeds |
 | AI_PROVIDER | soc_llm or fake. fake selects the deterministic adapter for local, test and development use (D-16); configuration validation rejects fake when APP_ENV is production |
-| AI_MAX_CONCURRENT_REQUESTS | Default 1 per environment, enforced through PostgreSQL |
-| AI_ATTEMPT_TIMEOUT_MS | Default 30000 |
-| AI_MAX_ATTEMPTS | Default 2 |
-| AI_EXECUTION_DEADLINE_MS | Default 75000, must leave headroom under function maxDuration |
+| AI_MAX_CONCURRENT_REQUESTS | Default and maximum 1 per environment, enforced through PostgreSQL (D-65) |
+| AI_ATTEMPT_TIMEOUT_MS | Default and maximum 30000 (D-65) |
+| AI_MAX_ATTEMPTS | Default and maximum 2 (D-65) |
+| AI_EXECUTION_DEADLINE_MS | Default and maximum 75000, must leave headroom under function maxDuration (D-65) |
 | AI_SUMMARY_SAMPLE_SIZE | Default and initial maximum 20 |
 | AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; eligibility checked in daily sweep |
 | AI_SUMMARY_MAX_MOVIES_PER_RUN | Initial maximum 1; increase only after runtime/capacity validation and spec revision |
