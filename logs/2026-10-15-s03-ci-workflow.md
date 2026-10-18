@@ -28,7 +28,6 @@
 | Source | Authority or reference | How it was used |
 | --- | --- | --- |
 | `spec/deployment.md` DEP-02; `spec/governance.md` D-10, D-18, D-29, D-30, D-31, D-40, D-41, §14 | Source of truth | Job set, triggers, gitleaks pin, canary list, audit rules |
-| `references/DEV-B-COMMIT-PLAN.md` B#2 commit 1 | Task prompt | Scope and paths |
 | `tests/setup/integration-database.ts`, `src/server/composition.ts`, `.env.example` | Code on the branch | `TEST_DATABASE_URL` contract; config read at module load |
 | `git ls-remote` of `actions/checkout` and `actions/setup-node` | External, untrusted | Tag-to-commit SHAs for the pins |
 | Local `npm audit --json` output | Tool output | Report version 2 shape for the parser |

@@ -13,16 +13,19 @@
 | Branch | `feat/ai-catalogue-contracts` |
 | Starting revision | `f1266e6` |
 | Participating agent roles | Architect (subagent, read-only); main Claude Code session (spec and workflow edits) |
+| Workflow stage | **Step 2 of 3** in B#4: analyst → **architect** → implementation |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
 
+- Workflow position: this session is the architect step. Its input is the analyst step's output, decisions D-49–D-53 and AM-13–AM-16 (`2026-10-17-b4-analysis-decisions.md`). The read-only architect agent checked those decisions against module boundaries, contracts and threats. The findings became D-54–D-58, and both developers approved D-49–D-58. That approval gate ends the spec work, and the implementation step uses D-49–D-58 as its requirements (`2026-10-17-b4-k7-catalogue-core.md`, `-k10-interfaces.md`, `-k9-moderation-work-queue.md`).
+
 - Requested outcome:
   1. An architect review of the B#4 decisions and contract amendments (read-only).
   2. Record the approval of the reviewed decisions and resolve the identified findings.
-  3. Record Lim-ZY's approval of D-54–D-58 and AM-17–AM-18, and bring `references/DEV-B-COMMIT-PLAN.md` up to date with the latest decisions and commits.
+  3. Record Lim-ZY's approval of D-54–D-58 and AM-17–AM-18
 - Applicable recorded requirement IDs: FR-03, AI-01, AI-02, AI-03, SEC-08, INV-08, D-16, D-17, D-20, D-23, D-37, D-42, D-49–D-53, P-04, P-08, P-13, AM-13–AM-16.
-- Permitted paths/actions: edits to `spec/`, `workflow/`, `logs/` and `references/DEV-B-COMMIT-PLAN.md` (gitignored, local only). No application code, tests, dependencies or git actions.
+- Permitted paths/actions: edits to `spec/`, `workflow/`, `logs/` (gitignored, local only). No application code, tests, dependencies or git actions.
 - Explicit exclusions: no commits or pushes, and no `Ready` state for B#4, which only a human may set.
 - Human approval gates: thegrimbee reported that Lim-ZY approved D-49–D-53 and AM-13–AM-16. The new D-54–D-58 and AM-17–AM-18 were chosen by the agent under delegation. thegrimbee then reported that Lim-ZY approved them (seq. 3), and they are recorded as approved by both developers.
 
@@ -33,7 +36,7 @@
 | `spec/governance.md`, `ai.md`, `data-model.md`, `api.md`, `product.md`, `architecture.md` | Source of truth | Existing decisions and AI-02 cancel, restore and policy rules |
 | `workflow/contracts.md` (§1, §3, §10–§13, §16, §22), `PLAN.md`, `COMMIT-PLAN.md` | Plans and contracts | Lock order, K8 `ScreeningSource`, K9 and K10 signatures |
 | `src/server/db/migrations/1791896395207_initial-schema.sql`, `src/server/config/ai.ts` | Code on the branch | `moderation_work` unique key with `NULLS NOT DISTINCT`; the fake is refused outside local, test and development |
-| `logs/2026-10-17-b4-analysis-decisions.md` | Earlier verified log | Approval state before this session |
+| `logs/2026-10-17-b4-analysis-decisions.md` | Earlier verified log (step 1, analyst) | Approval state before this session; the decisions under review |
 | `git log -15` on the branch | Commit history | Which tasks are merged (B#1–B#3, A#1) and which files they added |
 | Architect handoff | Agent output, untrusted | Findings H1, M1–M5 and L1–L3; claims checked against the files above |
 
@@ -77,7 +80,6 @@
 | `workflow/contracts.md` | Header revision and status; §1 rule 6; §3.3 pointers; §12 and §13 amendment pointers and comments (L1, L2); §22 status; new §23 (AM-17, AM-18) |
 | `workflow/PLAN.md` | U-02 `content_revision` wording and the hidden-edit case; A-03 and A-04 pointers to D-54–D-56 and D-58 |
 | `workflow/COMMIT-PLAN.md` | B#4 constant paths and citations (L2) |
-| `references/DEV-B-COMMIT-PLAN.md` | Sync status and §0 facts; B#1–B#3 marked done; B#4, B#5, B#7, B#8, B#9, B#11 and B#12 prompts updated for D-49–D-58 (gitignored, seq. 3) |
 | `logs/2026-10-17-b4-architect-review-decisions.md` | This summary |
 
 - Dependencies added or changed: none.
@@ -129,4 +131,4 @@
 
 Reviewer: Gabriel
 Verification date: 17 Oct 2026
-Corrections or notes: NIL
+Corrections or notes: NIL. The "Workflow stage" row, the "Workflow position" bullet and the step label on the analysis-log source were added on 18 Oct 2026, after this verification (see `2026-10-18-b4-log-workflow-clarity.md`), and need re-verification.

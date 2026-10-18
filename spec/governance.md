@@ -14,7 +14,7 @@ CON-04: Perform SDD directly without an SDD toolkit. Maintain specifications in 
 
 ### 12.2 Regulatory / Course / Organisation
 
-The following are requirements transcribed from [the project brief](../references/requirements.md), not optional product choices:
+The following are requirements:
 
 - Exactly two roles and two developers; each developer completes all features for a specific role plus a substantial portion of shared work.
 - At least one LLM feature for each role.
