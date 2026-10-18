@@ -7,7 +7,7 @@
 | Field | Value |
 | --- | --- |
 | Date and timezone | 2026-10-18, Asia/Singapore |
-| Task | S-06 analysis; record decisions for analyst gaps A1–A17 |
+| Task | S-06 analysis; record decisions for analyst gaps A1–A17; resolve C9; record Lim-ZY's approval |
 | Chat/session ID | Not recorded |
 | Human owner/reviewer | thegrimbee |
 | Branch | `master` (working tree only; no git writes) |
@@ -23,10 +23,11 @@
   2. Resolve gaps A1–A11 and A14 with the agent's recommendations.
   3. Resolve gaps A12, A13, A15 and A16 the same way.
   4. Resolve A17 (S-06 paths and wiring) the same way.
+  5. Resolve C9 and record Lim-ZY's approval of D-59–D-70, AM-19 and AM-20.
 - Applicable recorded requirement IDs: AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2 and 8.4, D-13, D-16, D-25, D-48, D-52, D-53, D-56, D-57, O-26–O-30, P-04, P-08, P-13, AM-11, AM-15, AM-16, AM-18.
 - Permitted paths/actions: edits to `spec/`, `workflow/`, `logs/`. No application code, tests, dependencies or git actions.
-- Explicit exclusions: contradiction C9 (not requested); C1, C2 and C7 are covered only as far as D-71 needs. No `Ready` state for S-06.
-- Human approval gates: thegrimbee delegated A1–A11 and A14 to the agent's recommendations. thegrimbee then delegated A12, A13, A15 and A16 the same way (seq. 3). A17 followed (seq. 4). Lim-ZY has not approved D-59–D-70, AM-19 or AM-20; D-71 touches only Developer B paths.
+- Explicit exclusions: C1, C2 and C7 are covered only as far as D-71 needs. Developer A's S-07 test file is not edited. No `Ready` state for S-06.
+- Human approval gates: thegrimbee delegated A1–A11 and A14 to the agent's recommendations. thegrimbee then delegated A12, A13, A15 and A16 the same way (seq. 3). A17 followed (seq. 4). thegrimbee then reported that Lim-ZY approved D-59–D-70, AM-19 and AM-20 (seq. 5). D-71 touches only Developer B paths and stays recorded by thegrimbee.
 
 ## 3. Sources Consulted
 
@@ -44,6 +45,7 @@
 | 2 | Human | Resolve A1–A11 and A14 with the agent's recommendations | Recorded D-59–D-66, marked the D-48 reasoning point resolved, added deployment maxima and spec pointers, added contracts §24 AM-19 | This log; working-tree diff |
 | 3 | Human | Resolve A12, A13, A15 and A16 as well | Recorded D-67–D-70; pointed D-57, D-61, D-63 and D-66 at them; added contracts AM-20 | This log; working-tree diff |
 | 4 | Human | Resolve A17 as well | Recorded D-71; amended PLAN S-06 paths, description and import criterion; updated the COMMIT-PLAN B#5 row | This log; working-tree diff |
+| 5 | Human | Resolve C9; Lim-ZY approved D-59–D-70, AM-19 and AM-20 | Renumbered the frontend route decision from D-49 to D-72 with a note; marked D-59–D-70 and contracts §24 approved by both developers | This log; working-tree diff |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
@@ -61,6 +63,7 @@
 | D-68 (A13): controller recomputes the estimate and takes the larger; output cap ≤ 1,200 or throw; no context variable | Agent (delegated) | same | A caller can never lower the cap or the reservation | governance; contracts AM-20 |
 | D-69 (A15): 1–3 s uniform jitter; injected random, clock and sleep | Agent (delegated) | same | Deterministic tests without shared state | governance D-61, D-69 |
 | D-70 (A16): S-06 ships the marker fake; schema conformance tests move to U-04 and A-03 | Agent (delegated) | same | S-06 must not own feature schemas | governance D-57, D-70; contracts AM-20 |
+| C9: the frontend route/layout decision becomes D-72; D-49 stays the moderation versions decision | Agent (delegated) | recorded | The moderation D-49 is cited by spec, contracts, code and tests; the frontend one only by S-07 logs and one test | governance D-72 |
 | D-71 (A17, C1, C2, C7): S-06 paths add runtime repositories, `config/ai.ts` (maxima only) and AI wiring in `composition.ts`; dispatcher stays the stub until A-03; boundary test follows AM-18 | Agent (delegated) | recorded by thegrimbee | Spec required wiring the old paths forbade | governance; PLAN S-06; COMMIT-PLAN B#5 |
 
 ## 6. Agent Assignments and Handoffs
@@ -76,7 +79,7 @@
 
 | Path | Change and rationale |
 | --- | --- |
-| `spec/governance.md` | New D-59–D-70; D-48 reasoning point marked resolved; D-57, D-61, D-63 and D-66 point to D-67–D-70 |
+| `spec/governance.md` | Frontend D-49 renumbered to D-72; D-59–D-70 marked approved by both developers; new D-59–D-71; D-48 reasoning point marked resolved; D-57, D-61, D-63 and D-66 point to D-67–D-70 |
 | `spec/deployment.md` | Maxima for the four execution variables (D-65) |
 | `spec/api.md` | §8.4 pointer to D-59–D-61 |
 | `spec/data-model.md` | Pointers to D-63, D-64, D-66; "Token reservations" reworded to "Budget reservations" (C8) |
@@ -101,7 +104,7 @@
 - Untrusted input and prompt-injection treatment: the analyst report and the SoC reference were treated as data. Claims were checked against spec, the migration and the code before any decision was recorded.
 - Secret and production-data exposure check: no values recorded.
 - Agent permission and tool limits: no git writes, no deploys, no database access.
-- Human approval gates exercised: delegation by thegrimbee; Lim-ZY approval still required.
+- Human approval gates exercised: delegation by thegrimbee; Lim-ZY's approval of D-59–D-70, AM-19 and AM-20 as reported by thegrimbee.
 - SoC LLM quota/resource considerations: D-62 counts every request; D-63 charges unknown attempts conservatively; D-61 accepts that a lasting SoC limit defers work indefinitely.
 - Security findings and disposition: D-59 forbids following redirects so the key cannot leak to another host; D-60 keeps provider text out of logs and rows.
 
@@ -109,8 +112,8 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| Lim-ZY approval of D-59–D-70, AM-19 and AM-20 | K10 consumer semantics; D-70 assigns U-04 a test | thegrimbee | Obtain and record it |
-| C9 unresolved | Two decisions share D-49 | thegrimbee | Renumber one |
+| `tests/unit/ui-shell/route-shells.test.ts` titles still say D-49 | Stale citation in Developer A's test | Lim-ZY | Change the titles to D-72 |
+| Lim-ZY's approval of D-59–D-70, AM-19 and AM-20 recorded on the human's word | Traceability | thegrimbee | Link the approving PR review or message in the spec PR |
 | PLAN S-06 status still `Blocked` | Only a human sets `Ready` | thegrimbee | Set after spec approval |
 | `max_tokens` and `reasoning_effort` acceptance unverified | A refusal fails safe but disables AI | thegrimbee | Include in provider validation (D-59) |
 | Architect review | Required before implementation | thegrimbee | Run the architect step on D-59–D-71 |
@@ -131,4 +134,4 @@
 
 Reviewer:
 Verification date:
-Corrections or notes: seq. 3 and 4 and their rows (D-67–D-71, AM-20) were added after these boxes were ticked and need re-verification.
+Corrections or notes: seq. 3 to 5 and their rows (D-67–D-72, AM-20, approvals) were added after these boxes were ticked and need re-verification.

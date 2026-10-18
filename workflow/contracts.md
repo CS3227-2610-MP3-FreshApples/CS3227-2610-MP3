@@ -880,7 +880,7 @@ These amendments came from the architect review of §22. Developer B (thegrimbee
 
 ## 24. S-06 amendments (18 October 2026)
 
-These amendments came from the S-06 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: recorded by Developer B; Developer A (Lim-ZY) approval pending**, because AM-19 changes when U-04 receives `deferred` from K10 and AM-20 assigns U-04 a conformance test. No consumer code depends on these amendments yet. Signatures are unchanged.
+These amendments came from the S-06 analysis. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026**, including AM-19, which changes when U-04 receives `deferred` from K10, and AM-20, which assigns U-04 a conformance test. No consumer code depends on these amendments yet. Signatures are unchanged.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |

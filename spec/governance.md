@@ -398,14 +398,14 @@ Design decision D-58 (ModerationWork locking): Approved by both developers (Lim-
 - **Unlocked selection:** due-work selection is an unlocked read, and the locking transaction re-checks status and Review state.
 - **Scope:** which columns a claim changes, and when `execution_count` advances, are A-03's. Capacity deferral still consumes no execution (AI-02).
 
-Design decision D-59 (SoC chat request and response): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending. Resolves the open `reasoning_effort` point of D-48.
+Design decision D-59 (SoC chat request and response): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Resolves the open `reasoning_effort` point of D-48.
 - **Request body:** `POST /v1/chat/completions` with exactly `model` (the adapter's fixed model), `messages` (role and content as given), `max_tokens` (the caller's output cap), `stream: false` and `reasoning_effort: "none"`. No temperature, tools, `response_format` or JSON mode (api.md 8.4). Redirects are not followed, so the bearer key is never sent to another host.
 - **Why `reasoning_effort: "none"`:** the SoC quickstart sends it with Qwen models, `default` points to a Qwen model (D-48), and reasoning output would use up the 1,000- and 1,200-token caps (AI-03). If the gateway refuses the field, the 400 maps to `rejected` (D-60) and AI fails safe.
 - **Verification:** the provider validation that must pass before `AI_ENABLED=true` (deployment.md 10.3) includes one real call with this body, confirming that `max_tokens` and `reasoning_effort` are accepted.
 - **Success:** HTTP 200, a JSON object, `choices[0].message.content` a string and `choices[0].finish_reason` equal to `stop`. Anything else is `malformed_response`, including `length` (truncated output), missing or empty `choices`, null or non-string content and a non-JSON body. Other fields, including any reasoning field, are ignored and never logged.
 - **Usage:** `usage.prompt_tokens` and `usage.completion_tokens`, when both are non-negative integers, become `TokenUsage`. Otherwise usage is null (unknown) and is charged conservatively (D-63).
 
-Design decision D-60 (SoC HTTP outcome mapping): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-60 (SoC HTTP outcome mapping): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **429:** `rate_limited`. `retryAfterSeconds` is the `Retry-After` value when it is a non-negative integer number of seconds, and null otherwise (including the HTTP-date form).
 - **408:** `timeout`.
 - **Other 4xx** (400, 401, 403, 404 and the rest): `rejected`. 401 and 403 are configuration faults; they fail safe and are not retried.
@@ -413,7 +413,7 @@ Design decision D-60 (SoC HTTP outcome mapping): Recorded by thegrimbee on 18 Oc
 - **Abort of the deadline signal**, before or during the response body: `timeout`.
 - **Containment:** error bodies, provider messages, URLs and the key are never logged, returned or stored. `complete` never rejects.
 
-Design decision D-61 (retries and execution outcomes): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending, because it changes when U-04 receives `deferred`.
+Design decision D-61 (retries and execution outcomes): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Retried** (a second attempt, only within D-65's time rules): `rate_limited`, `timeout` and `unavailable`, matching AI-03's transient network errors, 429 and 5xx. **Not retried:** `rejected`, `malformed_response` and output that fails `validate`.
 - **Backoff before the second attempt:** `Retry-After` when present; if it does not fit in the time left, there is no second attempt. Otherwise a jittered delay (D-69).
 - **Outcome from the last attempt:**
@@ -425,13 +425,13 @@ Design decision D-61 (retries and execution outcomes): Recorded by thegrimbee on
 - **Accepted risk:** a lasting SoC limit (for example the monthly cap, which the application does not enforce) defers work indefinitely without manual-review escalation. Backoff and the daily sweep bound the calls, and held-work monitoring (AI-02) shows the backlog.
 - **AIJob final status:** `published` gives `succeeded`; `failed` and a deferral after job creation give `failed`; `stale` gives `stale`.
 
-Design decision D-62 (SoC request quota per request): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-62 (SoC request quota per request): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Rule:** each provider request consumes one `soc_requests` unit through K6, in K6's own transaction with no transaction open, immediately before that request. An execution therefore consumes one or two units.
 - **First attempt:** the unit is consumed before the step-1 transaction. If it is denied, `run` returns `deferred` with K6's `retryAfterSeconds` and writes nothing else. If step 1 then defers (slot or budget), the unit stays spent; over-counting is conservative.
 - **Second attempt:** if its unit is denied, there is no second attempt, and the outcome comes from the first attempt under D-61.
 - **Why:** SoC's limit counts requests (CON-02, D-48), and AI-03 allows two per execution. Consuming before step 1 means no job or reservation rows exist for a request that cannot be sent.
 
-Design decision D-63 (daily budget lifecycle): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-63 (daily budget lifecycle): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Budget day:** the UTC date from the database clock at step 1. Step 1 creates the AIBudgetDay row when it is missing, with `budget_microdollars` from `AI_DAILY_BUDGET_MICRODOLLARS`. Each step 1 sets `budget_microdollars` to the larger of the configured value and `reserved + consumed`, so a configuration change applies the same day and the check constraint always holds. A reservation is always settled against its own budget day, even after midnight.
 - **Reserve:** the AI-03 amount R, from the D-68 estimate. If `reserved + consumed + R` exceeds the budget, `run` returns `deferred` (D-67) and writes nothing.
 - **Charge per attempt:**
@@ -443,7 +443,7 @@ Design decision D-63 (daily budget lifecycle): Recorded by thegrimbee on 18 Octo
 - **AIBudgetDay movement:** reserve adds R to `reserved_microdollars`. Settling subtracts R from `reserved_microdollars` and adds the charge to `consumed_microdollars`, capped at the remaining headroom so the check constraint holds (no migration). The reservation row keeps the true amount. Under-recording above the cap is accepted, because SoC's 429 is the hard limit (D-25, D-48).
 - **Abandoned reservations** are settled at R under D-66.
 
-Design decision D-64 (AIJob column values): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-64 (AIJob column values): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Subject and trigger:**
   - Summary: `subject_id` is the Movie ID, `input_revision` is `reviewsRevision`, `trigger` is `scheduler` and `requester_id` is null.
   - Moderation: `subject_id` is the Review ID, `input_revision` is the captured `contentRevision`, and `trigger` is `review_write` when `requesterId` is set and `scheduler` otherwise.
@@ -458,7 +458,7 @@ Design decision D-64 (AIJob column values): Recorded by thegrimbee on 18 October
 - **`bounded_input_snapshot`:** the caller's `BoundedInput.snapshot` exactly as given. The controller adds no prompt text and no provider response.
 - **`error_code`:** null on success, otherwise one of `provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `provider_rejected`, `provider_malformed_response`, `invalid_output`, `deadline_exceeded`, `publish_stale` or `lease_expired`. It never holds provider text.
 
-Design decision D-65 (execution limits, deadline and lease timing): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-65 (execution limits, deadline and lease timing): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Configuration maxima** (deployment.md 10.3): `AI_MAX_CONCURRENT_REQUESTS` at most 1, `AI_MAX_ATTEMPTS` at most 2, `AI_ATTEMPT_TIMEOUT_MS` at most 30000 and `AI_EXECUTION_DEADLINE_MS` at most 75000. A larger value is a configuration issue that disables AI (D-28, D-37). Smaller values are allowed, for example in tests. **Why:** AI-03 fixes these limits, the single `ai_execution` row holds one execution, and a 90-second lease stays under the 120-second `maxDuration`.
 - **Lease:** the `ai_execution` lease and AIJob `lease_until` are the step-1 database time plus `AI_EXECUTION_DEADLINE_MS` plus 15 seconds (data-model.md SchedulerLease). O-29's 90 seconds is the value at the default deadline.
 - **Deadline:** measured from the start of `run` on the server's monotonic clock. Provider attempts must end 5 seconds before the deadline, leaving time for storage. Each attempt's `AbortSignal` fires at the earlier of the attempt timeout and that point. A second attempt starts only if, after its backoff, at least 5 seconds remain before that point.
@@ -466,7 +466,7 @@ Design decision D-65 (execution limits, deadline and lease timing): Recorded by 
 - **Late commit:** a publish transaction that reaches the P-08 check after the AIJob lease has expired rolls back, giving `stale` with `error_code` `lease_expired`.
 - **Settlement:** the final settlement transaction always runs, whatever the deadline.
 
-Design decision D-66 (slot acquisition and abandoned work): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending.
+Design decision D-66 (slot acquisition and abandoned work): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Acquire:** the step-1 transaction locks the `ai_execution` row `FOR UPDATE`, inserting it first with an expired lease if it is missing. If it is held and unexpired, the transaction rolls back and `run` returns `deferred` with the D-67 `retryAfterSeconds`. If it is free or expired, `run` takes it with a new `lease_token` and the D-65 `lease_until`.
 - **Expire abandoned work:** in the same transaction, every `running` AIJob whose `lease_until` has passed becomes `stale` with `error_code` `lease_expired`. Its `reserved` reservation is reconciled at R with null usage, against its own budget day (D-63).
 - **Lock order:** P-13, with several rows of one table locked in ascending key order (budget days by date, reservations and jobs by ID). Today's reservation and the new running AIJob follow.
@@ -474,7 +474,7 @@ Design decision D-66 (slot acquisition and abandoned work): Recorded by thegrimb
 - **Release:** release changes the lease only where `lease_token` matches, so a holder whose lease was taken over never releases the new holder's lease. `withSweepLease` uses the same guarded acquire and release, with 150-second leases.
 - **Who expires:** only `run`'s step 1. Every review-write and sweep path calls it, so recovery is automatic (AI-03) and no separate cleanup job exists.
 
-Design decision D-67 (`deferred` retry hints): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending, because U-04 and A-03 may use the hint for backoff.
+Design decision D-67 (`deferred` retry hints): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Values of `retryAfterSeconds`:**
   - request quota denied: K6's value (§9);
   - `ai_execution` slot held: the seconds until that lease's `lease_until`, rounded up, at least 1;
@@ -483,17 +483,17 @@ Design decision D-67 (`deferred` retry hints): Recorded by thegrimbee on 18 Octo
 - **Source:** lease and midnight times come from the database clock in the step-1 transaction.
 - **Use:** the value is a hint. Callers may schedule the next attempt no earlier than it, and keep their own backoff and AI-02 limits. Amends the null value in D-66.
 
-Design decision D-68 (input estimate and output cap checks): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending, because U-04 builds the bounded input.
+Design decision D-68 (input estimate and output cap checks): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
 - **Estimate:** the controller recomputes the AI-03 estimate (O-26) from `messages` and uses the larger of its value and the caller's `estimatedInputTokens`. The recomputed estimate is used both for the input cap and for the reservation. A caller's estimate therefore never lowers either.
 - **Input cap:** an estimate above `AI_INPUT_TOKEN_LIMIT` returns `input_too_large` before any quota, lease, reservation or job write.
 - **Output cap:** `maxOutputTokens` must be a positive integer of at most 1,200, the larger AI-03 cap. Any other value is a caller bug: `run` throws before any write.
 - **Context:** no context-length variable is added. With the verified 262,144-token context (D-48), 8,000 input plus 1,200 output always fits. If a model change reduces the context, `AI_INPUT_TOKEN_LIMIT` is lowered as deployment.md 10.3 already says.
 
-Design decision D-69 (retry backoff and injected time sources): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Amends the backoff bullet of D-61.
+Design decision D-69 (retry backoff and injected time sources): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Amends the backoff bullet of D-61.
 - **Backoff:** with no `Retry-After`, the delay before the second attempt is uniformly random between 1,000 and 3,000 milliseconds. With `Retry-After`, the delay is exactly that many seconds. In both cases the D-65 time rules decide whether the second attempt starts.
 - **Testability:** the controller receives its random source, monotonic clock and sleep function as constructor dependencies. The composition root passes the real ones, and tests pass deterministic ones. These are injected values, not shared mutable state (D-23).
 
-Design decision D-70 (marker fake delivery and output-schema tests): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Developer A (Lim-ZY) approval pending, because it assigns a test to U-04. Amends the canned-output tests of D-57.
+Design decision D-70 (marker fake delivery and output-schema tests): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Amends the canned-output tests of D-57.
 - **S-06 delivers** `MarkerFakeLlmProvider` (D-57) and its unit tests:
   - marker selection, where the first marker in a `user` message wins and the system message is never scanned;
   - no marker or an unknown marker gives `unavailable`;
@@ -518,7 +518,7 @@ Design decision D-71 (S-06 paths and wiring): Recorded by thegrimbee on 18 Octob
 
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
-Design decision D-49 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026
+Design decision D-72 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026. Renumbered from a duplicate D-49 on 18 October 2026; D-49 is the moderation prompt and policy versions decision. S-07 logs and `tests/unit/ui-shell/route-shells.test.ts` cite this decision as D-49
 Below is the decided layout structure to follow for NextJS frontend:
 ```markdown
 src/app/
