@@ -94,7 +94,7 @@
 ## 9. Security and Responsible-AI Review
 
 - Sensitive data handled: none. Tests use synthetic placeholder keys and `.invalid` hosts.
-- Untrusted input and prompt-injection treatment: the SoC guide HTML was not opened. Provider bodies are parsed only for the D-59 fields, bounded to 1 MiB, and error bodies are discarded unread.
+- Untrusted input and prompt-injection treatment: Provider bodies are parsed only for the D-59 fields, bounded to 1 MiB, and error bodies are discarded unread.
 - Secret and production-data exposure check: the key is sent only in the Authorization header. Tests confirm that no result contains the key, URL or provider text, and that nothing is logged.
 - Agent permission and tool limits: no git writes, no network calls, no dependency changes.
 - Human approval gates exercised: two stop-and-ask points (spec conflicts; AI-01 shape gap).

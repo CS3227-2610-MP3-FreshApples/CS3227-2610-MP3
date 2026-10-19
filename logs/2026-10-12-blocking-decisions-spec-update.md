@@ -117,7 +117,6 @@
 ## 9. Security and Responsible-AI Review
 
 - Sensitive data handled: none. `.env.example` contains placeholders only.
-- Untrusted input and prompt-injection treatment: the SoC reference HTML was treated as untrusted and used only to frame options.
 - Secret and production-data exposure check: no secrets written.
 - Agent permission and tool limits: analyst was read-only.
 - Human approval gates exercised: the human approved adopting all recommendations; the human must still verify this log and confirm decision IDs.
