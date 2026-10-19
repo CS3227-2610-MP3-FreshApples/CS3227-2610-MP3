@@ -85,6 +85,9 @@ async function main() {
       SESSION_SECRET: randomSecret(),
       RATE_LIMIT_KEY_SECRET: randomSecret(),
       CRON_SECRET: randomSecret(),
+      ADMIN_BOOTSTRAP_EMAIL: "synthetic-e2e-admin@example.test",
+      ADMIN_BOOTSTRAP_PASSWORD: `Synthetic-${randomSecret()}1!`,
+      ADMIN_BOOTSTRAP_SECRET: randomSecret(),
     };
     // The superuser URL stays with the wrapper; nothing under Playwright needs it.
     delete env.TEST_DATABASE_URL;

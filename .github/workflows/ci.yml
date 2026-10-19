@@ -217,6 +217,9 @@ jobs:
             echo "RATE_LIMIT_KEY_SECRET=$(canary ratelimitkey)"
             echo "CRON_SECRET=$(canary cronsecret)"
             echo "SOC_LLM_API_KEY=$(canary socllmapikey)"
+            echo "ADMIN_BOOTSTRAP_EMAIL=$(canary bootstrapemail)@example.test"
+            echo "ADMIN_BOOTSTRAP_PASSWORD=$(canary bootstrappassword)1!"
+            echo "ADMIN_BOOTSTRAP_SECRET=$(canary bootstrapsecret)"
           } >> "$GITHUB_ENV"
 
       - name: Build with canary secrets

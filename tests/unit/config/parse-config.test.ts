@@ -231,6 +231,55 @@ describe("parseConfig — cron configuration", () => {
   });
 });
 
+describe("parseConfig — first-Admin bootstrap configuration", () => {
+  it("enables bootstrap only for a password accepted by the user password policy", () => {
+    const config = parseConfig(envWith({
+      ADMIN_BOOTSTRAP_SECRET: "synthetic-bootstrap-secret-0123456789",
+      ADMIN_BOOTSTRAP_EMAIL: "admin@example.test",
+      ADMIN_BOOTSTRAP_PASSWORD: "Valid-bootstrap-password1!",
+    }));
+
+    expect(config.bootstrap).toEqual({
+      enabled: true,
+      secret: "synthetic-bootstrap-secret-0123456789",
+      email: "admin@example.test",
+      password: "Valid-bootstrap-password1!",
+    });
+  });
+
+  it.each([
+    ["too short", "Short1!"],
+    ["missing number", "Valid-bootstrap-password!"],
+    ["missing special character", "ValidbootstrapPassword1"],
+    ["too long", `${"a".repeat(127)}1!a`],
+    ["too few code points despite more UTF-16 units", `${"😀".repeat(9)}1!`],
+  ])("disables bootstrap for a password that violates the canonical policy (%s)", (_label, password) => {
+    const config = parseConfig(envWith({
+      ADMIN_BOOTSTRAP_SECRET: "synthetic-bootstrap-secret-0123456789",
+      ADMIN_BOOTSTRAP_EMAIL: "admin@example.test",
+      ADMIN_BOOTSTRAP_PASSWORD: password,
+    }));
+
+    expect(config.bootstrap.enabled).toBe(false);
+    expect(!config.bootstrap.enabled && issueVariables(config.bootstrap.issues)).toEqual(["ADMIN_BOOTSTRAP_PASSWORD"]);
+  });
+
+  it.each(["ADMIN_BOOTSTRAP_SECRET", "ADMIN_BOOTSTRAP_EMAIL", "ADMIN_BOOTSTRAP_PASSWORD"])(
+    "disables bootstrap when %s is absent",
+    (variable) => {
+      const config = parseConfig(envWith({
+        ADMIN_BOOTSTRAP_SECRET: "synthetic-bootstrap-secret-0123456789",
+        ADMIN_BOOTSTRAP_EMAIL: "admin@example.test",
+        ADMIN_BOOTSTRAP_PASSWORD: "Valid-bootstrap-password1!",
+        [variable]: undefined,
+      }));
+
+      expect(config.bootstrap.enabled).toBe(false);
+      expect(!config.bootstrap.enabled && issueVariables(config.bootstrap.issues)).toContain(variable);
+    },
+  );
+});
+
 describe("parseConfig — LOG_LEVEL", () => {
   it.each(["debug", "info", "warn", "error"])("accepts %s", (level) => {
     expect(parseConfig(envWith({ LOG_LEVEL: level })).logLevel).toBe(level);
