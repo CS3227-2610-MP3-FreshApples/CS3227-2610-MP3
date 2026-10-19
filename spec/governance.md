@@ -14,7 +14,7 @@ CON-04: Perform SDD directly without an SDD toolkit. Maintain specifications in 
 
 ### 12.2 Regulatory / Course / Organisation
 
-The following are requirements transcribed from [the project brief](../references/requirements.md), not optional product choices:
+The following are requirements:
 
 - Exactly two roles and two developers; each developer completes all features for a specific role plus a substantial portion of shared work.
 - At least one LLM feature for each role.
@@ -241,7 +241,7 @@ Design decision D-42 (Playwright harness): The configuration is `playwright.conf
 - **Command:** the script is `npm run test:e2e`, which runs the wrapper described under Lifecycle. It is recorded in `AGENTS.md` Commands when S-03 lands.
 - **Build:** `npm run test:e2e` does not build; run `npm run build` first. The `e2e` CI job runs `npm run build` itself with the e2e environment below. It does not reuse the canary build from `build-secret-scan`.
 - **App under test:** Playwright's `webServer` starts the production build with `next start` on `127.0.0.1` port 3100, using:
-  - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false`;
+  - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false` (R-02 enables AI with the marker fake, D-57);
   - no `DATABASE_CA_CERT` (D-30);
   - `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET` and `CRON_SECRET` generated randomly for each run, distinct and at least 32 characters (deployment.md 10.3);
   - `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD` and `ADMIN_BOOTSTRAP_SECRET` generated or fixed to synthetic per-run test values. The health smoke invokes the real bootstrap endpoint once before expecting readiness, because D-38/D-51 require an Admin for readiness. These variables exist only in the disposable local process and do not constitute deployed operator evidence;
@@ -319,13 +319,268 @@ Design decision D-48 (SoCLaaS facts and model): Recorded by thegrimbee on 16 Oct
 - **Model:** `SOC_LLM_MODEL` is `default`, the SoCLaaS operator-managed alias (thegrimbee, 16 October 2026). A human-run `GET /v1/models` with the project key on 16 October 2026 reported it as an alias of `qwen3.6:35b`, with a context length of 262,144 tokens and prices of 411,810 microdollars per million input tokens and 1,456,571 per million output tokens.
 - **Prices:** the source is `GET /v1/models` (`soclaas.input_microdollars_per_million_tokens` and `soclaas.output_microdollars_per_million_tokens`). The models guide page lists outdated prices and is not used for them. SoC uses prices only for rate control.
 - **Alias risk:** operators can repoint `default`, so its target, prices and behaviour can change without notice. The recorded model ID stays `default`, so job dedup keys and summary provenance do not detect the change, and the configured prices can drift from the real ones. This is accepted (thegrimbee, 16 October 2026). When the target changes, re-read `GET /v1/models` and update the price variables. Trial models (`x-test-1`, `x-test-2`) are not used.
-- **Reasoning output (open, S-06):** the quickstart sends `"reasoning_effort": "none"` with Qwen and Gemma models. Whether the adapter sends it is not decided. Reasoning output could use up the 1,000- and 1,200-token output caps (AI-03).
+- **Reasoning output (resolved by D-59):** the quickstart sends `"reasoning_effort": "none"` with Qwen and Gemma models. Reasoning output could use up the 1,000- and 1,200-token output caps (AI-03). The adapter sends it (D-59).
 - **Retry-After:** the guides do not document a `Retry-After` header. Retries honour it when present and otherwise use jittered backoff (AI-03).
 - **Retention and permitted data:** the guides say only that SoCLaaS records API usage and request metadata for reporting, quotas and auditing. They say nothing about prompt retention or permitted data. thegrimbee decided on 16 October 2026 that no further verification is needed, which resolves OQ-01. Provider inputs stay minimal (security.md).
 
+Design decision D-49 (moderation prompt and policy versions): ModerationWork, AIJob and ReviewModeration record the following version identifiers (AI-02, D-17). Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Source:** both values are string constants exported by the moderation module. The prompt version lives in `src/server/services/ai/moderation/`. The policy version lives beside the policy artifact in `src/server/services/ai/moderation/policy/` (D-17). Neither is read from configuration or the database.
+- **Format:** `<name>-v<integer>`. The initial values are `review-screening-prompt-v1` and `profanity-policy-v0`.
+- **v0 is unreviewed:** until OQ-04 records the reviewed policy text, the policy version is `profanity-policy-v0` and the policy artifact holds no policy text. AI-02 forbids enabling screening before the policy is reviewed, so v0 work is screened only by the fake provider (D-16). The reviewed policy starts at `profanity-policy-v1`.
+- **Version change (the policy migration AI-02 requires):** when either constant changes, `pending` work recorded under the old versions is superseded at its next dispatch or sweep. Work for the current versions replaces it, so the current text is screened again under the new versions. `needs_manual_review` work, completed assessments and Admin decisions are kept and never re-screened automatically. An assessment made under other versions is never reused. The moderation module (A-03) implements this.
+
+Design decision D-50 (ModerationWork queue writes): K9 `enqueue` and `cancelForDeletedReview` work as follows. Both run inside the caller's review-write transaction after the Review lock (contracts §3.3). Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Model:** `enqueue` writes `model_id` NULL. The first dispatch sets it from `SOC_LLM_MODEL` (A-03). The queue therefore never reads AI configuration, and its idempotency does not depend on whether AI is enabled.
+- **Idempotency:** if the Review already has a row with the same content revision, prompt version and policy version, `enqueue` inserts nothing for that revision, whatever that row's `model_id` or status. Otherwise it inserts one row with status `pending`, `execution_count` 0, `next_attempt_at` `now()` and `last_attempt_at` NULL. `enqueue` never reactivates a row in a final status. Reactivating work when an admin-hidden Review is restored (AI-02) belongs to the moderation module, not to `enqueue`.
+- **Supersession:** in the same call, every row of the Review with a lower content revision and status `pending`, `running` or `needs_manual_review` becomes `superseded`. Rows for the same revision are not changed. A late result for a superseded `running` row is rejected, because completion requires status `running` (A-03) and the K8 revision guard.
+- **Cancellation:** `cancelForDeletedReview` sets every row of the Review with status `pending`, `running` or `needs_manual_review` to `cancelled`. With no such row it does nothing. Rows that are `completed`, `superseded` or `cancelled` are unchanged. The admin-hide cancellation (A-04) uses the same set of statuses.
+- **Side effects:** both operations set `updated_at` (D-33). Neither changes `execution_count`, `last_attempt_at` or any Review row, and neither calls the provider. An unknown Review violates the foreign key, so the call throws and the caller's transaction rolls back.
+
+Design decision D-51 (Movie locks, review-change marker and summary schedule): K7 works as follows. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Locks:** `lockActiveMovieForUpdate` takes `FOR UPDATE`, and `lockActiveMovieShared` takes `FOR SHARE`, before checking `archived_at`. On an archived Movie they return `archived` while holding the lock, and the caller rolls back. Holding the lock is what makes archiving serialize with review writes (FR-05 edge case).
+- **When a Review mutation advances the marker:** when the set of eligible Reviews changes, or when the mutation changes the rating or body of a Review that is eligible before it. A rating-only edit of an eligible Review therefore advances it, because the rating changes the aggregate and the summary input (FR-08, INV-09, AI-01). A rating-only edit of a pending, flagged, hidden or deleted Review does not. A mutation that changes nothing never advances it (data-model.md).
+- **`markReviewsChanged`:** sets `reviews_revision` + 1, `summary_pending_since = coalesce(summary_pending_since, now())` and `updated_at = now()`, and returns the new revision. It does not change `Movie.version`, which stays the If-Match token for Admin Movie edits, archive and restore (api.md 8.1). It does not change `summary_next_attempt_at` or `summary_last_attempt_at`, because new changes do not bypass backoff (AI-01). It does not inspect the lock's `archived` flag, because archive and restore call it after changing `archived_at`. Other callers reach it only for active Movies, because eligibility requires one.
+- **`recordSummaryAttempt`:** sets `summary_last_attempt_at = now()`, `summary_next_attempt_at` to the given time and `updated_at`. It does not change the revision or the pending time.
+- **`recordSummaryPublished`:** when the Movie is active and `reviews_revision` equals the published revision, it sets `summary_pending_since` NULL, `summary_last_success_at = now()` and `updated_at`. It leaves `summary_next_attempt_at` as the attempt set it. Otherwise it returns `stale` and writes nothing.
+
+Design decision D-52 (contract stubs before the AI runtime): The contract-stub task (B#4) delivers the real K7 (D-51) and the real K9 `ModerationWorkQueue` (D-50), with PostgreSQL integration tests. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Stubs:** two stubs are production code. `attemptAfterCommit` in the moderation module returns `deferred`, and the K10 controller stub in `src/server/services/ai/runtime/` returns `disabled`. Neither calls the provider or writes anything. They leave ModerationWork columns unchanged, so never-attempted work keeps its place in the sweep order (AI-02). They create no AIJob, lease, budget or rate-limit rows, and they change no Review. A-03 replaces the dispatcher stub and S-06 replaces the controller stub.
+- **Wiring:** the composition root wires both stubs and does not construct an LLM provider until S-06. Production may run the stubs, because they fail closed and production AI stays disabled under D-16 either way. R-04 verifies that the real implementations are wired before D-16's posture ends.
+- **Fakes:** the call-recording fakes live in `tests/support/fakes/`. The deterministic LLM fake lives in `src/server/adapters/soc-llm/` (contracts §1 rule 6, D-16).
+- **Adapter shape:** the adapter fixes its model when it is constructed (from `SOC_LLM_MODEL`) and exposes it as `modelId`. The deadline is passed as an `AbortSignal` that the controller derives from the attempt timeout and the execution deadline. This is how K10 meets api.md 8.2.
+
+Design decision D-53 (deterministic LLM fake): `FakeLlmProvider` (D-16, D-52) behaves as follows. Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026.
+- **Script:** each `complete` call consumes the next scripted outcome in order. Once the script is used up, each call returns `unavailable` (contracts §13). An aborted call also consumes its outcome, so call counts stay predictable.
+- **Outcomes:** success with usage; success with unknown usage (`usage: null`); malformed output; any `LlmFailure` (`rate_limited` with or without `retryAfterSeconds`, `timeout`, `unavailable`, `rejected`, `malformed_response`); and `hang`, which settles only when the signal aborts.
+- **Malformed output:** a success whose `content` is not valid JSON or breaks the output schema. This is what a real gateway returns when the model writes bad output, and the caller's `validate` rejects it as `invalid_output` (AI-02 sends that to manual review). `malformed_response` stays a separate failure for a gateway reply the adapter itself cannot parse.
+- **Abort:** if the signal is already aborted when `complete` is called, or aborts while the call is pending (only `hang` is ever pending), the result is `timeout`. The fake never rejects its promise.
+- **Scope (D-57):** tests construct it directly. The composition root never builds it; running servers use the marker fake instead.
+- **Model:** the constructor requires a model ID, and `modelId` reports it unchanged. There is no default model ID.
+- **Inspection:** the fake records each request's messages and `maxOutputTokens`, so tests can check input bounding and prompt/data separation (AI-04). It never logs them.
+- **Determinism:** no randomness, wall clock or network. Responses do not depend on message content.
+
+Design decision D-54 (moderation work for hidden or deleted Reviews): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Author edits:** FR-03 lets an author edit or delete their own Review whether or not an Admin has hidden it, and the User API is unchanged. An edit never changes `hidden_at`, so the author still cannot undo a hide (FR-03). A body edit or resubmission of a hidden Review increments `content_revision`, resets clearance to `pending` and calls K9 `enqueue`, like any other (AI-02: every body edit saves pending work).
+- **Dispatch:** neither `attemptAfterCommit` nor the recovery sweep sends a hidden or deleted Review to the provider. The dispatcher re-reads the Review in a transaction that holds the Review lock (D-58). If the Review is hidden or deleted, it sets that work `cancelled` and returns `not_current`. This is the AI-02 cancellation of work for admin-hidden Reviews. It creates no AIJob and changes no `execution_count`. It reserves no budget and consumes no rate limit.
+- **Sweep selection:** due-work selection excludes work whose Review is hidden or deleted, so such work never takes the sweep's one-Review slot. The re-read under the lock covers a hide or delete that races the selection.
+- **Archived Movies:** unchanged. Work is deferred until the Movie is restored (AI-02).
+
+Design decision D-55 (reactivation when a hidden Review is restored): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **When:** in the A-04 restore transaction, after K8 `restoreHiddenReview` succeeds, the moderation module acts only when the Review's `moderation_state` is `pending` and it is not deleted. Restore never undoes a deletion (data-model.md), and flagged or cleared Reviews need no screening (AI-02).
+- **Which row:** the row for the Review's current content revision under the current prompt and policy versions (D-49).
+  - If that row is `cancelled`, it becomes `pending` in place with `next_attempt_at = now()` and `updated_at` set. Its `execution_count`, `last_attempt_at` and `model_id` are kept, so the three-execution limit still counts per content revision (AI-02). Work already at the limit moves to `needs_manual_review` at its next dispatch without a provider call.
+  - If that row is in any other status, nothing changes.
+  - If there is no such row (for example after a version change), one row is inserted exactly as D-50 `enqueue` inserts it.
+- **Only this transition leaves `cancelled`.** `enqueue` still never reactivates a final row (D-50). Rows for other revisions or versions stay as they are.
+- **No dispatch from the restore route:** the Admin restore request makes no provider call. The recovery sweep screens the reactivated work, and no Admin action is needed to start it (AI-02).
+
+Design decision D-56 (no live screening under the unreviewed policy): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation. AI-02 forbids screening before the policy is reviewed, and D-49 records `profanity-policy-v0` as unreviewed.
+- **Rule:** when AI is enabled with `AI_PROVIDER=soc_llm` and the policy version is `profanity-policy-v0`, the composition root wires the D-52 dispatcher stub instead of the real dispatcher. It also logs one configuration issue naming `AI_PROVIDER` (D-37, values never logged). With `AI_PROVIDER=fake`, or with a reviewed policy version, it wires the real dispatcher. Summaries are unaffected.
+- **Form:** two named constructors chosen in the composition root, not a flag passed into the moderation module (contracts §1 rule 2). A unit test covers the choice.
+- **Effect:** review work stays `pending` and durable. Once a reviewed version ships, D-49's version-change rule supersedes the v0 work and screens the current text again.
+- **Owners:** the A-03 wiring implements this rule, including the log line (D-71, D-78), and R-04 verifies it.
+
+Design decision D-57 (LLM fake in running servers): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Which fake:** when `AI_PROVIDER=fake`, the composition root builds `MarkerFakeLlmProvider` in `src/server/adapters/soc-llm/`, with `modelId` from `SOC_LLM_MODEL`. The scripted `FakeLlmProvider` (D-53) is used only by tests that construct services directly.
+- **Markers:** the outcome comes from the first marker of the form `[fake-llm:<outcome>]` in a `user`-role message. The system message is never scanned. The outcomes are:
+  - `clean`: a valid AI-02 `no_profanity_detected` output;
+  - `flag`: a valid AI-02 `uncertain` output with no matches;
+  - `summary`: a valid AI-01 summary output;
+  - `invalid`: content that fails `validate`;
+  - `unavailable`, `rejected`, and `rate_limited` with `retryAfterSeconds` null;
+  - `timeout`: the call waits until the signal aborts and then returns `timeout`.
+- **Fail closed:** no marker, or an unknown marker, gives `unavailable`, so the fake never clears a Review unless the text asks it to (contracts §1 rule 6). A marker that does not fit the feature gives that feature's invalid-output path.
+- **Canned outputs and usage:** the outputs are constants beside the fake, and unit tests check them against the AI-02 and AI-01 output schemas (delivery of those tests: D-70). Usage is a fixed constant.
+- **No state:** the fake holds no script, no request log and no mutable field (D-23). Concurrent requests and parallel Playwright workers therefore get predictable outcomes, and no review text is kept in memory. It never logs content.
+- **E2E (amends D-42):** when R-02 adds the AI journeys, the e2e environment sets `AI_ENABLED=true` and `AI_PROVIDER=fake`. It uses synthetic placeholders for the SoC variables: `SOC_LLM_BASE_URL=https://fake-llm.invalid`, a non-secret placeholder `SOC_LLM_API_KEY`, `SOC_LLM_MODEL=fake-model`, and the required numeric variables. The fake never reads the URL or key. Local and development use the same placeholders. Until R-02, the e2e environment keeps `AI_ENABLED=false`.
+- **Test design:** a summary request contains several review bodies, and the first marker wins. E2E fixtures therefore keep the moderation markers of reviews submitted through the UI out of the samples that carry a `summary` marker, for example by using a different Movie.
+- **Accepted risk:** in development, any User can choose their own Review's screening outcome with a marker. Development holds only synthetic data (DEP-04), and production cannot select the fake (D-37, `src/server/config/ai.ts`). Accepted by thegrimbee (delegated) on 17 October 2026.
+
+Design decision D-58 (ModerationWork locking): Approved by both developers (Lim-ZY and thegrimbee) on 17 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Rule:** every insert or update of a ModerationWork row happens in a transaction that holds its Review's `FOR UPDATE` lock, taken in the D-20 order (Movie, then Review). This covers:
+  - `enqueue` and `cancelForDeletedReview` in the review write;
+  - A-04 approve, hide and restore (D-55);
+  - the report-acceptance hide (A-05);
+  - every A-03 transaction that claims, cancels (D-54), completes or routes work to manual review.
+- **Why:** under that lock, D-50's check followed by an insert cannot race. The database key also includes `model_id` (`NULLS NOT DISTINCT`), so it cannot enforce D-50 idempotency on its own. No migration is needed.
+- **Position:** ModerationWork rows are locked after Movie and Review (D-20, "other tables afterwards"), and before the AIJob lease check in a publish transaction (P-08). No transaction locks ModerationWork and then a Movie or Review. Several rows of one Review are locked in ascending ID order (D-20).
+- **K10 bookkeeping:** an A-03 transaction that writes ModerationWork never writes K10 bookkeeping rows (SchedulerLease, AIBudgetDay, AIBudgetReservation, AIJob creation). Those stay in K10's own short transactions (P-04, P-13).
+- **Unlocked selection:** due-work selection is an unlocked read, and the locking transaction re-checks status and Review state.
+- **Scope:** which columns a claim changes, and when `execution_count` advances, are A-03's. Capacity deferral still consumes no execution (AI-02).
+
+Design decision D-59 (SoC chat request and response): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Resolves the open `reasoning_effort` point of D-48.
+- **Request body:** `POST /v1/chat/completions` with exactly `model` (the adapter's fixed model), `messages` (role and content as given), `max_tokens` (the caller's output cap), `stream: false` and `reasoning_effort: "none"`. No temperature, tools, `response_format` or JSON mode (api.md 8.4). Redirects are not followed, so the bearer key is never sent to another host.
+- **Why `reasoning_effort: "none"`:** the SoC quickstart sends it with Qwen models, `default` points to a Qwen model (D-48), and reasoning output would use up the 1,000- and 1,200-token caps (AI-03). If the gateway refuses the field, the 400 maps to `rejected` (D-60) and AI fails safe.
+- **Verification:** the provider validation that must pass before `AI_ENABLED=true` (deployment.md 10.3) includes one real call with this body, confirming that `max_tokens` and `reasoning_effort` are accepted.
+- **Success:** HTTP 200, a JSON object, `choices[0].message.content` a string and `choices[0].finish_reason` equal to `stop`. Anything else is `malformed_response`, including `length` (truncated output), missing or empty `choices`, null or non-string content and a non-JSON body. Other fields, including any reasoning field, are ignored and never logged.
+- **Usage:** `usage.prompt_tokens` and `usage.completion_tokens`, when both are non-negative integers, become `TokenUsage`. Otherwise usage is null (unknown) and is charged conservatively (D-63). Amended: values above 2,147,483,647 also give null usage (D-75); redirects are read as `misconfigured` (D-74).
+
+Design decision D-60 (SoC HTTP outcome mapping): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **429:** `rate_limited`. `retryAfterSeconds` is the `Retry-After` value when it is a non-negative integer number of seconds, and null otherwise (including the HTTP-date form).
+- **408:** `timeout`.
+- **Other 4xx** (400, 401, 403, 404 and the rest): `rejected`. 401 and 403 are configuration faults; they fail safe and are not retried.
+- **5xx, and network, DNS, TLS or connection errors:** `unavailable`.
+- **Abort of the deadline signal**, before or during the response body: `timeout`.
+- **Containment:** error bodies, provider messages, URLs and the key are never logged, returned or stored. `complete` never rejects.
+- **Amended:** 401, 403, 404 and 3xx are `misconfigured` (D-74); `Retry-After` is capped and bodies are bounded (D-75).
+
+Design decision D-61 (retries and execution outcomes): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Retried** (a second attempt, only within D-65's time rules): `rate_limited`, `timeout` and `unavailable`, matching AI-03's transient network errors, 429 and 5xx. **Not retried:** `rejected`, `malformed_response` and output that fails `validate`.
+- **Backoff before the second attempt:** `Retry-After` when present; if it does not fit in the time left, there is no second attempt. Otherwise a jittered delay (D-69).
+- **Outcome from the last attempt:**
+  - `rate_limited`: `deferred` with that attempt's `retryAfterSeconds`;
+  - `timeout` or `unavailable`: `failed` with cause `transient`;
+  - `rejected` or `malformed_response`: `failed` with cause `provider_rejected`;
+  - `validate` failure: `failed` with cause `invalid_output`.
+- **Why 429 defers:** SoC returns 429 for both rate and budget limits (D-48), D-25 says SoC 429 responses defer work, and AI-02 says capacity deferrals consume no execution. `deferred` may therefore be returned after an AIJob exists. That job ends `failed` with `error_code` `provider_rate_limited`; the outcome still carries no job ID.
+- **Accepted risk:** a lasting SoC limit (for example the monthly cap, which the application does not enforce) defers work indefinitely without manual-review escalation. Backoff and the daily sweep bound the calls, and held-work monitoring (AI-02) shows the backlog.
+- **AIJob final status:** `published` gives `succeeded`; `failed` and a deferral after job creation give `failed`; `stale` gives `stale`. Which transaction writes each status: D-73. Configuration faults defer (D-74).
+
+Design decision D-62 (SoC request quota per request): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Rule:** each provider request consumes one `soc_requests` unit through K6, in K6's own transaction with no transaction open, immediately before that request. An execution therefore consumes one or two units.
+- **First attempt:** the unit is consumed before the step-1 transaction. If it is denied, `run` returns `deferred` with K6's `retryAfterSeconds` and writes nothing else. If step 1 then defers (slot or budget), the unit stays spent; over-counting is conservative.
+- **Second attempt:** if its unit is denied, there is no second attempt, and the outcome comes from the first attempt under D-61.
+- **Amended:** an unlocked slot pre-check runs before the first unit is consumed (D-77).
+- **Why:** SoC's limit counts requests (CON-02, D-48), and AI-03 allows two per execution. Consuming before step 1 means no job or reservation rows exist for a request that cannot be sent.
+
+Design decision D-63 (daily budget lifecycle): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Budget day:** the UTC date from the database clock at step 1. Step 1 creates the AIBudgetDay row when it is missing, with `budget_microdollars` from `AI_DAILY_BUDGET_MICRODOLLARS`. Each step 1 sets `budget_microdollars` to the larger of the configured value and `reserved + consumed`, so a configuration change applies the same day and the check constraint always holds. A reservation is always settled against its own budget day, even after midnight.
+- **Reserve:** the AI-03 amount R, from the D-68 estimate. If `reserved + consumed + R` exceeds the budget, `run` returns `deferred` (D-67) and writes nothing.
+- **Charge per attempt:**
+  - an attempt that reports usage: ceil((input tokens × input price + output tokens × output price) ÷ 1,000,000), the AI-03 formula with reported usage;
+  - an attempt answered with a 4xx status other than 408: 0, because the gateway refused it before generation;
+  - any other attempt (timeout, abort, network error, 5xx, malformed response): R, because its usage is unknown.
+- **Reconciled:** used when some attempt may have incurred cost. The charge is the sum of the attempt charges, so two unknown-cost attempts charge 2R. `input_tokens`, `output_tokens` and `actual_microdollars` are recorded only when every costed attempt reported usage, and are null otherwise.
+- **Released:** used when no request could have incurred cost (none was sent, or every request was refused with a 4xx other than 408). `actual_microdollars` is 0 and the token columns are null.
+- **AIBudgetDay movement:** reserve adds R to `reserved_microdollars`. Settling subtracts R from `reserved_microdollars` and adds the charge to `consumed_microdollars`, capped at the remaining headroom so the check constraint holds (no migration). The reservation row keeps the true amount. Under-recording above the cap is accepted, because SoC's 429 is the hard limit (D-25, D-48).
+- **Abandoned reservations** are settled under D-66 at R × `AI_MAX_ATTEMPTS` (D-73).
+- **Amended:** settlement guards are in D-73; a budget deferral commits the expiry (D-77); a 3xx or a configuration-fault 4xx is charged 0 (D-74).
+
+Design decision D-64 (AIJob column values): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Subject and trigger:**
+  - Summary: `subject_id` is the Movie ID, `input_revision` is `reviewsRevision`, `trigger` is `scheduler` and `requester_id` is null.
+  - Moderation: `subject_id` is the Review ID, `input_revision` is the captured `contentRevision`, and `trigger` is `review_write` when `requesterId` is set and `scheduler` otherwise.
+  - `model_id` is the provider's `modelId`. `policy_version` is null for summaries.
+- **`dedup_key`:** `JSON.stringify` of an array, so components can never run together:
+  - `["summary", movieId, reviewsRevision, modelId, promptVersion]`;
+  - `["review_moderation", reviewId, contentRevision, modelId, promptVersion, policyVersion]` (the AI-02 dedup components).
+- **`input_hash`:** lowercase hex SHA-256 (`node:crypto`, no new dependency) of `JSON.stringify` of the messages as `{role, content}` objects in order.
+- **`attempt_count`:** the number of provider requests sent, 0 to 2.
+- **`lease_until`:** D-65.
+- **`expires_at`:** `created_at` plus 7 days, the input-snapshot retention deadline (data-model.md retention proposal). Purging is retention work under OQ-05, not S-06.
+- **`bounded_input_snapshot`:** the caller's `BoundedInput.snapshot` exactly as given. The controller adds no prompt text and no provider response.
+- **`error_code`:** null on success, otherwise one of `provider_rate_limited`, `provider_timeout`, `provider_unavailable`, `provider_rejected`, `provider_malformed_response`, `provider_misconfigured` (D-74), `invalid_output`, `deadline_exceeded`, `publish_stale`, `storage_failed` (D-75) or `lease_expired`. It never holds provider text.
+
+Design decision D-65 (execution limits, deadline and lease timing): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Configuration maxima** (deployment.md 10.3; minimum deadline in D-76): `AI_MAX_CONCURRENT_REQUESTS` at most 1, `AI_MAX_ATTEMPTS` at most 2, `AI_ATTEMPT_TIMEOUT_MS` at most 30000 and `AI_EXECUTION_DEADLINE_MS` at most 75000. A larger value is a configuration issue that disables AI (D-28, D-37). Smaller values are allowed, for example in tests. **Why:** AI-03 fixes these limits, the single `ai_execution` row holds one execution, and a 90-second lease stays under the 120-second `maxDuration`.
+- **Lease:** the `ai_execution` lease and AIJob `lease_until` are the step-1 database time plus `AI_EXECUTION_DEADLINE_MS` plus 15 seconds (data-model.md SchedulerLease). O-29's 90 seconds is the value at the default deadline.
+- **Deadline:** measured from the start of `run` on the server's monotonic clock. Provider attempts must end 5 seconds before the deadline, leaving time for storage. Each attempt's `AbortSignal` fires at the earlier of the attempt timeout and that point. A second attempt starts only if, after its backoff, at least 5 seconds remain before that point.
+- **Late validation:** the publish transaction starts only before the deadline. Otherwise nothing is published, the outcome is `failed` with cause `transient`, and `error_code` is `deadline_exceeded`.
+- **Late commit:** a publish transaction that reaches the P-08 check after the AIJob lease has expired rolls back, giving `stale` with `error_code` `lease_expired`.
+- **Settlement:** the final settlement transaction always runs, whatever the deadline.
+- **Amended:** deadline coverage, the first-attempt rule and the 15,000 ms minimum are in D-76; bookkeeping faults in D-75.
+
+Design decision D-66 (slot acquisition and abandoned work): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Acquire:** the step-1 transaction locks the `ai_execution` row `FOR UPDATE`, inserting it first with an expired lease if it is missing. If it is held and unexpired, the transaction rolls back and `run` returns `deferred` with the D-67 `retryAfterSeconds`. If it is free or expired, `run` takes it with a new `lease_token` and the D-65 `lease_until`.
+- **Expire abandoned work:** in the same transaction, every `running` AIJob whose `lease_until` has passed becomes `stale` with `error_code` `lease_expired`. Its `reserved` reservation is reconciled at R with null usage, against its own budget day (D-63).
+- **Lock order:** P-13, with several rows of one table locked in ascending key order (budget days by date, reservations and jobs by ID). The new running AIJob and then its reservation are inserted last; the foreign key requires the job first (D-73).
+- **Duplicate:** if the AIJob insert conflicts with `ai_job_running_dedup_key_key`, the whole transaction rolls back and `run` returns `duplicate` with the running job's ID. With one slot this is a guard that should not be reached.
+- **Release:** release changes the lease only where `lease_token` matches, so a holder whose lease was taken over never releases the new holder's lease. `withSweepLease` uses the same guarded acquire and release, with 150-second leases.
+- **Who expires:** only `run`'s step 1, so recovery is automatic (AI-03) and no separate cleanup job exists. Paths that never reach step 1 leave abandoned rows until the next one (D-77). Guards, abandoned-reservation charges and lock modes: D-73.
+
+Design decision D-67 (`deferred` retry hints): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Values of `retryAfterSeconds`:**
+  - request quota denied: K6's value (§9);
+  - `ai_execution` slot held: the seconds until that lease's `lease_until`, rounded up, at least 1;
+  - daily budget exhausted: the seconds until the next UTC midnight, rounded up, at least 1;
+  - provider 429 after the last attempt: that attempt's `Retry-After` under D-60, or null.
+- **Source:** lease and midnight times come from the database clock in the step-1 transaction.
+- **Use:** the value is a hint. Callers may schedule the next attempt no earlier than it, and keep their own backoff and AI-02 limits. Amends the null value in D-66.
+
+Design decision D-68 (input estimate and output cap checks): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation.
+- **Estimate:** the controller recomputes the AI-03 estimate (O-26) from `messages` and uses the larger of its value and the caller's `estimatedInputTokens`. The recomputed estimate is used both for the input cap and for the reservation. A caller's estimate therefore never lowers either.
+- **Input cap:** an estimate above `AI_INPUT_TOKEN_LIMIT` returns `input_too_large` before any quota, lease, reservation or job write.
+- **Output cap:** `maxOutputTokens` must be a positive integer of at most 1,200, the larger AI-03 cap. Any other value is a caller bug: `run` throws before any write.
+- **Context:** no context-length variable is added. With the verified 262,144-token context (D-48), 8,000 input plus 1,200 output always fits. If a model change reduces the context, `AI_INPUT_TOKEN_LIMIT` is lowered as deployment.md 10.3 already says.
+
+Design decision D-69 (retry backoff and injected time sources): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Amends the backoff bullet of D-61.
+- **Backoff:** with no `Retry-After`, the delay before the second attempt is uniformly random between 1,000 and 3,000 milliseconds. With `Retry-After`, the delay is exactly that many seconds. In both cases the D-65 time rules decide whether the second attempt starts.
+- **Testability:** the controller receives its random source, monotonic clock and sleep function as constructor dependencies. The composition root passes the real ones, and tests pass deterministic ones. These are injected values, not shared mutable state (D-23).
+
+Design decision D-70 (marker fake delivery and output-schema tests): Approved by both developers (Lim-ZY and thegrimbee) on 18 October 2026; Developer B delegated the choice to the agent's recommendation. Amends the canned-output tests of D-57.
+- **S-06 delivers** `MarkerFakeLlmProvider` (D-57) and its unit tests:
+  - marker selection, where the first marker in a `user` message wins and the system message is never scanned;
+  - no marker or an unknown marker gives `unavailable`;
+  - `timeout` waits for the signal to abort;
+  - statelessness;
+  - the promise never rejects.
+- **Schema tests move:** the AI-01 and AI-02 output schemas do not exist yet. The task that adds each schema adds the D-57 conformance test for the fake's constants in `tests/`: U-04 (Developer A) for `summary`, and A-03 (Developer B) for `clean` and `flag`. Until then, S-06 writes the constants to match the field rules in ai.md AI-01 and AI-02.
+- **Why:** S-06 must not create or import feature-owned schemas. The conformance test still exists before any journey depends on the fake's outputs (R-02).
+
+Design decision D-71 (S-06 paths and wiring): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Every path below is owned by Developer B. Resolves the conflict between PLAN.md S-06's allowed paths and D-52, D-56, D-57, D-65 and architecture.md 6.6.
+- **Allowed paths** (PLAN.md S-06):
+  - `src/server/adapters/soc-llm/` and `src/server/services/ai/runtime/`;
+  - `src/server/repositories/ai/`, for new runtime repositories over SchedulerLease, AIBudgetDay, AIBudgetReservation and AIJob only. The ModerationWork repository is A-03's and stays unchanged.
+  - `src/server/config/ai.ts`, for the D-65 maxima and the D-76 and D-78 minima only;
+  - `src/server/composition.ts`, for AI runtime wiring only;
+  - `tests/`.
+- **Wiring:**
+  - When AI is enabled, the composition root builds the provider (`MarkerFakeLlmProvider` for `fake`, the SoC adapter for `soc_llm`), the real controller and `SchedulerLeases`.
+  - When AI is disabled, it keeps the D-52 controller stub and builds no provider.
+  - The K9 dispatcher stays the D-52 stub. A-03 wires the real dispatcher and implements D-56's choice between them.
+- **Import boundary** (AM-18): `adapters/soc-llm` may be imported only by `services/ai/runtime/`, `composition.ts` and `tests/`. `tests/unit/ai/llm-fake-boundary.test.ts` is updated to check that rule, and to check by file name that only the scripted fake (`fake-llm-provider.ts`, D-53) is never imported by `src/` outside the adapter. The check matches the text `fake-llm-provider` anywhere in a file, so the marker fake's file name must not contain it (D-78).
+
+Design decision D-73 (job finalization and settlement guards): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (H1, M1, M3, L5, L11). Approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026; Developer B delegated the choice to the agent's recommendation. Amends D-61's final-status bullet, D-63's abandoned-reservation bullet and D-66's expiry bullet (contracts §25).
+- **`succeeded` is written in the publish transaction.** The P-08 check is one guarded `UPDATE` of the AIJob that sets `status = 'succeeded'`, `attempt_count`, a null `error_code` and `updated_at` where `status = 'running'` and `lease_until > clock_timestamp()`. If it updates no row, the publish transaction rolls back and the outcome is `stale` with `error_code` `lease_expired`. A committed publish therefore always has a `succeeded` job.
+- **`failed` and `stale` are written in the settlement transaction**, with `attempt_count` and `error_code`, only where `status = 'running'`. If the row is no longer running (the D-66 expiry got there first), nothing is written.
+- **`attempt_count`** is written with the final status. A job expired under D-66 keeps the value step 1 wrote (0), so on a `lease_expired` job it is a lower bound.
+- **Each reservation is settled once.** Settlement changes a reservation only where `status = 'reserved'`, and moves AIBudgetDay only when that update changed a row. The settlement transaction and the D-66 expiry may race; whichever commits first settles, and the other does nothing.
+- **Abandoned reservations:** step 1 settles every `reserved` reservation whose AIJob `lease_until` has passed, whatever the job's status. This covers a function killed after its publish committed but before settlement. The charge is R × `AI_MAX_ATTEMPTS`, the most an execution can incur under D-63, recorded as `reconciled` with null usage and null `actual_microdollars`, and capped at the day's headroom (D-63). Running jobs whose lease has passed become `stale` with `lease_expired`, as in D-66.
+- **Lock modes:** K10 locks AIJob rows only through `UPDATE` (a no-key-update row lock), never `SELECT … FOR UPDATE`. A publish callback's inserts into ReviewSummary or ReviewModeration take a key-share lock on the AIJob through the `job_id` foreign key before the P-08 update. Key-share does not conflict with no-key-update, so an expiry or settlement never waits on it, and the P-08 update is the last lock K10 itself takes. SchedulerLease and AIBudgetDay rows are locked with `SELECT … FOR UPDATE`.
+- **Order of new rows:** P-13's order applies to existing rows. A new AIJob is inserted before its reservation because of the `ai_job_id` foreign key; new rows are invisible to other transactions, so this does not affect lock ordering.
+- **Clock:** lease comparisons in K10 transactions use `clock_timestamp()`, not `now()`, because `now()` is the start of a transaction that may have waited on domain locks.
+- **Tests:** PostgreSQL integration tests cover expiry racing a late settlement, expiry racing a publish, and a reservation left `reserved` after a committed publish.
+
+Design decision D-74 (provider configuration faults): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (H2, L1). Approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026; Developer B delegated the choice to the agent's recommendation. Amends D-59's redirect rule, D-60's 4xx bullet, D-61's outcome list, D-63's zero-charge rule and D-64's `error_code` list. U-04 and A-03 receive `deferred` in a new case (contracts §25, AM-21).
+- **New failure kind:** `LlmFailure` gains `{ kind: "misconfigured" }`. The adapter returns it for 401, 403 and 404, and for any 3xx. Requests use `redirect: "manual"`, so a redirect is seen as its status and the key is never sent to another host.
+- **Handling:** not retried; charged 0, like other refused requests; outcome `deferred` with `retryAfterSeconds` null; the AIJob ends `failed` with `error_code` `provider_misconfigured`. Like a provider 429 (D-61), it consumes no AI-02 execution and never sends work to manual review.
+- **Unchanged:** 400 and every other 4xx except 401, 403, 404, 408 and 429 remain `rejected`, so a gateway refusal of `reasoning_effort` still fails safe as `provider_rejected`. The D-59 provider validation before `AI_ENABLED=true` covers that case. Any status in 1xx or 2xx other than 200 is `malformed_response`.
+- **Why:** rotating a SoC key disables the old one at once (D-48), and D-49 never re-screens `needs_manual_review` work automatically. Mapping configuration faults to manual review would strand every Review written while the key is wrong. Deferring keeps the work pending, and screening resumes with no Admin action once the configuration is fixed.
+- **Accepted risk:** while the key or base URL is wrong, work defers indefinitely, as for a lasting SoC limit (D-61). Held-work monitoring (AI-02) shows the backlog.
+
+Design decision D-75 (bookkeeping faults and untrusted provider values): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (M2, L2, L3). Approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026; Developer B delegated the choice to the agent's recommendation. Amends D-59, D-60 and D-64 (contracts §25).
+- **`run` never throws**, except for the D-68 output-cap caller bug. Its own faults map as follows:
+  - the K6 consume or the step-1 transaction fails (conflict, timeout, connection): `deferred` with `retryAfterSeconds` null. The step-1 transaction rolled back, so nothing was written.
+  - the publish transaction fails for any reason other than the callback's `stale` result or the D-73 lease guard (conflict, timeout, a throw from `publish`), or `validate` throws: `failed` with cause `transient` and `error_code` `storage_failed` (added to D-64's list). There is no second publish attempt.
+  - the settlement transaction fails: it is not retried, and the outcome already decided is returned unchanged, so a published result stays `published`. The lease expires, and the next step 1 settles the reservation and expires the job under D-73. The job may then end `stale` although the caller saw `failed`.
+- **Usage values:** usage is accepted only when both values are integers from 0 to 2,147,483,647, the range of the `integer` token columns; otherwise usage is null (amends D-59). A computed charge that is not a safe integer counts as unknown and is charged R.
+- **`Retry-After`:** a value above 86,400 seconds is treated as 86,400 (amends D-60).
+- **Response bodies:** the adapter reads the body of a 200 response only, and at most 1 MiB of it; a longer body is `malformed_response`. Error-response bodies are discarded unread.
+
+Design decision D-76 (deadline coverage and timing budget): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (M4, L10). Approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026; Developer B delegated the choice to the agent's recommendation. Clarifies AI-03's "execution deadline including storage" and amends D-65.
+- **Coverage:** the 75-second deadline covers `run`'s quota consume, step 1, provider attempts and `validate`, and the publish transaction must start before it (D-65). The publish and settlement transactions themselves are bounded by K1's limits (5-second connection acquire, 5-second statement timeout), not by the deadline signal.
+- **Timing budget:** the 45 seconds between the deadline and `maxDuration = 120` cover the route's own work before `run` (its K6 consumes and its review-write or claim transaction), the publish and settlement transactions, and the response. A function killed after the publish commit is recovered by D-73.
+- **First attempt:** like the second (D-65), it starts only if at least 5 seconds remain before the attempt end point. Otherwise no request is sent, the reservation is `released`, the job ends `failed` with `deadline_exceeded`, and the outcome is `failed` with cause `transient`.
+- **Minimum:** `AI_EXECUTION_DEADLINE_MS` below 15,000 is a configuration issue that disables AI, so the first attempt always has a usable window. Tests that construct the controller directly control time through the injected clock (D-69).
+
+Design decision D-77 (quota pre-check and expiry reach): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (M5, L16). Approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026; Developer B delegated the choice to the agent's recommendation. Amends D-62's first-attempt bullet, D-63's budget-deferral rule and D-66's "Who expires" bullet (contracts §25).
+- **Slot pre-check:** before consuming the first `soc_requests` unit, `run` reads the `ai_execution` lease without a lock. If it is held and unexpired by the database clock, `run` returns `deferred` with the D-67 slot hint and consumes nothing. Step 1 stays authoritative. There is no budget pre-check, because only step 1 settles abandoned reservations (D-73).
+- **Budget deferral commits the expiry:** when step 1 finds the budget insufficient, it commits the D-66 and D-73 expiry, then returns `deferred`. It does not take the slot or insert a job or reservation. Abandoned jobs and reservations are therefore settled even on a day whose budget is spent.
+- **Who expires:** only step 1. Paths that never reach it (AI disabled, the D-52 and D-56 stubs, a quota denial, the slot pre-check, `input_too_large`) leave abandoned rows until the next step 1. This is safe: every use of the slot, the budget or a dedup key passes through step 1, which expires abandoned rows first. This is how K10 meets AI-03's "expire abandoned leases on later access".
+- **ModerationWork:** K10 never touches ModerationWork (D-58). A-03 must recover work that a crashed execution left `running`; how it detects such work is an A-03 decision.
+- **Accepted risk:** concurrent requests that all pass the pre-check still spend units before step 1 defers all but one. This over-counts conservatively (D-62).
+
+Design decision D-78 (S-06 wiring, configuration and test details): Recorded by thegrimbee on 19 October 2026 from the S-06 architect review (L4, L7, L12–L15); Developer B delegated the choice to the agent's recommendation. Every item is in Developer B paths.
+- **Budget day:** computed in SQL as the UTC date of the step-1 transaction time, with `AT TIME ZONE 'UTC'`, never from the session time zone.
+- **Budget minimum:** `AI_DAILY_BUDGET_MICRODOLLARS` below the AI-03 reservation for `AI_INPUT_TOKEN_LIMIT` input tokens and 1,200 output tokens at the configured prices is a configuration issue that disables AI. Otherwise one reservation could never fit a day and would defer forever.
+- **No database:** when AI is enabled but `database` is null, the composition root keeps the D-52 controller stub and builds no provider.
+- **D-56 logging:** A-03 logs the `AI_PROVIDER` issue together with its dispatcher choice. S-06 wires the dispatcher stub (D-71) and logs nothing for D-56.
+- **Adapter testing:** the SoC adapter takes `fetch` as a constructor dependency, and the composition root passes the global `fetch`. One `LlmProvider` contract suite runs against `FakeLlmProvider` and against the adapter with a stub `fetch` (contracts §1 rule 7). Tests make no network call.
+- **Marker fake file:** `marker-fake-provider.ts` in `src/server/adapters/soc-llm/`, so the D-71 boundary check does not match it.
+
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
-Design decision D-49 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026
+Design decision D-72 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026. Renumbered from a duplicate D-49 on 18 October 2026; D-49 is the moderation prompt and policy versions decision. S-07 logs and `tests/unit/ui-shell/route-shells.test.ts` cite this decision as D-49
 Below is the decided layout structure to follow for NextJS frontend:
 ```markdown
 src/app/

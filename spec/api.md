@@ -124,7 +124,7 @@ Examples:
 
 No network RPC is required. Define typed services for authenticateSession, authorize, createReview, changeReviewVisibility, submitReport, decideReport, prepareSummaryInput, prepareReviewModerationInput, enqueueReviewModeration, applyReviewClearance, recoverReviewModeration, runScheduledSummaries, acceptReportAndApplyThreshold, startAIExecution and publishValidatedResult.
 
-The SoC adapter accepts bounded messages, configured model, output token budget and deadline; returns content and safe usage metadata or a typed error. Only AI orchestration may call it.
+The SoC adapter accepts bounded messages, an output token budget and a deadline, and uses the configured model; it returns content and safe usage metadata or a typed error. The model is fixed when the adapter is constructed, and the deadline is passed as an abort signal (D-52). Only AI orchestration may call it.
 
 ### 8.3 Events
 
@@ -132,7 +132,7 @@ Logical events ReviewChanged, ReviewModerated, MovieVisibilityChanged, ReportCre
 
 ### 8.4 External Integrations
 
-SoC LLM (SoCLaaS) is the required runtime AI provider. Per the SoC DocHub guides checked on 16 October 2026 (D-48), it is an OpenAI-compatible gateway at https://soclaas-api.comp.nus.edu.sg. Requests send `Authorization: Bearer <key>` and the adapter uses `POST /v1/chat/completions`; `GET /v1/models` lists the models visible to the key. Gateway errors have the shape `{"error": "<message>"}`: 400 invalid request, 401 missing or invalid key, 403 model or feature not allowed, 429 rate or budget limit, 5xx provider or gateway fault. The guides do not cover retention or permitted data; no further verification is needed (D-48). The adapter calls the HTTP API directly, without a vendor SDK, and isolates provider differences. SOC_LLM_BASE_URL excludes the /v1 path segment; the adapter appends versioned paths. Do not rely on a provider JSON response mode; validate returned content (AI-01, AI-02).
+SoC LLM (SoCLaaS) is the required runtime AI provider. Per the SoC DocHub guides checked on 16 October 2026 (D-48), it is an OpenAI-compatible gateway at https://soclaas-api.comp.nus.edu.sg. Requests send `Authorization: Bearer <key>` and the adapter uses `POST /v1/chat/completions`; `GET /v1/models` lists the models visible to the key. Gateway errors have the shape `{"error": "<message>"}`: 400 invalid request, 401 missing or invalid key, 403 model or feature not allowed, 429 rate or budget limit, 5xx provider or gateway fault. The guides do not cover retention or permitted data; no further verification is needed (D-48). The adapter calls the HTTP API directly, without a vendor SDK, and isolates provider differences. SOC_LLM_BASE_URL excludes the /v1 path segment; the adapter appends versioned paths. Do not rely on a provider JSON response mode; validate returned content (AI-01, AI-02). The request body and response parsing are in D-59, the mapping of HTTP outcomes to typed errors in D-60 and D-74, retries in D-61, and bounds on untrusted response values in D-75.
 
 GitHub Actions is the team-managed CI/CD mechanism; GitHub Pages is the required product website host. Next.js frontend/backend are hosted on Vercel and PostgreSQL on Supabase. No external movie API is required.
 

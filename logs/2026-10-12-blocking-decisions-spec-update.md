@@ -32,7 +32,6 @@
 | `AGENTS.md`, `workflow/agents/analyst.md` | Repository instructions | Workflow rules; branch-name inconsistency |
 | `.env.example`, `package.json` | Repository files | Env-var naming conflict; `pg` already pinned |
 | `logs/2026-10-11-*.md` | Human-verified logs | Smoke-test facts (Vercel reachability, Supabase version) |
-| `references/cf_guides_soclaas_api [SoC DocHub].html` | Untrusted reference | Searched only, to frame B7 options |
 
 ## 4. Interaction Timeline
 

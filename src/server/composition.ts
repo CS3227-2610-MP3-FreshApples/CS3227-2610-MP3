@@ -7,7 +7,27 @@ import {
   placeholderClientIp,
   type ClientIpResolver,
 } from "./http";
+import {
+  createDeferredModerationDispatcher,
+  createModerationWorkQueue,
+  type ModerationDispatcher,
+  type ModerationWorkQueue,
+} from "./services/ai/moderation";
+import {
+  createAiRuntime,
+  type AiExecutionController,
+  type AiRuntime,
+  type SchedulerLeases,
+} from "./services/ai/runtime";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
+import {
+  createMovieLocks,
+  createReviewsChangedMarker,
+  createSummarySchedule,
+  type MovieLocks,
+  type ReviewsChangedMarker,
+  type SummarySchedule,
+} from "./services/catalogue";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
@@ -53,6 +73,43 @@ export const rateLimiter: RateLimiter | null =
 export const rateLimitKeys: RateLimitKeys | null = config.core.valid
   ? createRateLimitKeys({ secret: config.core.value.rateLimitKeySecret })
   : null;
+
+/** K7 Movie lock functions (D-51); `null` exactly when `database` is. */
+export const movieLocks: MovieLocks | null = database === null ? null : createMovieLocks({ sql: database });
+
+/** K7 review-change marker (D-51); `null` exactly when `database` is. */
+export const reviewsChangedMarker: ReviewsChangedMarker | null =
+  database === null ? null : createReviewsChangedMarker({ sql: database });
+
+/** K7 summary-schedule writes (O-20, D-51); `null` exactly when `database` is. */
+export const summarySchedule: SummarySchedule | null =
+  database === null ? null : createSummarySchedule({ sql: database });
+
+/**
+ * The K10 runtime (D-71, D-78): with AI enabled and a database, the provider, the real controller and
+ * SchedulerLeases; otherwise the D-52 controller stub and no provider.
+ */
+const aiRuntime: AiRuntime = createAiRuntime({
+  ai: config.ai,
+  platform:
+    config.core.valid && database !== null && rateLimiter !== null && rateLimitKeys !== null
+      ? { database, rateLimiter, rateLimitKeys, appEnv: config.core.value.appEnv }
+      : null,
+  fetch: (url, init) => fetch(url, init),
+});
+
+/** K10 execution controller: the real one, or the D-52 stub that returns `disabled`. */
+export const aiExecutionController: AiExecutionController = aiRuntime.controller;
+
+/** K10 sweep leases; `null` exactly when the D-52 controller stub is wired. */
+export const schedulerLeases: SchedulerLeases | null = aiRuntime.schedulerLeases;
+
+/** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
+export const moderationWorkQueue: ModerationWorkQueue | null =
+  database === null ? null : createModerationWorkQueue({ sql: database });
+
+/** K9 dispatcher stub (D-52): returns `deferred` and writes nothing until B#7 (A-03) wires the real one. */
+export const moderationDispatcher: ModerationDispatcher = createDeferredModerationDispatcher();
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();

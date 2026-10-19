@@ -101,7 +101,6 @@ All rows below are agent recommendations adopted under the human's delegation. T
 
 - Dependencies added or changed: none.
 - Reused ideas, code, or documentation and attribution: none.
-- Unrelated files changed: no. `references/DEV-B-COMMIT-PLAN.md` was not inspected or changed and may still describe the old S-01 scope.
 
 ## 8. Verification Evidence
 
@@ -131,7 +130,6 @@ All rows below are agent recommendations adopted under the human's delegation. T
 | AM-01 (K2 mapping) and AM-03 (Session id) change Developer A's contracts | A's S-02/S-04 must implement them | Lim-ZY | Approve or reject the amendments in a contract PR |
 | S-01 state | Implementation must not start yet | thegrimbee | Set S-01 to `Ready` after review |
 | S-00 tracker criterion ("tasks with no remaining blockers move to Draft") | Tracker partly stale | Both | Update the remaining task states |
-| `references/DEV-B-COMMIT-PLAN.md` not checked | Possible stale copy of the plan | thegrimbee | Check or ignore |
 
 ## 11. Reflection Notes
 

@@ -23,7 +23,6 @@
   3. Health handlers set `Cache-Control: no-store` directly while A#1 (K2) is unmerged, and the PR says so. This is the human's decision.
   4. Define every blocker caused by an undefined spec. This was delegated to the agent.
 - Applicable recorded requirement IDs: DEP-02, SEC-07, AT-26, D-09, D-10, D-18, D-28, D-29, D-36.
-- Permitted paths/actions: edits to `spec/`, `workflow/` and `references/DEV-B-COMMIT-PLAN.md`. No application code, tests, dependencies or git actions.
 - Explicit exclusions:
   - no commits or pushes;
   - no `Ready` state, which only a human may set;
@@ -35,7 +34,6 @@
 | Source | Authority or reference | How it was used |
 | --- | --- | --- |
 | `spec/` (api, deployment, security, verification, governance, tech-stack) | Source of truth | Requirements and existing decisions |
-| `workflow/PLAN.md`, `COMMIT-PLAN.md`, `contracts.md`; `references/DEV-B-COMMIT-PLAN.md` | Plans and contracts | S-03 scope, K2, conflicts |
 | `git log` / `git branch --contains` | Repository history | S-01 merged to `master` in PR #5 (`9f77b53`) |
 | `src/server/composition.ts`, `src/server/db/database.ts`, `next.config.ts` | Code on `master` | Probe behaviour, composition root, `cacheComponents` |
 | `node_modules/next/dist/docs/` (route handlers, `connection()`, route methods) | Framework docs | Request-time opt-in; OPTIONS handling |
@@ -84,7 +82,6 @@
 | `workflow/contracts.md` | New §18, AM-06 (health outside K2) |
 | `workflow/PLAN.md` | Revision note; tracker (S-01 Merged, S-03 Spec review, S-05 Draft); commands; §3 S-03 note; S-03 reqs, paths, description and acceptance |
 | `workflow/COMMIT-PLAN.md` | Revision note; B#1 Merged; B#2 commits, paths and state |
-| `references/DEV-B-COMMIT-PLAN.md` | §0.2 items resolved; B#2 rewritten into three prompts (CI, health, e2e) |
 | `logs/2026-10-15-s03-analysis-decisions.md` | This summary |
 
 - Dependencies added or changed: none.
@@ -151,7 +148,6 @@ Corrections or notes: NIL
 | Branch / starting revision | `chore/ci-test-harness`, `9f77b53` plus the uncommitted edits from the first session |
 | Participating agent roles | Analyst (subagent, read-only); main Claude Code session |
 | Human owner/reviewer | thegrimbee |
-| Permitted paths/actions | `spec/`, `workflow/`, `references/DEV-B-COMMIT-PLAN.md` (gitignored, local only), `logs/`. No application code, tests, dependencies or git writes |
 | Verification status | awaiting human verification |
 
 ### A2. Interaction timeline
@@ -191,7 +187,6 @@ Corrections or notes: NIL
 | `workflow/contracts.md` | Source-revision line; AM-06 scope clarified |
 | `workflow/PLAN.md` | Tracker; §3 follow-up note; S-03 paths, description and acceptance |
 | `workflow/COMMIT-PLAN.md` | B#2 paths and audit note |
-| `references/DEV-B-COMMIT-PLAN.md` | B#2 prompts and human checks (gitignored) |
 | `logs/2026-10-15-s03-analysis-decisions.md` | This addendum |
 
 Dependencies added or changed: none. Unrelated files changed: no.

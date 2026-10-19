@@ -22,7 +22,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Backend handoff ready; FR-01/AT-01 and operator evidence pending |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Merged (PR #9, `56314c3`) |
-| S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
+| S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Ready |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Human review (implemented on `feat/ui-shell`) |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
@@ -312,13 +312,14 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 ### Task S-06: AI runtime (shared)
 
-**Owner:** B. **Depends on:** S-01, S-05; B7 for live values only. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4.
-**Allowed paths:** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, tests.
-**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
+**Owner:** B. **Depends on:** S-01, S-05, B#4 (D-52, D-53); live values from D-48. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4; decisions D-56, D-57, D-59–D-71, D-73–D-78.
+**Allowed paths (D-71):** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, `src/server/repositories/ai/` (runtime repositories only), `src/server/config/ai.ts` (D-65 maxima, D-76 and D-78 minima only), `src/server/composition.ts` (AI runtime wiring only), tests.
+**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). The scripted fake already exists (B#4, D-53); S-06 adds the stateless `MarkerFakeLlmProvider` for running servers (D-57, D-70). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
 **Acceptance Criteria:**
 - [ ] Unit/integration tests: second concurrent execution is deferred; budget exhaustion defers without losing work; expired lease rejects late publish; unknown usage charged conservatively; retries stop at the deadline.
 - [ ] Missing quota/budget config → AI disabled, core unaffected.
-- [ ] Adapter is imported only from AI orchestration (lint rule or test).
+- [ ] PostgreSQL integration tests: expiry racing a late settlement, expiry racing a publish, and a reservation left `reserved` after a committed publish are each settled once (D-73).
+- [ ] The adapter is imported only by `services/ai/runtime/`, `composition.ts` and `tests/`, and the scripted fake by no `src/` module outside the adapter (test; AM-18, D-71).
 
 ### Task S-07: Shared UI shell and components
 
@@ -341,9 +342,10 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 ### Task U-02: Review lifecycle and visibility transitions
 
 **Owner:** A. **Depends on:** S-04, S-05, K7 and K9 interfaces from B. **Reqs:** FR-03, INV-02, INV-03, INV-09, AI-02 (dispatch side), AT-03, AT-21, AT-23, AT-24 (crash-before-dispatch).
-**Description:** `POST /movies/:id/reviews`, `PATCH/DELETE /reviews/:id`, `GET /me/reviews`, `GET /movies/:id/reviews`. Rating 1–10 integers; body 10–2,000 code points. A create, resubmission or body edit atomically sets `pending`, increments `content_revision`, calls K9 `enqueue`, and calls K7 `markReviewsChanged` when public eligibility changes. A rating-only edit keeps clearance. After commit, call K9 `attemptAfterCommit` and return 201/200 with `moderationState`. `maxDuration = 120`. Rate limit 10/min. Exposes K8 transitions (version-guarded clearance, approve, hide, restore) for B.
+**Description:** `POST /movies/:id/reviews`, `PATCH/DELETE /reviews/:id`, `GET /me/reviews`, `GET /movies/:id/reviews`. Rating 1–10 integers; body 10–2,000 code points. A create, resubmission or body edit atomically sets `pending` (a resubmission or body edit increments `content_revision`; a create starts it at 1), calls K9 `enqueue`, and calls K7 `markReviewsChanged` when the set of eligible Reviews changes or the rating or body of a previously eligible Review changes (D-51, contracts AM-13). A rating-only edit keeps clearance, and on an eligible Review it advances `reviews_revision`. After commit, call K9 `attemptAfterCommit` and return 201/200 with `moderationState`. `maxDuration = 120`. Rate limit 10/min. Exposes K8 transitions (version-guarded clearance, approve, hide, restore) for B.
 **Acceptance Criteria:**
-- [ ] Reference cases: provider down → 201 pending, not public; another User → 404/403 without mutation; body edit of published review removes it from public view and aggregates atomically; rating-only edit cannot clear pending/flagged; resubmission after delete reuses the ID and re-screens; author cannot undo an admin hide; stale `If-Match` → 409; concurrent creates keep uniqueness.
+- [ ] Reference cases: provider down → 201 pending, not public; another User → 404/403 without mutation; body edit of published review removes it from public view and aggregates atomically; rating-only edit cannot clear pending/flagged; resubmission after delete reuses the ID and re-screens; author cannot undo an admin hide, and an edit of a hidden Review keeps it hidden while still calling `enqueue` (D-54); stale `If-Match` → 409; concurrent creates keep uniqueness.
+- [ ] A rating-only edit of an eligible Review updates the aggregate and advances `reviews_revision` in the same transaction. A rating-only edit of a pending or flagged Review, or a mutation that changes nothing, does not advance it (D-51).
 - [ ] Archived Movie blocks mutations, and archive serializes with review creation (lock-order test from S-00).
 - [ ] K8 contract tests run against B's usage patterns (approval beats late AI result).
 
@@ -380,7 +382,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 ### Task A-03: Automatic profanity moderation
 
 **Owner:** B. **Depends on:** S-06, U-02 K8 interface, OQ-04 policy for acceptance. **Reqs:** FR-09, AI-02, AI-04, SEC-08, SEC-09, DEP-10, AT-09, AT-10, AT-21, AT-24.
-**Description:** Implement K9: durable `ModerationWork`, bounded post-commit attempt, input (pseudonymous ID + full body + versioned policy; too long → manual review, never a fragment), output validation (enums, exact-substring quotes, field caps, no unknown fields), fixed clearance rule via K8 with revision/version/lease guards, retry/backoff, 3 failed executions → `needs_manual_review`, supersession on new revision. `GET /internal/cron/review-moderation` (secret, own lease, one review per run). `GET /ai/jobs/:id` (Admin only, safe fields).
+**Description:** Implement K9: durable `ModerationWork`, bounded post-commit attempt, input (pseudonymous ID + full body + versioned policy; too long → manual review, never a fragment), output validation (enums, exact-substring quotes, field caps, no unknown fields), fixed clearance rule via K8 with revision/version/lease guards, retry/backoff, 3 failed executions → `needs_manual_review`, supersession on new revision. Hidden or deleted Reviews are never sent to the provider; their work is cancelled at dispatch and skipped by the sweep (D-54). Every ModerationWork write holds the Review lock (D-58). With `soc_llm`, the v0 policy wires the dispatcher stub (D-56). `GET /internal/cron/review-moderation` (secret, own lease, one review per run). `GET /ai/jobs/:id` (Admin only, safe fields).
 **Acceptance Criteria:**
 - [ ] AT-09/21/24 with the fake: clean → cleared; suspected/uncertain → flagged; invented quote → rejected → manual review; crash after commit → recovered by sweep; capacity deferral does not consume attempts; deleted/hidden cancels work.
 - [ ] No endpoint or UI requests or retries AI. AI cannot create reports, strikes or account changes (test asserts no such calls).
@@ -390,7 +392,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Owner:** B. **Depends on:** A-03, U-02. **Reqs:** FR-09 (admin side), SEC-09, AT-21, AT-23.
 **Description:** `GET /admin/reviews` (filters including unchecked/failed/hidden/deleted with an "all reviews" reset), `GET /admin/reviews/:id`, and `POST …/approve|hide|restore` with reason and If-Match, all through K8. Escaped source text shown beside the labelled AI assessment.
 **Acceptance Criteria:**
-- [ ] Approval during an in-flight AI execution wins; restore never grants clearance and reactivates work; approval does not undo author deletion.
+- [ ] Approval during an in-flight AI execution wins; restore never grants clearance and reactivates the current `cancelled` row in place, or inserts one (D-55); approval does not undo author deletion.
 
 ### Task A-05: Report decisions, strikes, threshold suspension
 

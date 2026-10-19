@@ -26,10 +26,11 @@ const aiSchema = z.strictObject({
   AI_DAILY_BUDGET_MICRODOLLARS: integerString(1),
   SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: integerString(1),
   SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK: integerString(1),
-  AI_MAX_CONCURRENT_REQUESTS: integerString(1).default(1),
-  AI_ATTEMPT_TIMEOUT_MS: integerString(1).default(30000),
-  AI_MAX_ATTEMPTS: integerString(1).default(2),
-  AI_EXECUTION_DEADLINE_MS: integerString(1).default(75000),
+  // D-65 maxima and the D-76 minimum deadline; smaller values are allowed, for example in tests.
+  AI_MAX_CONCURRENT_REQUESTS: integerString(1, 1).default(1),
+  AI_ATTEMPT_TIMEOUT_MS: integerString(1, 30000).default(30000),
+  AI_MAX_ATTEMPTS: integerString(1, 2).default(2),
+  AI_EXECUTION_DEADLINE_MS: integerString(15000, 75000).default(75000),
   AI_SUMMARY_SAMPLE_SIZE: integerString(1, 20).default(20),
   AI_SUMMARY_INTERVAL_DAYS: integerString(1).default(1),
   AI_SUMMARY_MAX_MOVIES_PER_RUN: integerString(1, 1).default(1),
@@ -39,6 +40,19 @@ const aiSchema = z.strictObject({
 });
 
 const AI_VARIABLES = Object.keys(aiSchema.shape) as (keyof typeof aiSchema.shape)[];
+
+/** The larger AI-03 output cap (summaries); the D-78 minimum budget is sized with it. */
+const MAX_OUTPUT_TOKENS = BigInt(1_200);
+const TOKENS_PER_MTOK = BigInt(1_000_000);
+
+/**
+ * D-78: the AI-03 reservation for `inputTokenLimit` input tokens and 1,200 output tokens, rounded up. BigInt keeps
+ * it exact for any configured price; the runtime prices each reservation with the same formula.
+ */
+function maximumReservationMicrodollars(inputTokenLimit: number, inputPrice: number, outputPrice: number): bigint {
+  const numerator = BigInt(inputTokenLimit) * BigInt(inputPrice) + MAX_OUTPUT_TOKENS * BigInt(outputPrice);
+  return (numerator + TOKENS_PER_MTOK - BigInt(1)) / TOKENS_PER_MTOK;
+}
 
 /**
  * Validates the AI settings. Any problem disables AI and is reported by variable name;
@@ -65,6 +79,17 @@ export function parseAiConfig(env: EnvRecord, appEnv: string | undefined): AiCon
   const parsed = result.data;
   if (parsed.AI_PROVIDER === "fake" && (appEnv === undefined || !FAKE_PROVIDER_APP_ENVS.has(appEnv))) {
     issues.push({ variable: "AI_PROVIDER", message: "fake is permitted only when APP_ENV is local, test or development" });
+  }
+  const maximumReservation = maximumReservationMicrodollars(
+    parsed.AI_INPUT_TOKEN_LIMIT,
+    parsed.SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK,
+    parsed.SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK,
+  );
+  if (BigInt(parsed.AI_DAILY_BUDGET_MICRODOLLARS) < maximumReservation) {
+    issues.push({
+      variable: "AI_DAILY_BUDGET_MICRODOLLARS",
+      message: "must fit one reservation for AI_INPUT_TOKEN_LIMIT input and 1200 output tokens at the configured prices",
+    });
   }
   if (issues.length > 0) {
     return { enabled: false, issues };

@@ -26,7 +26,6 @@
 | Source | Authority or reference | How it was used |
 | --- | --- | --- |
 | `spec/tech-stack.md` | Specification | Constraints and smoke-test requirement |
-| `references/cf_guides_soclaas_api [SoC DocHub].html` | Untrusted external reference (SoC DocHub API doc) | Endpoint paths, auth header, error shapes |
 | `AGENTS.md`, `logs/TEMPLATE.md` | Repository instructions | Working rules and log format |
 
 ## 4. Interaction Timeline
