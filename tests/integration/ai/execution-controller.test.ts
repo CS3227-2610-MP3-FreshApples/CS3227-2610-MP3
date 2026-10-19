@@ -6,17 +6,20 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 // `server-only` throws outside the react-server export condition; Vitest runs in plain Node.
 vi.mock("server-only", () => ({}));
 
-import type { LlmCompletion, LlmFailure, LlmProvider } from "../../../src/server/adapters/soc-llm";
+import type { FetchFunction, LlmCompletion, LlmFailure, LlmProvider } from "../../../src/server/adapters/soc-llm";
 import {
   createFakeLlmProvider,
   type FakeLlmOutcome,
   type FakeLlmProvider,
 } from "../../../src/server/adapters/soc-llm/fake-llm-provider";
+import type { AiConfig } from "../../../src/server/config";
 import { createDatabase, type Database, type Sql } from "../../../src/server/db";
 import {
   createAiExecutionController,
+  createAiRuntime,
   type AiExecutionController,
   type AiExecutionLimits,
+  type AiExecutionOutcome,
   type AiExecutionRequest,
   type AiJobDescriptor,
 } from "../../../src/server/services/ai/runtime";
@@ -32,6 +35,7 @@ import type {
   MovieId,
   ReviewId,
   ReviewsRevision,
+  Result,
   RowVersion,
 } from "../../../src/server/shared";
 import { createLoginRole, dropLoginRole } from "../../setup/test-database.mjs";
@@ -1159,6 +1163,216 @@ describe("AiExecutionController.run — no transaction during complete() (§3.1 
     const outcome = await first.withTransaction(async () => controller.run(request()));
 
     expect(outcome).toEqual({ kind: "deferred", retryAfterSeconds: null });
+    await expectNoWrites();
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------
+// Two instances: `first` loses its leases mid-execution and `second` takes over (D-66, D-73).
+
+/** A provider that answers only when the test says so, so a run can be held between step 1 and settlement. */
+function heldProvider(): {
+  readonly provider: LlmProvider;
+  readonly entered: Promise<void>;
+  answer(result: Result<LlmCompletion, LlmFailure>): void;
+} {
+  let enter!: () => void;
+  const entered = new Promise<void>((resolve) => {
+    enter = resolve;
+  });
+  let answer!: (result: Result<LlmCompletion, LlmFailure>) => void;
+  const answered = new Promise<Result<LlmCompletion, LlmFailure>>((resolve) => {
+    answer = resolve;
+  });
+  return {
+    provider: {
+      modelId: MODEL_ID,
+      complete() {
+        enter();
+        return answered;
+      },
+    },
+    entered,
+    answer,
+  };
+}
+
+/** Runs on `database` with timers that fire only on demand, so a held provider is never aborted. */
+function heldRun(database: Database & Sql) {
+  const held = heldProvider();
+  const run = harness({ provider: held.provider, database, time: createManualTime({ autoAdvance: false }) }).controller.run(
+    request({ publish: recordingPublish(database) }),
+  );
+  return { ...held, run };
+}
+
+/** Moves every AIJob lease and the ai_execution slot into the past, as if the holder had outlived them. */
+async function expireLeases(): Promise<void> {
+  await owner.query("UPDATE app.ai_job SET lease_until = clock_timestamp() - interval '1 second'");
+  await owner.query(
+    "UPDATE app.scheduler_lease SET lease_until = clock_timestamp() - interval '1 second' WHERE name = 'ai_execution'",
+  );
+}
+
+async function job(id: string): Promise<JobRow | undefined> {
+  return (await jobs()).find((row) => row.id === id);
+}
+
+async function reservationOf(id: string): Promise<ReservationRow | undefined> {
+  return (await reservations()).find((row) => row.ai_job_id === id);
+}
+
+/** The D-73 abandoned settlement: R × AI_MAX_ATTEMPTS, reconciled with null usage. */
+const ABANDONED_CHARGE = R * LIMITS.maxAttempts;
+
+const LATE_RESULTS: readonly {
+  readonly late: string;
+  readonly result: Result<LlmCompletion, LlmFailure>;
+  readonly outcome: AiExecutionOutcome["kind"];
+}[] = [
+  { late: "a success", result: { ok: true, value: { content: "ok:late", usage: USAGE } }, outcome: "stale" },
+  { late: "a rejected attempt", result: { ok: false, error: { kind: "rejected" } }, outcome: "failed" },
+];
+
+describe("AiExecutionController.run — two instances racing (D-66, D-73)", () => {
+  it.each(LATE_RESULTS)(
+    "expiry racing a late settlement after $late: the takeover's step 1 settles once, the late settlement writes nothing",
+    async ({ result, outcome }) => {
+      const a = heldRun(first);
+      await a.entered;
+      const aJob = await onlyJob();
+      await expireLeases();
+
+      // The second instance takes over while the first is still waiting on its provider.
+      const b = heldRun(second);
+      await b.entered;
+      const takeover = await lease();
+      expect(await job(aJob.id)).toMatchObject({ status: "stale", error_code: "lease_expired", attempt_count: 0 });
+      expect(await reservationOf(aJob.id)).toMatchObject({ status: "reconciled", actual_microdollars: null });
+      expect(await day()).toMatchObject({ reserved: R, consumed: ABANDONED_CHARGE });
+
+      a.answer(result);
+      await expect(a.run).resolves.toMatchObject({ kind: outcome, jobId: aJob.id });
+
+      // The late settlement changed nothing: not the job, the reservation, the day or the new holder's slot.
+      expect(await job(aJob.id)).toMatchObject({ status: "stale", error_code: "lease_expired", attempt_count: 0 });
+      expect(await reservationOf(aJob.id)).toMatchObject({
+        status: "reconciled",
+        actual_microdollars: null,
+        input_tokens: null,
+      });
+      expect(await day()).toMatchObject({ reserved: R, consumed: ABANDONED_CHARGE });
+      expect(await lease()).toEqual({ held: true, token: takeover!.token });
+      expect(await publishedRows()).toBe(0); // the late publish rolled back
+
+      b.answer({ ok: true, value: { content: "ok:summary", usage: USAGE } });
+      await expect(b.run).resolves.toMatchObject({ kind: "published" });
+      expect(await publishedRows()).toBe(1);
+      await expectSettled(ABANDONED_CHARGE + USAGE_COST);
+    },
+  );
+
+  it("expiry racing a publish: the takeover expires the job past the publish Tx's key-share lock, and the late publish rolls back", async () => {
+    let takeoverOutcome: AiExecutionOutcome | undefined;
+    const publishThenLoseLease: Publish = async (tx, output, job) => {
+      // The foreign-key lock a ReviewSummary or ReviewModeration insert takes on its AIJob (D-73).
+      await first.query(tx, "SELECT 1 FROM app.ai_job WHERE id = $1 FOR KEY SHARE", [job.jobId]);
+      await recordingPublish(first)(tx, output, job);
+      await expireLeases();
+      // Must not wait on this open Tx: the expiry takes a no-key-update lock, which key-share allows (D-73).
+      takeoverOutcome = await harness({ provider: fake(success()), database: second }).controller.run(
+        request({ publish: recordingPublish(second) }),
+      );
+      return { ok: true, value: undefined };
+    };
+
+    const outcome = await harness({ provider: fake(success()) }).controller.run(request({ publish: publishThenLoseLease }));
+
+    const [aJob, bJob] = await jobs();
+    expect(takeoverOutcome).toEqual({ kind: "published", jobId: bJob!.id });
+    expect(outcome).toEqual({ kind: "stale", jobId: aJob!.id });
+    expect(aJob).toMatchObject({ status: "stale", error_code: "lease_expired", attempt_count: 0 });
+    expect(bJob).toMatchObject({ status: "succeeded", error_code: null });
+    expect(await publishedRows()).toBe(1); // only the takeover's
+    expect(await reservationOf(aJob!.id)).toMatchObject({ status: "reconciled", actual_microdollars: null });
+    await expectSettled(ABANDONED_CHARGE + USAGE_COST);
+  });
+
+  it("a reservation left reserved after a committed publish is settled by the other instance's next step 1", async () => {
+    const { controller, database } = harness({ provider: fake(success()) });
+    const publishThenDie: Publish = async (tx, output, job) => {
+      // The function dies after the publish commits, before its settlement Tx.
+      database.failNextTransaction();
+      return recordingPublish(first)(tx, output, job);
+    };
+    await expect(controller.run(request({ publish: publishThenDie }))).resolves.toMatchObject({ kind: "published" });
+    const published = await onlyJob();
+    expect(await onlyReservation()).toMatchObject({ status: "reserved" });
+    await expireLeases();
+
+    const takeover = await harness({ provider: fake(success()), database: second }).controller.run(
+      request({ publish: recordingPublish(second) }),
+    );
+
+    expect(takeover).toMatchObject({ kind: "published" });
+    expect(await job(published.id)).toMatchObject({ status: "succeeded", error_code: null, attempt_count: 1 });
+    expect(await reservationOf(published.id)).toMatchObject({
+      status: "reconciled",
+      actual_microdollars: null,
+      input_tokens: null,
+      reconciled: true,
+    });
+    expect(await publishedRows()).toBe(2);
+    await expectSettled(ABANDONED_CHARGE + USAGE_COST);
+  });
+
+  it("does not let the takeover expire a job whose own lease has not passed", async () => {
+    const a = heldRun(first);
+    await a.entered;
+    // Only the slot is lost; the AIJob lease still runs.
+    await owner.query(
+      "UPDATE app.scheduler_lease SET lease_until = clock_timestamp() - interval '1 second' WHERE name = 'ai_execution'",
+    );
+
+    const b = heldRun(second);
+    await b.entered;
+    a.answer({ ok: true, value: { content: "ok:summary", usage: USAGE } });
+    b.answer({ ok: true, value: { content: "ok:summary", usage: USAGE } });
+
+    await expect(a.run).resolves.toMatchObject({ kind: "published" });
+    await expect(b.run).resolves.toMatchObject({ kind: "published" });
+    expect((await jobs()).map((row) => row.status)).toEqual(["succeeded", "succeeded"]);
+    expect(await publishedRows()).toBe(2);
+    await expectSettled(2 * USAGE_COST);
+  });
+});
+
+describe("AiExecutionController — AI disabled (D-52, D-71)", () => {
+  const DISABLED: AiConfig = { enabled: false, issues: [] };
+
+  it("returns disabled from the wired runtime without touching the provider, the database or the callbacks", async () => {
+    const fetch = vi.fn<FetchFunction>(async () => {
+      throw new Error("the provider must not be called");
+    });
+    const runtime = createAiRuntime({
+      ai: DISABLED,
+      platform: {
+        database: first,
+        rateLimiter: createRateLimiter({ database: first, sql: first }),
+        rateLimitKeys: createRateLimitKeys({ secret: "synthetic-rate-limit-key-secret-0123456789" }),
+        appEnv: "test",
+      },
+      fetch,
+    });
+    const validate = vi.fn(parseOk);
+    const publish = vi.fn(recordingPublish(first));
+
+    await expect(runtime.controller.run(request({ validate, publish }))).resolves.toEqual({ kind: "disabled" });
+
+    expect(runtime.schedulerLeases).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
+    expect(validate).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
     await expectNoWrites();
   });
 });
