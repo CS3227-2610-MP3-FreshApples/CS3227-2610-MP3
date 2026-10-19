@@ -23,8 +23,8 @@
   2. Resolve the findings with the agent's recommendations, and commit in whatever split the agent sees fit.
 - Applicable recorded requirement IDs: AI-02, AI-03, AI-04, SEC-08, SEC-11, AT-10, AT-11, api.md 8.2/8.4, D-13, D-16, D-25, D-48, D-52, D-53, D-56, D-57, D-59–D-71, P-04, P-08, P-13, AM-11, AM-15, AM-16, AM-18, AM-19, AM-20.
 - Permitted paths/actions: edits to `spec/`, `workflow/`, `logs/`, and the S-06 runtime index and types; local commits on `feat/ai-runtime`. No push, PR or deployment.
-- Explicit exclusions: the S-06 implementation itself (adapter, controller, repositories, wiring). The `LlmFailure` type in code is not changed until Lim-ZY approves AM-21.
-- Human approval gates: thegrimbee delegated every finding to the agent's recommendation. AM-21, D-74 and the AI-03 wording (D-76) affect Developer A and need Lim-ZY's approval.
+- Explicit exclusions: the S-06 implementation itself (adapter, controller, repositories, wiring). The `LlmFailure` type in code is not changed in this session; S-06 implements it.
+- Human approval gates: thegrimbee delegated every finding to the agent's recommendation. AM-21, D-74 and the AI-03 wording (D-76) affect Developer A; thegrimbee reported Lim-ZY's approval of D-73–D-77, AM-21 and AM-22 (seq. 3).
 
 ## 3. Sources Consulted
 
@@ -40,16 +40,17 @@
 | ---: | --- | --- | --- | --- |
 | 1 | Human | `[agent: architect]` S-06 review, read-only | Architect returned H1–H2, M1–M6, L1–L16, threats and contradictions | Architect handoff, relayed in chat |
 | 2 | Human | Resolve the findings as recommended; split commits as seen fit | Recorded D-73–D-78, amended D-56, D-59–D-66 and D-71 in place, added contracts §25 (AM-21, AM-22), updated AI-03, data-model, deployment, api, PLAN and COMMIT-PLAN; re-exported `LlmMessage` and fixed the `deferred` comment | This log; commits on `feat/ai-runtime` |
+| 3 | Human | Lim-ZY approved D-73–D-77, AM-21, AM-22 and the AI-03 wording | Marked them approved by both developers in governance and contracts §25; dropped the pending note from COMMIT-PLAN B#5 | This log; follow-up commit |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
 | Item | Source/decision-maker | Status | Rationale | Affected artifacts |
 | --- | --- | --- | --- | --- |
-| D-73 (H1, M1, M3, L5, L11): `succeeded` written by the guarded P-08 `UPDATE`; settlement guarded on `running`/`reserved`; abandoned reservations whose job lease passed settle at R × `AI_MAX_ATTEMPTS`; AIJob locked only by `UPDATE`; `clock_timestamp()` | Agent (delegated) | recorded by thegrimbee; Lim-ZY review pending | Each reservation settles once; a kill after publish is recovered; no lock-upgrade wait | governance; data-model; contracts §3.2, AM-21; PLAN S-06 |
-| D-74 (H2, L1): `misconfigured` failure for 401/403/404/3xx → `deferred`, charge 0, `provider_misconfigured` | Agent (delegated) | recorded; **Lim-ZY approval required** | A key rotation must not strand every review in manual review | governance; api.md; contracts K10 type, AM-21 |
-| D-75 (M2, L2, L3): `run` never throws on its own faults; usage, `Retry-After` and body bounds; `storage_failed` | Agent (delegated) | recorded; Lim-ZY review pending | K9 `attemptAfterCommit` must never throw; untrusted provider values | governance; contracts AM-21, AM-22 |
-| D-76 (M4, L10): deadline coverage, timing budget, first-attempt rule, 15,000 ms minimum | Agent (delegated) | recorded; **Lim-ZY approval required** (AI-03 wording) | Resolves AI-03 "including storage" vs D-65 | governance; ai.md AI-03; deployment.md |
-| D-77 (M5, L16): unlocked slot pre-check before the quota; budget deferral commits the expiry; corrected "who expires"; A-03 recovers `running` ModerationWork | Agent (delegated) | recorded; Lim-ZY review pending | Stops quota starvation; abandoned rows settle even on spent days | governance; contracts AM-22 |
+| D-73 (H1, M1, M3, L5, L11): `succeeded` written by the guarded P-08 `UPDATE`; settlement guarded on `running`/`reserved`; abandoned reservations whose job lease passed settle at R × `AI_MAX_ATTEMPTS`; AIJob locked only by `UPDATE`; `clock_timestamp()` | Agent (delegated) | approved by both developers | Each reservation settles once; a kill after publish is recovered; no lock-upgrade wait | governance; data-model; contracts §3.2, AM-21; PLAN S-06 |
+| D-74 (H2, L1): `misconfigured` failure for 401/403/404/3xx → `deferred`, charge 0, `provider_misconfigured` | Agent (delegated) | approved by both developers | A key rotation must not strand every review in manual review | governance; api.md; contracts K10 type, AM-21 |
+| D-75 (M2, L2, L3): `run` never throws on its own faults; usage, `Retry-After` and body bounds; `storage_failed` | Agent (delegated) | approved by both developers | K9 `attemptAfterCommit` must never throw; untrusted provider values | governance; contracts AM-21, AM-22 |
+| D-76 (M4, L10): deadline coverage, timing budget, first-attempt rule, 15,000 ms minimum | Agent (delegated) | approved by both developers (AI-03 wording) | Resolves AI-03 "including storage" vs D-65 | governance; ai.md AI-03; deployment.md |
+| D-77 (M5, L16): unlocked slot pre-check before the quota; budget deferral commits the expiry; corrected "who expires"; A-03 recovers `running` ModerationWork | Agent (delegated) | approved by both developers | Stops quota starvation; abandoned rows settle even on spent days | governance; contracts AM-22 |
 | D-78 (L4, L7, L12–L15): UTC budget day in SQL, budget minimum, stub kept with no database, A-03 logs D-56, injected `fetch`, marker fake file name | Agent (delegated) | recorded by thegrimbee (Developer B paths only) | Closes small wiring and config gaps | governance; deployment.md; PLAN; COMMIT-PLAN |
 | M6, L6: re-export `LlmMessage` from the runtime index; fix the `deferred` comment | Agent (delegated) | done | Feature modules cannot import the adapter (D-71) | runtime `index.ts`, `types.ts` |
 | L8 (`requesterId` selects `trigger`) | Agent (delegated) | accepted, no change | Already in the approved contract | — |
@@ -60,7 +61,7 @@
 | Role | Bounded assignment | Permissions/tools used | Evidence returned | Risks/gaps | Receiver |
 | --- | --- | --- | --- | --- | --- |
 | Architect | Review D-59–D-71, AM-19, AM-20 | Read, Grep, Glob | Handoff (relayed in chat) | Read-only; no commands run | Main session |
-| Main session | Record decisions for the findings | Read, Edit, Write, Bash (file edits, checks, local commits) | Diff, commits, this log | Decisions not yet human-verified; AM-21 awaits Lim-ZY | thegrimbee |
+| Main session | Record decisions for the findings | Read, Edit, Write, Bash (file edits, checks, local commits) | Diff, commits, this log | Lim-ZY's approval recorded on the human's word | thegrimbee |
 
 ## 7. Changes and Reuse
 
@@ -99,7 +100,7 @@
 - Untrusted input and prompt-injection treatment: the architect report was treated as data; each finding was checked against the spec, migration and code before a decision was recorded.
 - Secret and production-data exposure check: no values recorded.
 - Agent permission and tool limits: local commits only, as the human asked; no push, PR, deploy or database access.
-- Human approval gates exercised: delegation by thegrimbee; Lim-ZY's approval still required for AM-21, D-74 and D-76.
+- Human approval gates exercised: delegation by thegrimbee; Lim-ZY's approval of D-73–D-77, AM-21 and AM-22, as reported by thegrimbee.
 - SoC LLM quota/resource considerations: D-77 stops slot-held deferrals spending quota; D-73 charges abandoned executions at the maximum they could incur.
 - Security findings and disposition: redirects are not followed and read as `misconfigured` (D-74); provider usage, `Retry-After` and body size are bounded (D-75).
 
@@ -107,7 +108,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| AM-21, D-74 and the AI-03 wording need Lim-ZY | S-06 must not implement `misconfigured` before approval | thegrimbee, Lim-ZY | Review contracts §25 and D-73–D-77 |
+| Lim-ZY's approval recorded on the human's word | Traceability | thegrimbee | Link the approving PR review or message in the spec PR |
 | How A-03 detects ModerationWork left `running` (D-77) | A-03 design | thegrimbee | Decide in the A-03 analysis |
 | D-76 timing budget is not measured | Kill risk near `maxDuration` | thegrimbee | Measure in the R-01/R-04 deployment checks |
 | PLAN S-06 status still `Blocked` | Only a human sets `Ready` | thegrimbee | Set after approvals |
@@ -120,12 +121,12 @@
 
 ## 12. Human Verification
 
-- [ ] Summary matches the actual interaction and outcomes.
-- [ ] Requirement IDs and decisions are traceable to recorded sources.
-- [ ] Changed files and command results match the working tree and evidence.
-- [ ] Secrets, credentials, personal data, and raw production data are absent.
-- [ ] Agent proposals and unresolved questions are labelled accurately.
+- [x] Summary matches the actual interaction and outcomes.
+- [x] Requirement IDs and decisions are traceable to recorded sources.
+- [x] Changed files and command results match the working tree and evidence.
+- [x] Secrets, credentials, personal data, and raw production data are absent.
+- [x] Agent proposals and unresolved questions are labelled accurately.
 
-Reviewer:
-Verification date:
-Corrections or notes:
+Reviewer: Gabriel
+Verification date: 19 Oct 2026
+Corrections or notes: NIL. Seq. 3 and the approval statuses were added after these boxes were ticked and need re-verification.

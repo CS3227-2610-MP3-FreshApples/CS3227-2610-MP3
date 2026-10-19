@@ -891,7 +891,7 @@ These amendments came from the S-06 analysis. Developer B (thegrimbee) delegated
 
 ## 25. S-06 architect-review amendments (19 October 2026)
 
-These amendments came from the S-06 architect review of D-59–D-71. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: recorded by thegrimbee; Lim-ZY's approval is pending.** AM-21 changes when U-04 and A-03 receive `deferred` and adds an `LlmFailure` kind, so it needs both developers before S-06 implements it. AM-22 touches only Developer B paths. `AiExecutionOutcome`, `AiExecutionRequest` and `SchedulerLeases` signatures are unchanged.
+These amendments came from the S-06 architect review of D-59–D-71. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers (Lim-ZY and thegrimbee) on 19 October 2026**, including AM-21, which changes when U-04 and A-03 receive `deferred` and adds an `LlmFailure` kind. No consumer code depends on these amendments yet. `AiExecutionOutcome`, `AiExecutionRequest` and `SchedulerLeases` signatures are unchanged.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |

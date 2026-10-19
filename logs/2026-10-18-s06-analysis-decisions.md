@@ -132,6 +132,6 @@
 - [x] Secrets, credentials, personal data, and raw production data are absent.
 - [x] Agent proposals and unresolved questions are labelled accurately.
 
-Reviewer:
-Verification date:
+Reviewer: Gabriel
+Verification date: 19 Oct 2026
 Corrections or notes: seq. 3 to 5 and their rows (D-67–D-72, AM-20, approvals) were added after these boxes were ticked and need re-verification.
