@@ -20,7 +20,7 @@ export interface Database {
   probe(): Promise<void>;
 }
 
-export type SqlParam = string | number | boolean | null | Date | readonly string[] | readonly number[];
+export type SqlParam = string | number | boolean | null | Date | Buffer | readonly string[] | readonly number[];
 
 export interface Sql {
   /** Unnamed parameterized query ($1, $2, …). Never sets a query `name`. Repositories only. */

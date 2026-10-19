@@ -12,3 +12,13 @@ export class TransactionConflict extends Error {
     this.name = "TransactionConflict";
   }
 }
+
+/** A dependency could not serve the request; K2 maps this to HTTP 503. */
+export class ServiceUnavailableError extends Error {
+  readonly kind = "service_unavailable" as const;
+
+  constructor() {
+    super("service unavailable");
+    this.name = "ServiceUnavailableError";
+  }
+}

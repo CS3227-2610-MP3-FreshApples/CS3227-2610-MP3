@@ -125,7 +125,14 @@ Design decision D-12 (rate limiting): Enforce SEC-06, the review/report limits i
 
 Design decision D-13 (AI capacity and budget): The single active AI execution per environment (AI-03) is a SchedulerLease row named `ai_execution`. The daily budget uses the AIBudgetDay and AIBudgetReservation tables, in microdollars (D-25). The per-minute SoC request quota uses a RateLimitWindow key; there is no token quota (D-48). Budget days are UTC calendar days.
 
-Design decision D-14 (CSRF): SEC-04 uses a stateless HMAC token signed with `SESSION_SECRET` and bound to the session, plus an Origin/same-origin check on every unsafe method. Anonymous unsafe requests (`/auth/register`, `/auth/login`) use a signed pre-session token in a cookie. No CSRF table or Session column is added.
+Design decision D-14 (CSRF): SEC-04 uses a stateless, versioned HMAC-SHA-256 token signed with `SESSION_SECRET` and bound to the current session, plus an exact `Origin` match to `PUBLIC_APP_URL` on every unsafe browser method. The token wire format is `csrf_v1.<issuedAt>.<nonce>.<signature>`, with URL-safe Base64 without padding for nonce and signature; the signature covers `csrf_v1|subject|issuedAt|nonce`, where subject is the current session ID or signed pre-session ID. Tokens are compared in constant time and expire after 8 hours. Anonymous unsafe requests (`/auth/register`, `/auth/login`) use a signed opaque pre-session cookie with a 30-minute lifetime. No CSRF table or Session column is added.
+
+- Clients obtain the token from `GET /api/v1/auth/csrf` and send it in `X-CSRF-Token`.
+- The authenticated cookie is `fa_session`; the anonymous cookie is `fa_presession`. In hosted HTTPS both use the `__Host-` prefix, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, and no `Domain`; `fa_presession` additionally uses `Max-Age=1800`.
+- A missing or invalid pre-session causes `/auth/csrf` to issue a new signed pre-session and token. With a valid pre-session it may issue a fresh token without changing the pre-session.
+- Successful login clears `fa_presession` and binds later tokens to the new session. Logout, expiry, suspension and session revocation invalidate the associated binding. A token from another session or pre-session is rejected.
+- Expired, malformed, wrongly bound, wrongly signed and Origin-failing requests all return 403 `csrf_failed` without revealing the failure reason.
+- The D-51 deployment-only first-Admin bootstrap POST is the sole initial-release exception to the browser CSRF and Origin rule. It ignores browser session and pre-session cookies, accepts no browser identity as authority, and relies only on the separately configured high-entropy `ADMIN_BOOTSTRAP_SECRET`, compared in constant time before the Identity service is called. Missing, incorrect, disabled and removed bootstrap secrets never invoke the service. This exception does not apply to any User/Admin browser route or other internal route.
 
 Design decision D-15 (provider configuration names): The SoC variables are the `SOC_LLM_*` names in [deployment.md](deployment.md) 10.3. `.env.example` lists every 10.3 variable with placeholders and no guessed model default.
 
@@ -137,11 +144,11 @@ Design decision D-18 (deployment mode): Vercel Git integration deploys Preview b
 
 Design decision D-19 (default branch): `master` is the repository's default and graded branch. `main` is retired as a target; deleting it requires explicit human approval.
 
-Design decision D-20 (account status and lock order): The Identity module owns every write to the Account row, including status, version, strike_cycle and session revocation, and exposes an account-status service that runs inside the caller's transaction. Moderation owns Reports, decisions and ModerationStrike, decides when a suspension or reinstatement is required, and calls the Identity service; it does not write Account directly. Transactions lock rows in the global order defined in [data-model.md](data-model.md).
+Design decision D-20 (account status and lock order): The Identity module owns every write to the Account row, including status, version, strike_cycle and session revocation, and exposes an account-status service that runs inside the caller's transaction. Moderation owns Reports, decisions and ModerationStrike, decides when a suspension or reinstatement is required, and calls the Identity service; it does not write Account directly. Transactions lock rows in the global order defined in [data-model.md](data-model.md). The D-51 first-Admin transaction follows that order by taking its recorded Account table lock before checking or creating an Account and before writing AuditEntry; it does not introduce a pre-Account coordination lock.
 
 Design decision D-21 (page routes): Public pages (home, movie list and detail, announcements, sign-in and registration) are served at the root. User-only pages are under `/app`, Admin pages under `/admin`. Next.js route groups may share layouts without changing these URLs. Role checks stay in services and handlers (architecture 6.6).
 
-Design decision D-22 (validation): Validate request bodies, query parameters, stored JSON (evidence snapshots, AI outputs) and, per D-37, environment configuration with zod schemas in strict mode, pinned exactly. Schemas live with the server modules that own them and contain no credentials or ORM-private fields (architecture 6.6).
+Design decision D-22 (validation): Validate request bodies, query parameters, stored JSON (evidence snapshots, AI outputs) and, per D-37, environment configuration with zod schemas in strict mode, pinned exactly. Schemas live with the server modules that own them and contain no credentials or ORM-private fields (architecture 6.6). Registration accepts only `email`, `password`, and `displayName`. Supplied role or status fields are unknown mutation fields and return `422 validation_failed`; no account is created. The Identity service unconditionally persists `role = USER` and `status = active`.
 
 Design decision D-23 (composition root): The only module-level instances allowed in `src/server` are created in one composition root, `src/server/composition.ts`: the per-instance database pool and the service graph built from configuration. They are module-level constants created once per server instance; no other module holds shared mutable state, and every service receives its dependencies through its constructor. This is a recorded exception to the AGENTS.md rule against shared globals.
 
@@ -180,17 +187,18 @@ Design decision D-38 (health handlers): The api.md health contract is implemente
 - Health handlers never use the K2 error envelope, at any status. This is permanent: it follows from the api.md 8.4 rule that health responses keep their minimal shapes even on failure.
 - Setting the headers directly in the handlers is Developer B's interim decision while the K2 kernel (S-02) is unmerged, so the handlers do not import `src/server/http/`. Once K2 merges, they may switch to a K2 header helper only if the behaviour stays identical.
 - Liveness reads no configuration and does not import the composition root, the database or any adapter. It returns 200 `{ "status": "ok" }` whenever the process can run the handler, including when core configuration is invalid.
-- Readiness returns 503 `{ "status": "unavailable" }` without opening a database connection when core configuration is invalid (D-28). Otherwise it calls K1 `probe()` (D-36) once and returns 200 `{ "status": "ready" }` if it resolves or 503 if it rejects or times out. Any unexpected exception in the readiness path also returns 503 with the same body.
+- Readiness returns 503 `{ "status": "unavailable" }` without opening a database connection when core configuration is invalid (D-28). Otherwise it calls K1 `probe()` (D-36) once. If the probe resolves, it performs a read-only Account query for Admin existence. It returns 200 `{ "status": "ready" }` only when at least one Admin exists; zero Admins returns 503 even when valid bootstrap configuration is present. A probe rejection/timeout, an Admin-existence query failure or any other unexpected exception returns 503 with the same body.
 - The readiness decision is a server-only function under `src/server/services/health/`. The composition root builds its input from `config.core` and `database` as one of two values:
   - invalid configuration, carrying the variable names from the core-configuration issues (needed by D-39);
-  - valid configuration, carrying the probe operation.
+  - valid configuration, carrying the probe operation and a read-only
+    `adminProvisioned` operation.
 
   The function does not receive a validity flag alongside both values, because that would be control coupling (AGENTS.md).
 - Flood protection at the edge relies on Vercel's platform protection; the application adds no limiter to health routes, because a limiter would need database access. R-04 records what the Hobby plan provides.
 - Accepted risk: the per-instance pool has one connection, so readiness can report 503 while a request holds that connection for more than 2 seconds.
 
 Design decision D-39 (readiness failure logs): Each 503 readiness response writes exactly one JSON line with `console.error`, fields `event` = `health.ready.unavailable`, `requestId`, `reason` and, for configuration failures only, `variables`.
-- `reason` is one of `core_config_invalid`, `database_unavailable` (probe rejected or timed out) or `unexpected_error`.
+- `reason` is one of `core_config_invalid`, `database_unavailable` (probe or Admin-existence query rejected or timed out), `admin_bootstrap_required` (the database is reachable but has no Admin) or `unexpected_error`.
 - `variables` lists the variable names from the configuration issues, never their values.
 - The line never contains error messages, stack traces, SQLSTATEs, hostnames, connection strings or versions.
 - Successful health responses are not logged. These logs stay in Vercel runtime logs, which only project members can read. No log drain is configured without a new decision.
@@ -217,7 +225,7 @@ Design decision D-40 (CI checks): `.github/workflows/ci.yml` implements the DEP-
 
 Design decision D-41 (secret scan pin and canary): The pinned gitleaks release is v8.30.1. CI downloads `gitleaks_8.30.1_linux_x64.tar.gz` and checks it against SHA-256 `551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb` (taken from the release's checksums file) before extracting it.
 - **Commit-range scan:** with full fetch depth, gitleaks scans the pull request commit range (`base..head`) on `pull_request` and the pushed range (`before..after`) on `push`, using `gitleaks git --log-opts`.
-- **Build:** the `build-secret-scan` job runs `npm run build` once with distinctive synthetic canary values for every server-only secret: `DATABASE_URL` and `MIGRATION_DATABASE_URL` (canary in the password), `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET`, `CRON_SECRET` and `SOC_LLM_API_KEY`. `DATABASE_CA_CERT` is a public CA certificate and is not a canary.
+- **Build:** the `build-secret-scan` job runs `npm run build` once with distinctive synthetic canary values for every server-only secret: `DATABASE_URL` and `MIGRATION_DATABASE_URL` (canary in the password), `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET`, `CRON_SECRET`, `SOC_LLM_API_KEY`, `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD` and `ADMIN_BOOTSTRAP_SECRET`. `DATABASE_CA_CERT` is a public CA certificate and is not a canary. The bootstrap email is included because D-51 classifies every bootstrap value as sensitive deployment configuration even though an email address is not normally a secret.
 - **Built-asset checks:** the job then runs `gitleaks dir .next/static`. `scripts/check-bundle-canary.mjs` fails if any canary value appears in any file under `.next/static`.
 - **New secrets:** a pull request that adds a server-only secret to deployment.md 10.3 adds it to the canary list in the same pull request.
 - **Configuration:** `.gitleaks.toml` extends the default rules and starts with an empty allowlist; each entry needs a justification comment and human review.
@@ -236,10 +244,11 @@ Design decision D-42 (Playwright harness): The configuration is `playwright.conf
   - `APP_ENV=test`, `PUBLIC_APP_URL=http://127.0.0.1:3100`, `AI_PROVIDER=fake` and `AI_ENABLED=false` (R-02 enables AI with the marker fake, D-57);
   - no `DATABASE_CA_CERT` (D-30);
   - `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET` and `CRON_SECRET` generated randomly for each run, distinct and at least 32 characters (deployment.md 10.3);
+  - `ADMIN_BOOTSTRAP_EMAIL`, `ADMIN_BOOTSTRAP_PASSWORD` and `ADMIN_BOOTSTRAP_SECRET` generated or fixed to synthetic per-run test values. The health smoke invokes the real bootstrap endpoint once before expecting readiness, because D-38/D-51 require an Admin for readiness. These variables exist only in the disposable local process and do not constitute deployed operator evidence;
   - `DATABASE_URL` naming the run's database and login role.
 - **Database:** the server is the loopback PostgreSQL 17 named by `TEST_DATABASE_URL`, and the same loopback-only refusal as the integration harness applies (D-10, D-30). Each run creates a uniquely named database, creates the synthetic D-31 roles and applies every migration, then creates the per-run login role from D-31. The app connects as that login role, so it holds exactly `app_runtime`'s privileges.
 - **Lifecycle:** Playwright 1.64.0 starts `webServer` before `globalSetup`, so the database cannot be prepared in `globalSetup`. Instead, `npm run test:e2e` runs a Node.js wrapper under `tests/setup/` with no new dependency. The wrapper prepares the database and login role, runs `playwright test` with the e2e environment, and then drops the database and the login role even when tests fail. It exits with Playwright's exit code. It may share the loopback check and role creation with the integration harness.
-- **Initial suite:** S-03 adds a health smoke spec (live and ready return their exact bodies and `no-store`, and are reached anonymously without redirects), so the suite is never empty. User and Admin journeys are added in R-02.
+- **Initial suite:** S-03 adds a health smoke spec (live returns its exact body before provisioning; a local synthetic first-Admin bootstrap succeeds; ready then returns its exact body and `no-store`; both health routes are reached anonymously without redirects), so the suite is never empty. User and Admin journeys are added in R-02.
 
 Design decision D-43 (rate-limit windows and admission): The shared limiter (D-12) works as follows.
 - **Clock:** windows are computed from the database clock (`now()`), never the application server's clock.
@@ -271,7 +280,8 @@ Design decision D-44 (rate-limit keys, policies and client IP):
 - **SoC policy:** `soc_requests` (`SOC_LLM_REQUESTS_PER_MINUTE` per 60 seconds) uses the `env` subject. AI execution builds it from AI configuration (S-06). The variable is required for AI to be enabled. There is no tokens-per-minute policy (D-48).
 - **Login sequence (SEC-06):**
   - Login checks both login-failure limits before verifying the password. If either rejects, it returns 429 `rate_limited` with the larger retry time and does not verify the password.
-  - After a failed verification, it consumes one unit on each limit and returns the generic credential error, whatever the consume outcomes. A rejected consume at that point only means the count has already reached the limit.
+  - Unknown email, invalid password and known suspended-account attempts all follow the same failed-authentication path. Unknown emails use a fixed dummy Argon2id hash for comparable work; suspended accounts verify against their stored hash but never receive a session, even when the password is correct.
+  - After that failed-authentication path, the service consumes one unit on each limit and returns the generic credential error, whatever the consume outcomes. A rejected consume at that point only means the count has already reached the limit. Suspended-account attempts therefore consume both the normalized-email and client-IP quotas; the counters retain their normal 15-minute expiry and are not reset by reinstatement.
   - A successful verification consumes nothing.
 
 Design decision D-45 (rate-limit purge): The limiter exposes a purge operation that deletes at most 1,000 RateLimitWindow rows per call in its own short transaction. It deletes rows whose `window_start` is earlier than `now()` minus the longest fixed policy window (currently 3,600 seconds). Every such window has ended, because no window is longer than that. The review-moderation cron route (DEP-10) calls the purge once per invocation after the cron secret is verified and before its sweep. A purge failure is logged under D-47's rules and does not stop the sweep.
@@ -300,7 +310,7 @@ Design decision D-47 (security event logs): Denied and failed attempts (security
 - **Never logged:** emails, IP addresses, bucket keys, passwords, tokens, cookies, request bodies, error messages, stack traces and SQLSTATEs.
 - **Failure handling:** writing a line never throws.
 - **Storage:** lines stay in Vercel runtime logs, as for D-39.
-- **Ownership:** S-05 provides the interface, the console implementation and a recording fake. The API kernel and Identity emit the events.
+- **Ownership:** S-05 provides the interface, the console implementation and a recording fake. The API kernel, Identity and K3 auth guards emit the events.
 
 Design decision D-48 (SoCLaaS facts and model): Recorded by thegrimbee on 16 October 2026 after checking the SoC DocHub SoCLaaS guides (access, API, quickstart, usage-limits and models pages).
 - **Endpoint and authentication:** the gateway is OpenAI-compatible at `https://soclaas-api.comp.nus.edu.sg`. Requests send `Authorization: Bearer <key>`. Keys have the form `clsk_<prefix>_<secret>`, are issued per SoC account, and rotating a key disables the old one at once. Gateway errors have the shape `{"error": "<message>"}` (api.md 8.4).
@@ -597,6 +607,28 @@ src/app/
 ```
 
 `(public)` is a true Next.js route group and does not affect URLs. `app/` and `admin/` should remain real folders because `/app` and `/admin` are required URL prefixes.
+
+Design decision D-50 (Email normalisation): Recorded by Lim-ZY on 17 October 2026
+- The policy is:
+  - Trim only leading/trailing ASCII whitespace.
+  - Require exactly one @.
+  - Reject control characters, internal whitespace, comments, quoted local-parts, and malformed domains.
+  - Normalize the domain with IDNA2008 to lowercase ASCII/Punycode.
+  - Normalize the local part with Unicode NFC, then lowercase it for FreshApples account identity.
+  - Do not apply provider-specific rules such as Gmail dot removal or +tag removal.
+  - Store only the resulting normalized_email; use it consistently for registration, login, throttling, and future recovery flows.
+  - Keep the original address out of logs and audit metadata.
+
+Design decision D-51: Deployment environment configuration and first-Admin bootstrap
+- `.env.example` contains names and safe placeholders only. Real values are supplied through environment-specific Vercel configuration or a controlled local/CI/operator environment; no `.env` file, Vercel environment download, credential or generated secret is committed.
+- Preview and Production receive separate values. Server-only secrets (`DATABASE_URL`, `SESSION_SECRET`, `RATE_LIMIT_KEY_SECRET`, `SOC_LLM_API_KEY`, `CRON_SECRET` and the first-Admin bootstrap values) are configured as sensitive Vercel variables and are never exposed through `NEXT_PUBLIC_` variables, client props, logs or built assets.
+- Non-secret settings use ordinary environment variables. `TEST_DATABASE_URL` is local/CI-only, and `MIGRATION_DATABASE_URL` is restricted to controlled migration/operator use; neither is application runtime configuration on Vercel.
+- First-Admin bootstrap, if enabled for the Vercel deployment, is a dedicated Vercel server function invoked with the separate deployment-only `ADMIN_BOOTSTRAP_SECRET` plus `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD`. It does not run during `next build`, module initialization or every function startup. It creates an Admin only when no Admin exists, uses the Identity service and one transaction, records an audit event without credentials, and is idempotent after success.
+- Public USER registration and first-Admin bootstrap are separate named Identity operations; neither accepts a caller-selected role or a role/mode flag. They reuse the same email normalization, password validation and hashing, duplicate-email handling and private Account-insertion primitives. Public registration always persists `role = USER` and `status = active`; only the secret-gated bootstrap operation may invoke the Admin insertion path.
+- The bootstrap transaction takes `SHARE ROW EXCLUSIVE` on the durable `app.account` table before checking whether an Admin exists. This database-coordinated table-level lock serializes concurrent bootstrap invocations across server instances and temporarily blocks other Account writes, including public registration, while leaving ordinary reads available. If an Admin exists, bootstrap is a no-op. Otherwise the same transaction creates one active Admin through the shared Identity account-creation primitive and then writes `account.admin_provisioned` to AuditEntry. Account creation and audit either commit or roll back together, and Account precedes AuditEntry in the global lock order.
+- Admin existence in `app.account` is the durable idempotency source of truth. No `admin_bootstrap` table, singleton row, completion marker, advisory lock or other bootstrap-specific database state is created. "Exactly one Admin" is the bootstrap outcome, not a permanent constraint preventing later approved Admin creation. A conflicting existing normalized email fails safely and is never promoted from USER to ADMIN.
+- The bootstrap variables are removed from the Vercel environment by the deployment operator after successful provisioning, using the executable, idempotent procedure in `spec/deployment.md` 10.3. The application never attempts to self-delete Vercel variables. If no Admin exists, readiness remains unavailable for normal traffic whether bootstrap values are valid, missing or invalid; bootstrap invocation is a separate operator operation.
+- The bootstrap function must be inaccessible to normal browser Users and Admin sessions and must require the deployment-only secret. It is the explicit D-14/SEC-04 exception described above: it ignores browser cookies and does not require a CSRF token or Origin header because neither browser sessions nor browser origin confer authority. The function route and request transport are implementation details within this approved Vercel-function boundary and must not expose bootstrap credentials or the secret in logs or responses.
 
 ## 15. References
 

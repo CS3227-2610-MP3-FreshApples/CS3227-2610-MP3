@@ -26,7 +26,7 @@ Supabase runtime traffic uses the copied shared transaction-pooler connection st
 
 ### 10.3 Configuration contracts
 
-Validate configuration on server initialization and in release checks. Invalid core configuration (D-28: APP_ENV, PUBLIC_APP_URL, DATABASE_URL, DATABASE_CA_CERT, SESSION_SECRET, RATE_LIMIT_KEY_SECRET, and SESSION_TTL_SECONDS/REPORT_SUSPENSION_THRESHOLD when set) prevents readiness; missing AI configuration disables AI while core features remain available; a missing CRON_SECRET makes both cron routes reject every request. Never print secret values. Keep names/placeholders only in .env.example; do not commit .env.local or Vercel environment downloads.
+Validate configuration on server initialization and in release checks. Invalid core configuration (D-28: APP_ENV, PUBLIC_APP_URL, DATABASE_URL, DATABASE_CA_CERT, SESSION_SECRET, RATE_LIMIT_KEY_SECRET, and SESSION_TTL_SECONDS/REPORT_SUSPENSION_THRESHOLD when set) prevents readiness; missing AI configuration disables AI while core features remain available; a missing CRON_SECRET makes both cron routes reject every request. Never print secret values. Keep names/placeholders only in .env.example; do not commit .env.local or Vercel environment downloads. The environment-variable and first-Admin bootstrap policy is the approved D-51 decision in governance.
 
 Validity rules (D-37). A core variable that breaks a rule makes core configuration invalid. A non-core variable that breaks a rule is treated as missing.
 
@@ -70,6 +70,9 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; eligibility checked in daily sweep |
 | AI_SUMMARY_MAX_MOVIES_PER_RUN | Initial maximum 1; increase only after runtime/capacity validation and spec revision |
 | CRON_SECRET | High-entropy server-only scheduler secret, distinct per environment; protects both recovery and summary sweeps |
+| ADMIN_BOOTSTRAP_EMAIL | Optional first-Admin bootstrap input; sensitive deployment configuration, used only by the explicit one-time bootstrap operation and removed after successful provisioning |
+| ADMIN_BOOTSTRAP_PASSWORD | Optional first-Admin bootstrap input; sensitive deployment configuration, consumed only server-side by the explicit one-time bootstrap operation, never logged or returned, and removed after successful provisioning |
+| ADMIN_BOOTSTRAP_SECRET | Deployment-only secret required to invoke the dedicated Vercel bootstrap function; never exposed to browser sessions, logs or responses, and removed after successful provisioning |
 | AI_MODERATION_MAX_EXECUTIONS | Default 3 per content revision before manual review; at most 2 provider attempts per execution |
 | AI_MODERATION_RECOVERY_MAX_REVIEWS | Initial maximum 1 per daily recovery invocation; revise only after runtime/capacity validation |
 | REPORT_SUSPENSION_THRESHOLD | Default 3 distinct accepted incidents per strike cycle; positive integer, changes require policy review |
@@ -90,6 +93,27 @@ DEP-02: Release pipeline (D-18). GitHub Actions runs on every pull request to `m
 DEP-03: Run migrations with node-pg-migrate (D-08) as a controlled release step with a pre-migration backup and restore plan. Because merging to `master` deploys Production (D-18), apply a release's production migrations before merging the code that requires them; such migrations must remain compatible with the currently deployed code. Prefer backward-compatible migrations. Restore the previous compatible Vercel deployment for code rollback; database rollback requires a separate data plan.
 
 DEP-04: Provide synthetic seeds and controlled peer-tester access. No production admin credentials in source, workflow logs or the public website. Use a maintained authentication library compatible with the account/session specification; Supabase Auth is not implicitly selected. D-11 satisfies this with `@node-rs/argon2` for Argon2id hashing and an in-repo opaque session implementation.
+
+First-Admin bootstrap is not part of `next build` or ordinary function startup. If enabled for Vercel, configure `ADMIN_BOOTSTRAP_SECRET`, `ADMIN_BOOTSTRAP_EMAIL` and `ADMIN_BOOTSTRAP_PASSWORD` only as sensitive Production variables, invoke the dedicated Vercel server function with the deployment-only secret after deployment, verify that exactly one Admin exists, and remove all three variables before normal operation. The Identity bootstrap operation reuses public registration's normalization, password-policy, hashing, duplicate-email and private Account-insertion primitives, but remains a separate named operation: public registration always creates an active USER and cannot select a role, while only the secret-gated bootstrap path creates an active ADMIN. In one short transaction, bootstrap takes `SHARE ROW EXCLUSIVE` on `app.account`, checks for an existing Admin, creates and audits the first Admin only when absent, then commits. Admin existence is the idempotency marker; no bootstrap-specific table or completion row exists. The table lock serializes concurrent invocations across server instances and briefly blocks other Account writes, including registration, while ordinary reads remain available. A conflicting USER email is never promoted. Readiness remains unavailable whenever no Admin exists, including while valid bootstrap variables are configured; the deployment-only bootstrap endpoint remains separately callable by the operator. That POST ignores browser cookies and does not require browser CSRF or Origin headers, because only its constant-time-compared `ADMIN_BOOTSTRAP_SECRET` authorizes it. Preview uses separate synthetic values; Production credentials and bootstrap secrets are never reused in Preview.
+
+Operator procedure for D-51 bootstrap-variable removal (Vercel Production)
+
+1. In the deployment owner’s authenticated Vercel project context, verify the deployment is the intended Production deployment and invoke `POST /api/v1/internal/bootstrap/admin` with `Authorization`-independent header `x-admin-bootstrap-secret: <ADMIN_BOOTSTRAP_SECRET>`. Do not place the secret in shell history or CI logs; use an interactive secret prompt or the Vercel dashboard/API request facility. Record only the deployment URL, UTC time, response status, response `status` (`created` or `already_provisioned`), and request ID.
+2. Verify readiness is healthy. Then, from the controlled operator environment with `MIGRATION_DATABASE_URL` and `DATABASE_CA_CERT` set without placing either value in command arguments or shell history, run `npm run db:verify-first-admin`. The script opens a bounded read-only transaction, queries only the aggregate number of `role = 'ADMIN'` accounts, prints only `admin_count=<n>`, and exits zero only for `admin_count=1`. It never prints account rows, emails, connection details or raw driver errors. A readiness response other than `200`, a nonzero verifier exit, or any count other than one stops the procedure; retain the bootstrap variables for diagnosis and do not retry blindly. Record only the command name, source revision, environment name, UTC time, exit status and aggregate count.
+3. After successful verification, remove each variable from the Vercel Production environment using the authenticated operator CLI or dashboard. The CLI procedure is:
+
+   ```text
+   vercel env ls production
+   vercel env rm ADMIN_BOOTSTRAP_SECRET production --yes
+   vercel env rm ADMIN_BOOTSTRAP_EMAIL production --yes
+   vercel env rm ADMIN_BOOTSTRAP_PASSWORD production --yes
+   vercel env ls production
+   ```
+
+   The final listing must show none of the three names. If the CLI is unavailable, perform the equivalent authenticated removal through Vercel Project Settings → Environment Variables or the Vercel project environment-variable API; never ask the application function to remove its own variables. Record the final listing or dashboard/API evidence with values redacted.
+4. Recheck readiness and the bootstrap endpoint after removal. Readiness remains healthy because an Admin exists; the bootstrap endpoint must no longer accept an invocation because configuration is disabled. A failed removal or failed verification is an operator incident: restore the intended variable state through the authenticated Vercel control plane and repeat the checks with a new release record.
+
+The application only consumes bootstrap configuration and cannot self-delete Vercel environment variables. Removal is an explicit, idempotent operator action: rerunning the removal commands for an already-absent variable is treated as success after the final listing confirms absence. Never record the secret, password, email value, or an unredacted environment listing as evidence.
 
 DEP-05: Record app/product URLs, source revision, deployment owner, deployment commands, health checks, backup restoration and rollback evidence. Keep the graded master branch current.
 

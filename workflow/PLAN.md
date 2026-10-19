@@ -20,7 +20,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Merged (PR #8, `315ef06`) |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
-| S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
+| S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Backend handoff ready; FR-01/AT-01 and operator evidence pending |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Merged (PR #9, `56314c3`) |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Ready |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Human review (implemented on `feat/ui-shell`) |
@@ -246,9 +246,12 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
   - when the probe rejects;
   - when the probe exceeds 2 s;
   - when core config is missing or invalid, without opening a connection;
+  - when the database is reachable but no Admin exists, even if bootstrap
+    configuration is valid;
   - on an unexpected throw.
 
-  Ready returns 200 `{"status":"ready"}` when AI is disabled or misconfigured, or when `CRON_SECRET` is missing.
+  After an Admin exists, ready returns 200 `{"status":"ready"}` when AI is
+  disabled or misconfigured, or when `CRON_SECRET` is missing.
 - [ ] Both health responses:
   - carry `no-store` and a server-generated `X-Request-Id`, with no `Set-Cookie`;
   - ignore an inbound `X-Request-Id`;
@@ -266,12 +269,26 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 ### Task S-04: Identity
 
 **Owner:** A. **Depends on:** S-01, S-02 (S-05 limiter interface for throttling). **Reqs:** FR-01, INV-01, SEC-01–04, SEC-06, DEP-04, AT-01.
-**Allowed paths:** `src/server/{services,repositories}/identity/`, `src/app/api/v1/auth/`, auth pages, admin provisioning script, matching tests.
-**Description:** Registration always creates USER (injected role/status ignored). Argon2id hashing with passwords of 12–128 characters and no truncation. Opaque random session tokens stored hashed; cookie HttpOnly/Secure/SameSite=Lax with 8 h absolute expiry. Logout. `GET /auth/me`. CSRF token plus same-origin check on unsafe methods. Login throttle of 5 failures per 15 min per normalized email and per IP, with generic errors (including for suspended accounts). Guards K3 recheck status on every request. Session revocation in the caller's `Tx`. Reviewed operator command for admin provisioning, with no secrets in logs.
+**Allowed paths:** `src/server/{services,repositories}/identity/`, `src/app/api/v1/auth/`, admin provisioning and verification scripts, matching tests. Public auth pages are deferred to the immediate follow-up below.
+**Description:** Registration always creates USER (rejects injected role/status with error 422). Argon2id hashing with passwords of 12–128 characters, at least one number and one special character, and no truncation. Opaque random session tokens stored hashed; cookie HttpOnly/Secure/SameSite=Lax with 8 h absolute expiry. Logout. `GET /auth/me`. CSRF token plus same-origin check on unsafe browser methods. Login throttle of 5 failures per 15 min per normalized email and per IP, with generic errors (including for suspended accounts). Guards K3 recheck status on every request. Session revocation in the caller's `Tx`. First-Admin provisioning uses a dedicated Vercel server function invoked with the deployment-only `ADMIN_BOOTSTRAP_SECRET` and sensitive bootstrap variables; it must not run during build or ordinary function startup. That operator POST is the sole D-14/SEC-04 exception, ignores browser cookies/identity/Origin/CSRF and relies only on the constant-time-compared deployment secret. It reuses private registration primitives through a separate named Identity operation and serializes on the Account table as recorded in D-51.
 **Acceptance Criteria:**
-- [ ] AT-01 cases: injected `role: "ADMIN"` → USER; USER calls to an admin endpoint stub → 403 with no mutation; logout invalidates; suspended accounts cannot log in and get a generic error; forged cross-origin POST fails.
-- [ ] Duplicate normalized email → safe 409. Throttling and enumeration tests pass.
-- [ ] Session token never stored or logged in plaintext.
+- [ ] AT-01 cases: supplied `role` or `status` registration fields → 422 `validation_failed` with no account created; registration without those fields persists USER/active; USER calls to an admin endpoint stub → 403 with no mutation; logout invalidates; suspended accounts cannot log in and get a generic error; forged cross-origin POST fails.
+- [x] Duplicate normalized email → safe 409. Throttling and enumeration tests pass.
+- [x] Unknown email, invalid password and correct-but-suspended account attempts return the same generic credential error and consume one unit from both login-failure limits; a suspended account never receives a session. Pre-throttled attempts return 429 without password verification or an additional increment; successful active-account login consumes nothing. Counters expire naturally and are not reset by reinstatement.
+- [x] Session token never stored or logged in plaintext.
+- [x] Emails should be normalised according to the policy in `governance.md`
+- [x] CSRF wire cases pass: `/auth/csrf` returns the versioned HMAC token; missing/expired/malformed/wrong-session tokens and Origin mismatches return 403 `csrf_failed`; hosted cookie attributes and the 30-minute pre-session lifetime are correct; login clears the pre-session binding; logout, expiry, suspension and revocation invalidate the binding.
+- [ ] The deployment configuration contract is followed: `.env.example` contains placeholders only; Preview and Production use separate environment values; server-only secrets are not exposed to clients or logs; `TEST_DATABASE_URL` and `MIGRATION_DATABASE_URL` are not application runtime configuration on Vercel.
+- [ ] If first-Admin bootstrap is enabled, the dedicated Vercel server function requires the deployment-only `ADMIN_BOOTSTRAP_SECRET`, ignores browser authority/CSRF/Origin, creates exactly one Admin only when none exists, serializes concurrent attempts through the Account table, uses the Identity transaction and audit path, never logs credentials or the secret, does not execute during build or ordinary function startup, and is idempotent after success. All bootstrap variables are removed after successful provisioning; readiness remains unavailable whenever no Admin exists, regardless of bootstrap configuration.
+
+**Human sequencing decision (17 October 2026):** public sign-in and registration pages and post-authentication role routing are deferred to the immediate task after S-04. That follow-up retains FR-01, D-21 and AT-01 traceability, must use the S-04 HTTP APIs, and must route active USER accounts to `/app` and active ADMIN accounts to `/admin`. S-04 may hand off its backend Identity scope before those pages land, but neither FR-01 nor system-level AT-01 may be reported complete until the follow-up and its E2E evidence pass. The follow-up task ID remains for the human to assign; no requirement or task ID is invented here.
+
+**Human Gate-B decision (17 October 2026):** U-03 owns reporter-filtered
+`GET /me/reports` and `GET /me/reports/:id`, including a guessed target or
+unrelated User report ID returning `404`. R-02 owns the complete two-user,
+two-role access matrix and the final system-level AT-01 evidence. S-04 may
+close its backend Identity scope with that dependency explicitly outstanding,
+but AT-01 remains partial until both U-03 and R-02 pass.
 
 ### Task S-05: Audit and shared rate limiter
 

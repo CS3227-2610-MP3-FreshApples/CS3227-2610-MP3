@@ -34,6 +34,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /auth/logout | Authenticated | invalidate session and clear cookie |
 | GET /auth/me | Authenticated | id, displayName, role, status |
 | GET /auth/csrf | Anonymous or authenticated | { csrfToken } for the X-CSRF-Token header; sets the pre-session cookie when no session exists (security.md, D-14) |
+| POST /internal/bootstrap/admin | Deployment operator secret only | 200 `{ status: "created" | "already_provisioned" }`; ignores browser identity, cookies, CSRF and Origin (D-51) |
 | GET /movies | Public | q ≤200, sort=release_desc/title_asc, page, pageSize → active Movie summaries |
 | GET /movies/:id | Public | active Movie detail and aggregate |
 | GET /movies/:id/reviews | Public | page, pageSize; newest first → visible Review projections |
@@ -75,7 +76,25 @@ Versioned mutations require If-Match containing the current integer version; abs
 | PUT /me/watchlist/:movieId | User, optional | idempotent add |
 | DELETE /me/watchlist/:movieId | User, optional | idempotent remove |
 | GET /health/live | Public, no session | 200 { status: "ok" }; process responsiveness only, no dependency calls |
-| GET /health/ready | Public, no session | 200 { status: "ready" } or 503 { status: "unavailable" }; core configuration and bounded database connectivity check |
+| GET /health/ready | Public, no session | 200 { status: "ready" } or 503 { status: "unavailable" }; core configuration, bounded database connectivity and read-only Admin-existence check; zero Admins is unavailable |
+
+CSRF wire contract (D-14): `GET /auth/csrf` returns a versioned `csrf_v1.<issuedAt>.<nonce>.<signature>` token and sets or refreshes the signed binding cookie when needed. Tokens use URL-safe Base64 without padding for nonce and signature, are bound to the current session or pre-session, and expire after 8 hours. Anonymous pre-session cookies expire after 30 minutes. Unsafe browser requests send the token in `X-CSRF-Token` and must include an `Origin` exactly matching `PUBLIC_APP_URL`; any missing, malformed, expired, wrongly bound or cross-origin token check returns 403 `csrf_failed`. Hosted HTTPS cookies are `__Host-fa_session`/`__Host-fa_presession` with `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` and no `Domain`; the anonymous cookie also has `Max-Age=1800`. Login clears the pre-session cookie and rotates the binding to the new session; logout and session revocation invalidate the old binding.
+
+First-Admin bootstrap HTTP contract (D-51): the deployment-only
+`POST /internal/bootstrap/admin` reads the Admin email and password only from
+server configuration and authorizes solely through
+`X-Admin-Bootstrap-Secret`. Configuration/service availability is checked
+before the secret: disabled, removed or invalid bootstrap configuration, an
+unavailable service, and database/audit dependency failures return 503
+`service_unavailable`. When bootstrap is enabled, a missing or incorrect
+secret returns 403 `forbidden`; those cases are indistinguishable and never
+invoke Identity. A normalized-email conflict returns 409 `conflict`. Creation
+returns 200 `{ "status": "created" }`; an idempotent invocation after an Admin
+exists returns 200 `{ "status": "already_provisioned" }`. Errors use the safe
+standard envelope. Responses expose no bootstrap values, credentials, Admin
+identity, configuration detail or raw dependency error, carry a newly
+generated request ID, and ignore inbound request IDs. Browser identity,
+cookies, CSRF tokens and Origin neither authorize nor alter this operation.
 
 Review rating inputs must be integers from 1 to 10 inclusive; reject fractional and out-of-range values with 422. User review and report mutations that target a missing or archived Movie return 404.
 
@@ -119,6 +138,6 @@ GitHub Actions is the team-managed CI/CD mechanism; GitHub Pages is the required
 
 Review approval is a manual override for the current content revision, requires a reason and If-Match, and supersedes automatic work. It does not clear author deletion or admin hidden_at; restore clears hidden_at only and never bypasses pending/flagged moderation. Every control is server-authorized. Approving a cleared Review, hiding a hidden Review or restoring a non-hidden Review is a no-op: 200 with the unchanged version and an audit entry with result no_op. Admin approve, hide and restore are permitted on Reviews of archived Movies; they cannot make content public while the Movie is archived.
 
-Health contract: both endpoints use Cache-Control: no-store and bypass login/role middleware so external uptime checks work without an Admin session. Liveness never queries the database or LLM. Readiness checks required core configuration (D-28, deployment.md 10.3) and a read-only database probe with a 2-second timeout; AI availability/quota does not determine core readiness. No database writes, provider calls or migrations. Health responses use the minimal shapes above even on failure, not raw dependency errors; detailed causes go to restricted server logs. Do not expose hostnames, versions, connection strings, stack traces or per-dependency diagnostics. Protect against flooding at the edge without relying on application database/session access. Framework-generated responses to methods a health route does not export (`OPTIONS` and 405) are outside these shapes and the 8.1 `X-Request-Id` rule. `HEAD` is served by the `GET` handler (D-38). Handler details, including headers, request-time rendering, liveness independence from configuration and the failure-log format, are in D-38 and D-39.
+Health contract: both endpoints use Cache-Control: no-store and bypass login/role middleware so external uptime checks work without an Admin session. Liveness never queries the database or LLM. Readiness checks required core configuration (D-28, deployment.md 10.3), the read-only database probe with its 2-second timeout, and then read-only Admin existence. It returns ready only when the database is reachable and at least one Admin exists; zero Admins is unavailable even when bootstrap configuration is valid. AI availability/quota does not determine core readiness. No database writes, provider calls or migrations. Health responses use the minimal shapes above even on failure, not raw dependency errors; detailed causes go to restricted server logs. Do not expose hostnames, versions, connection strings, stack traces or per-dependency diagnostics. Protect against flooding at the edge without relying on application database/session access. Framework-generated responses to methods a health route does not export (`OPTIONS` and 405) are outside these shapes and the 8.1 `X-Request-Id` rule. `HEAD` is served by the `GET` handler (D-38). Handler details, including headers, request-time rendering, liveness independence from configuration and the failure-log format, are in D-38 and D-39.
 
 Manual account status changes return 200 with id, displayName, status and version. A same-status request with a current If-Match is a no-op; it must not reset strike_cycle. Unauthorized callers receive 401/403, non-USER targets are rejected with 403 forbidden, and stale versions return 409. The status transaction serializes with Report acceptance and revokes sessions atomically on suspension. Manual actions do not reveal received-report details to the target.
