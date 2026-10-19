@@ -15,9 +15,9 @@ const MESSAGES: readonly LlmMessage[] = [
 ];
 
 /**
- * K10 provider contract suite (workflow/contracts.md §13, §22 AM-15; D-52). Runs against the scripted fake
- * now and against the SoC adapter in B#5, so both report the constructed model and turn an abort into
- * `timeout` without rejecting.
+ * K10 provider contract suite (workflow/contracts.md §13, §22 AM-15; D-52, D-78). Runs against the scripted
+ * fake, the marker fake and the SoC adapter with a stub `fetch`, so each reports the constructed model and
+ * turns an abort into `timeout` without rejecting.
  */
 export function describeLlmProviderContract(label: string, harness: LlmProviderHarness): void {
   describe(`LlmProvider contract — ${label}`, () => {

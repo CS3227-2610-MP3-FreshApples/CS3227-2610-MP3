@@ -20,7 +20,9 @@ export type LlmFailure =
   | { readonly kind: "timeout" }
   | { readonly kind: "unavailable" }
   | { readonly kind: "rejected" }
-  | { readonly kind: "malformed_response" };
+  | { readonly kind: "malformed_response" }
+  /** 401, 403, 404 or any 3xx: a wrong key, model or base URL (§25 AM-21, D-74). */
+  | { readonly kind: "misconfigured" };
 
 export interface LlmRequest {
   readonly messages: readonly LlmMessage[];

@@ -4,7 +4,7 @@ import type { Result } from "../../shared";
 import type { LlmCompletion, LlmFailure, LlmMessage, LlmProvider, TokenUsage } from "./types";
 
 // For tests only (D-57): the composition root never imports this module. Running servers use
-// MarkerFakeLlmProvider, which B#5 adds.
+// the marker fake in marker-fake-provider.ts.
 
 /**
  * One scripted `complete` result. Malformed output (D-53) is a `success` whose `content` fails the
