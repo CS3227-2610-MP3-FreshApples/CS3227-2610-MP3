@@ -2,6 +2,8 @@
 
 Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by the architect agent; OPEN and Proposed items resolved in §16 (D-24). The K10 budget amendment (D-25, microdollars) was approved by both developers on 12 October 2026. Changes now require a contract PR approved by both developers ([COMMIT-PLAN.md §2](COMMIT-PLAN.md)).
 
+A-01/A-02 clarification (19 October 2026): D-79–D-81 are recorded under the current human requester's delegated decision authority. Their edits to §3.3, K2 and K5 are awaiting the other developer's shared-contract review before integration; no signature changes or both-developer approval are claimed. The K8 no-op wording and K2 historical notes are corrected to match existing authoritative specifications.
+
 Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
@@ -205,8 +207,8 @@ This serializes with report acceptance on the Account lock (AT-25).
 **Movie archive or restore, A-01, B**
 
 1. Tx: Movie `FOR UPDATE` (Catalogue-internal, If-Match).
-2. K8 `lockReviewsOfMovie` (Reviews `FOR UPDATE`, O-04 order).
-3. Set or clear `archived_at`.
+2. If the requested archive state already holds, record one K5 `no_op` entry and commit without changing the Movie, its version/timestamps or summary markers (D-79). The If-Match check precedes this branch. Otherwise K8 `lockReviewsOfMovie` (Reviews `FOR UPDATE`, O-04 order).
+3. Set or clear `archived_at`, increment Movie.version once and set updated_at.
 4. `markReviewsChanged` (Catalogue-internal).
 5. K5 `record`.
 6. Commit.
@@ -296,13 +298,14 @@ export function noContentResponse(): Response; // 204
 
 - **Outcomes:** the §2.2 mapping. Every response carries `Cache-Control: no-store` (**Approved, P-06**, until caching has invalidation tests). Error bodies are `{ error: { code, message, fieldErrors?, requestId } }`.
 - **Request identity:** `runRoute` generates one server-side `RequestId`, passes it to the handler, and decorates the returned response with `X-Request-Id` before returning it. `errorResponse` uses the same ID in both the response header and `error.requestId`. Response helpers do not accept a request-ID parameter, so successful responses cannot omit the header when returned through `runRoute`.
+- **Versioned deletes (D-81):** return 204 with no body and a quoted ETag containing the resulting version, unchanged for no-op. The handler sets ETag on the response from `noContentResponse()`; this does not change the helper signature. Movie restore uses `versionedJsonResponse(200, movie, version)`, including no-ops.
 - **Resolved (see §16):**
-  - O-06: status for unknown mutation fields (400 or 422), oversize bodies (413 is not in api.md), unsupported content types (415 is not in api.md), and unexpected faults (500 is not in api.md).
+  - O-06: unknown mutation fields return 422, oversized bodies 413, unsupported content types 415 and unexpected faults 500, as recorded in api.md §8.1.
   - O-07: If-Match and ETag value format.
   - O-08: out-of-range `page`/`pageSize`, clamp or reject.
   - O-09: malformed path UUID, 400 or 404.
   - O-10: request-ID response header name, and whether inbound IDs are accepted. **Approved:** always generate server-side.
-  - O-11: no validation library is recorded, so `Validator` is in-repo.
+  - O-11: strict zod schemas (D-22); the in-repo `Validator` interface wraps their results.
   - Confirm the Route Handler signature against `node_modules/next/dist/docs/` before implementation.
 - **Locks / Tx:** none. `src/server/http/` imports no repository or adapter.
 - **Fake:** none. The functions are pure and unit-tested.
@@ -410,6 +413,7 @@ export interface AuditLog { record(tx: Tx, entry: AuditEntryInput): Promise<void
 - **Locks / Tx:** inside the caller's Tx, as a later-table insert.
 - **Fake:** an in-memory recorder that tests assert against. It never silently drops entries.
 - **Amended (§19, AM-09, AM-10):** entry validation and request IDs (D-46); the security-event log for denied and failed attempts (D-47).
+- **A-01/A-02 selection (D-81):** one audit entry per successful mutation, including no-ops. Announcement PATCH chooses publish/unpublish only for an actual state transition, otherwise update; mixed content/state changes use the transition action and scalar changed-field markers. No resource text is copied into metadata. All resource changes and the entry share one transaction.
 
 ## 9. K6 — Shared rate limiter
 
@@ -538,7 +542,7 @@ Otherwise they return `stale`, and on an archived Movie they return `movie_archi
 - Restore clears `hidden_at` only and never changes `moderation_state`.
 
 **All transitions:**
-- Increment `version`.
+- Increment `version` only for an actual change. O-22's already-cleared approval, already-hidden hide and non-hidden restore return the unchanged version; check If-Match first. The caller records `no_op` for these cases (api.md §8.4).
 - Call K7 `markReviewsChanged` internally when eligibility changes.
 - Do not touch ModerationWork. Superseding, cancelling and reactivating work is B's job (K9-internal).
 - Do not audit. The caller does (P-01).

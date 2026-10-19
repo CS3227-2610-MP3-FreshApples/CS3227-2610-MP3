@@ -25,7 +25,7 @@ Errors have { error: { code, message, fieldErrors?, requestId } }. Use 400 for m
 | 500 | internal_error |
 | 503 | service_unavailable |
 
-Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the new version in the resource and ETag header. ETag and If-Match use the quoted integer version, for example "3"; weak validators, lists and * are malformed (400). This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes.
+Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the resulting version in the resource and ETag header. A versioned DELETE returns 204 with no body and its resulting version in ETag only (D-81); unversioned logout has no resource version. ETag and If-Match use the quoted integer version, for example "3"; weak validators, lists and * are malformed (400). This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes. A no-op still requires the current If-Match and returns the unchanged version.
 
 | Method and path | Access | Request / result |
 | --- | --- | --- |
@@ -49,12 +49,12 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /internal/cron/summaries | Scheduler secret only | bounded daily sweep; process pending Movies; no browser/session access |
 | GET /internal/cron/review-moderation | Scheduler secret only | bounded automatic recovery of due review checks |
 | GET /ai/jobs/:id | Admin, review-moderation jobs only | state, retryAfterSeconds, safe result/error |
-| GET /admin/movies | Admin | includes archived; page, pageSize |
+| GET /admin/movies | Admin | includes archived; page, pageSize; updated_at DESC, id ASC |
 | GET /admin/movies/:id | Admin | current metadata, archive state, version |
 | POST /admin/movies | Admin | Movie writable fields → Movie |
 | PATCH /admin/movies/:id | Admin | Movie writable fields → Movie |
-| DELETE /admin/movies/:id | Admin | archive |
-| POST /admin/movies/:id/restore | Admin | restore |
+| DELETE /admin/movies/:id | Admin | archive; 204, no body, resulting ETag; already archived is a no-op |
+| POST /admin/movies/:id/restore | Admin | restore; 200 Movie and ETag; already active is a no-op |
 | GET /admin/reports | Admin | status, category, page, pageSize; default all open |
 | GET /admin/reports/:id | Admin | immutable evidence, live state, private strike count and projected threshold effect |
 | GET /admin/reviews | Admin | movieId?, assessment?, page, pageSize; includes unchecked, failed, hidden and deleted |
@@ -66,11 +66,11 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /admin/users | Admin | status?, q (display name, max 200), page, pageSize; USER accounts only; id, displayName, status, version |
 | GET /admin/users/:id | Admin | USER account id, displayName, status, version; no credentials/session secrets |
 | PATCH /admin/users/:id/status | Admin | status active/suspended, reason (10-1,000), If-Match; manual suspend/unsuspend, no Report required; USER targets only |
-| GET /admin/announcements | Admin | drafts/published/deleted, page, pageSize |
+| GET /admin/announcements | Admin | drafts/published/deleted, page, pageSize; updated_at DESC, id ASC |
 | GET /admin/announcements/:id | Admin | full Announcement and version |
 | POST /admin/announcements | Admin | title, body, movieId? → draft |
 | PATCH /admin/announcements/:id | Admin | title?, body?, movieId?, state=draft/published → Announcement |
-| DELETE /admin/announcements/:id | Admin | soft delete |
+| DELETE /admin/announcements/:id | Admin | soft delete; 204, no body, resulting ETag; already deleted is a no-op |
 | GET /me/watchlist | User, optional | own entries, page, pageSize |
 | PUT /me/watchlist/:movieId | User, optional | idempotent add |
 | DELETE /me/watchlist/:movieId | User, optional | idempotent remove |
@@ -78,6 +78,10 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /health/ready | Public, no session | 200 { status: "ready" } or 503 { status: "unavailable" }; core configuration and bounded database connectivity check |
 
 Review rating inputs must be integers from 1 to 10 inclusive; reject fractional and out-of-range values with 422. User review and report mutations that target a missing or archived Movie return 404.
+
+Admin Movie/Announcement mutation details are D-79–D-81. PATCH requires at least one writable field (empty object → 422); omitted fields are unchanged and same-value normalized updates are audited no-ops. Deleted Announcements reject PATCH with 409 conflict after the current-version check. Metadata updates of archived Movies are allowed. Publication occurs only on draft-to-published, setting a new published_at; unpublication/deletion retain the prior timestamp, and edits of published content become public immediately without changing published_at. Admin reads include retained records. Public announcements order by published_at DESC, id ASC and include only published rows.
+
+Movie optional-field defaults/clearing: releaseDate and runtimeMinutes use null; genres/cast use []; director uses an empty string, not null. On creation omitted optional fields receive those defaults; on PATCH omission preserves the value. releaseDate must be a valid YYYY-MM-DD calendar date (year 0001–9999). Announcement movieId defaults to null on creation and accepts null to clear on PATCH; malformed or nonexistent references return 422 validation_failed with a movieId field error. Archived references are permitted, with no public Movie link while archived. Text and array elements are trimmed before storage/validation; arrays retain their supplied order. An out-of-range positive list page returns empty items and the actual total.
 
 Public Review projection: id, movieId, author { id, displayName }, rating, body, createdAt, updatedAt. Do not expose email or account history. A report receipt includes id, reviewId, category, status, createdAt and disposition when closed.
 

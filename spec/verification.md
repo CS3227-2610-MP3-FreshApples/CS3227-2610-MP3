@@ -53,3 +53,31 @@ For each release, record test command, source revision, environment, pass/fail r
 
 - AT-25 (FR-06, SEC-01): Admin can find a USER and manually suspend them with zero Reports, then unsuspend them. Check reason, CSRF and If-Match enforcement, non-Admin/ADMIN-target rejection, atomic session revocation/audit, fresh-login requirement, same-status no-op, cycle advancement only on reinstatement and serialization with concurrent Report acceptance.
 - AT-26 (health contract): anonymous monitors reach both health endpoints without login redirects. Database outage leaves live at 200 and ready at 503; missing core configuration fails readiness, while AI outage alone does not. Verify generic exact response shapes, no-store, 2-second database timeout, no sensitive details or side effects, and no provider calls.
+
+### 11.3 A-01/A-02 decision acceptance examples
+
+These refine AT-02 and AT-06 under FR-05, FR-07, INV-05, INV-09 and D-79–D-81; they are not new requirement IDs. They are specified expectations, not evidence that implementation tests have run. Each authorized mutation below assumes a valid active Admin session, Origin and CSRF token unless the case states otherwise.
+
+| Given | When | Then |
+| --- | --- | --- |
+| A Movie with no Reviews and version 1 | Archive with If-Match "1", then restore with the returned version | Each actual transition advances Movie.version and reviews_revision once, preserves the oldest pending time, and commits one applied audit; archive is 204 with ETag/no body, restore is 200 Movie/version/ETag |
+| An already-archived Movie, active Movie or deleted Announcement | Repeat respectively archive, restore or delete with the current version | Succeed with the operation's normal status, unchanged ETag/version/timestamps/summary markers, and one no_op audit |
+| Any of those already-achieved states | Repeat with a stale version or omit If-Match | Return 409 stale_version or 428 precondition_required; no resource or audit write |
+| A Movie with eligible, pending, flagged, hidden and author-deleted Reviews | Archive and restore | Lock Movie then all Reviews ascending ID for actual transitions; retain history and all Review flags; restore only eligible visibility and invalidate old summary revision atomically |
+| Review submission racing Movie archive | Execute on competing PostgreSQL connections | Serialize: review first may save before archive hides it; archive first makes submission fail 404; no visibility/invariant violation |
+| A non-deleted Movie or Announcement | PATCH an empty object, then a separately tested normalized same-value payload | Empty object is 422; same-value payload is 200 with unchanged version/timestamps and one no_op audit |
+| A deleted Announcement | PATCH valid content/state with current version; separately test stale version | Current version returns 409 conflict; stale returns 409 stale_version; neither edits nor republishes |
+| A draft with published_at null | Publish, edit its text while published, unpublish, publish again | First publish sets timestamp; edit is immediately public without resetting it; unpublish hides content and retains timestamp; republication replaces it |
+| A published Announcement | PATCH state=published only; separately PATCH state=published plus changed body | First is update/no_op; second is update/applied, increments version once and preserves published_at |
+| A draft Announcement | PATCH changed content and state=published together | Increment version once; insert exactly one announcement.publish/applied audit with scalar changed-field markers and no content text |
+| Movie create/PATCH inputs | Omit optional fields on create or explicitly clear them on PATCH | Defaults/clearing are null for releaseDate/runtimeMinutes, [] for genres/cast and empty string for director; PATCH omission retains the old value |
+| Invalid input | Supply null director/arrays, impossible releaseDate, empty/oversized required text, derived/actor fields or unknown fields | Return 422 with fieldErrors; no mutation; preserve entered UI text on recoverable errors |
+| An Announcement Movie reference | Assign an existing archived Movie, then restore/archive the Movie later | Accept reference; public announcement persists; link eligibility tracks current Movie state at read time |
+| A malformed or nonexistent movieId in an Announcement body | Create or PATCH | Return 422 validation_failed with movieId field error; a malformed path ID instead returns 404 not_found |
+| Equal updated_at values or equal publication timestamps | Read adjacent list pages without intervening writes | Admin lists use updated_at DESC/id ASC; public announcements use published_at DESC/id ASC; no tie duplicates/omissions; drafts/deleted never leak |
+| Pagination requests | Request a positive page beyond total; separately use page=0, pageSize=101 or a fractional value | Beyond-total is 200 with empty items and correct total; invalid values are 422, never clamped |
+| Anonymous, USER or failed CSRF/Origin request | Call an Admin endpoint, including a would-be no-op | Return applicable 401/403 before mutation; no state or audit changes |
+| An otherwise valid mutation | Audit insertion fails | Roll back content/state/version/review markers together; safe error envelope/request ID and no raw database error |
+| A malicious text payload within valid bounds | Save and render Movie/Announcement text | Render inert plain text, never executable markup; audit contains no copied content |
+
+Implementation verification must cover unit validation/state transitions, PostgreSQL locks/rollback/races, API responses/access/pagination and the AT-02/AT-06 UI round trips. Manual keyboard, field-error, confirmation and recoverable-form-state checks remain required. Check the owning Review DELETE path for D-81's bodyless ETag rule without changing Review lifecycle behavior.
