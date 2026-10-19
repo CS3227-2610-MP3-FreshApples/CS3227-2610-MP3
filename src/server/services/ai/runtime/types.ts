@@ -57,7 +57,7 @@ export type AiExecutionOutcome =
   | { readonly kind: "published"; readonly jobId: AiJobId }
   /** AI_ENABLED=false or configuration missing; no job row. */
   | { readonly kind: "disabled" }
-  /** Slot, budget or quota; no attempt consumed. */
+  /** Slot, budget, quota or a provider 429; no AI-02 execution consumed. May follow an AIJob (D-61). */
   | { readonly kind: "deferred"; readonly retryAfterSeconds: number | null }
   /** An active job holds the dedup key. */
   | { readonly kind: "duplicate"; readonly jobId: AiJobId }

@@ -13,9 +13,12 @@
 | Branch | `feat/ai-catalogue-contracts` |
 | Starting revision | `38aa673` |
 | Participating agent roles | Main Claude Code session acting as the implementation agent |
+| Workflow stage | **Step 3 of 3** in B#4: analyst → architect → **implementation** (commit 1 of 3) |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
+
+- Workflow position: this session is the implementation step. It started only after the analyst step (`2026-10-17-b4-analysis-decisions.md`) and the architect step (`2026-10-17-b4-architect-review-decisions.md`) were done, and after both developers approved D-49–D-58. The starting revision `38aa673` is the commit that recorded the architect-review decisions. The implementation agent used those decisions as its requirements and did not change `spec/` or the contracts. B#4 commits 2 and 3 follow in `2026-10-17-b4-k10-interfaces.md` and `2026-10-17-b4-k9-moderation-work-queue.md`. The reviewer-tester agent checks the work next.
 
 - Requested outcome: implement K7 (`workflow/contracts.md` §10, §22 AM-13) under D-51. This covers `MovieLocks` (`lockActiveMovieForUpdate`, `lockActiveMovieShared`, `lockMovieForUpdate`), `ReviewsChangedMarker.markReviewsChanged` and `SummarySchedule` (`recordSummaryAttempt`, `recordSummaryPublished`), with a fail-closed fake, a contract suite and composition wiring. Tests were written first.
 - Applicable recorded requirement IDs: INV-05, INV-09, FR-05, AI-01, D-20, D-51, O-20, P-02, P-09, P-12 (contracts AM-13).
@@ -31,6 +34,7 @@
 | `workflow/contracts.md` §1, §2.3, §3, §10, §16 (O-20, P-02, P-09, P-12), §22 AM-13 | Contracts | Signatures, handle rules, lock positions, fake rule |
 | `src/server/db/migrations/1791896395207_initial-schema.sql` | Code | `app.movie` columns and checks |
 | `src/server/services/{audit,rate-limit}/`, `tests/support/{contracts,fakes}/`, `tests/integration/audit/` | Code | House pattern for service, repository, fake, contract and `SET LOCAL ROLE app_runtime` |
+| `logs/2026-10-17-b4-analysis-decisions.md`, `logs/2026-10-17-b4-architect-review-decisions.md` | Earlier verified logs (steps 1 and 2) | Where D-51 and AM-13 came from and how they were approved |
 | Pasted task prompt | Human instruction | Scope and test list |
 
 ## 4. Interaction Timeline
@@ -136,4 +140,4 @@
 
 Reviewer: Gabriel
 Verification date: 17 Oct 2026
-Corrections or notes: NIL
+Corrections or notes: NIL. The "Workflow stage" row, the "Workflow position" bullet and the earlier-logs source row were added on 18 Oct 2026, after this verification (see `2026-10-18-b4-log-workflow-clarity.md`), and need re-verification.

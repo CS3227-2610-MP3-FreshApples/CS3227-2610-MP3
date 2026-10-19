@@ -10,7 +10,7 @@
 
 ## Request
 
-The human asked for a PLAN.md as described in Lecture 7, based on `spec/` and `references/l6–l8.pdf`. `references/PLAN.md` could be used but did not have to be followed. They also asked whether a per-developer commit plan is a good idea and, if so, to write one.
+The human asked for a PLAN.md as described in Lecture 7, based on `spec/`could be used but did not have to be followed. They also asked whether a per-developer commit plan is a good idea and, if so, to write one.
 
 ## Sources consulted
 

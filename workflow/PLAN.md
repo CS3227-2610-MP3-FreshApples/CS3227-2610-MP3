@@ -22,7 +22,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
 | S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Blocked |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Merged (PR #9, `56314c3`) |
-| S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Blocked |
+| S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Ready |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Human review (implemented on `feat/ui-shell`) |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
@@ -295,13 +295,14 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 ### Task S-06: AI runtime (shared)
 
-**Owner:** B. **Depends on:** S-01, S-05; B7 for live values only. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4.
-**Allowed paths:** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, tests.
-**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). Deterministic fake (scriptable success, malformed JSON, 429, timeout). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
+**Owner:** B. **Depends on:** S-01, S-05, B#4 (D-52, D-53); live values from D-48. **Reqs:** AI-03, AI-04, SEC-08, SEC-11, CON-02, api.md 8.2/8.4; decisions D-56, D-57, D-59–D-71, D-73–D-78.
+**Allowed paths (D-71):** `src/server/adapters/soc-llm/`, `src/server/services/ai/runtime/`, `src/server/repositories/ai/` (runtime repositories only), `src/server/config/ai.ts` (D-65 maxima, D-76 and D-78 minima only), `src/server/composition.ts` (AI runtime wiring only), tests.
+**Description:** `LlmProvider` interface (bounded messages, model, output-token cap, deadline → content + safe usage, or typed error). Real SoC adapter (OpenAI-compatible gateway; maps 429/5xx/timeout to typed errors; never surfaces raw errors). The scripted fake already exists (B#4, D-53); S-06 adds the stateless `MarkerFakeLlmProvider` for running servers (D-57, D-70). Execution controller: `AI_ENABLED` gate, 1 active execution per environment, cost-budget reservation in microdollars (D-25) and conservative reconciliation, AIJob lease and dedup key, 30 s/attempt, at most 2 attempts with jitter honouring `Retry-After`, 75 s deadline, and no DB transaction held during a provider call. Scheduler-lease helper.
 **Acceptance Criteria:**
 - [ ] Unit/integration tests: second concurrent execution is deferred; budget exhaustion defers without losing work; expired lease rejects late publish; unknown usage charged conservatively; retries stop at the deadline.
 - [ ] Missing quota/budget config → AI disabled, core unaffected.
-- [ ] Adapter is imported only from AI orchestration (lint rule or test).
+- [ ] PostgreSQL integration tests: expiry racing a late settlement, expiry racing a publish, and a reservation left `reserved` after a committed publish are each settled once (D-73).
+- [ ] The adapter is imported only by `services/ai/runtime/`, `composition.ts` and `tests/`, and the scripted fake by no `src/` module outside the adapter (test; AM-18, D-71).
 
 ### Task S-07: Shared UI shell and components
 

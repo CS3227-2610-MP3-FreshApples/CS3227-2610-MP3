@@ -2,8 +2,9 @@ import "server-only";
 
 import type { AiExecutionController, AiExecutionOutcome } from "./types";
 
-// Contract stub (D-52, contracts §22 AM-15). B#5 (S-06) replaces it with the real controller. Until then the
-// composition root wires this stub and constructs no LLM provider.
+// Contract stub (D-52, contracts §22 AM-15). B#5 (S-06) added the real controller; the composition root still
+// wires this stub, and constructs no LLM provider, when AI is disabled, there is no database or the provider
+// factory refuses the configuration (D-71, D-78).
 
 const DISABLED: AiExecutionOutcome = { kind: "disabled" };
 

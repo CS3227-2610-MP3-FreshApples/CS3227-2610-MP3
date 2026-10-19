@@ -13,15 +13,18 @@
 | Branch | `feat/ai-catalogue-contracts` |
 | Starting revision | `0b870da` |
 | Participating agent roles | Analyst (subagent, read-only); main Claude Code session (spec and workflow edits) |
+| Workflow stage | **Step 1 of 3** in B#4: **analyst** → architect → implementation |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
+
+- Workflow position: B#4 followed the `AGENTS.md` sequence. This session is the analyst step. The read-only analyst agent found the requirements, gaps and conflicts, and the main session recorded decisions D-49–D-53 from them. Those decisions go to the architect step (`2026-10-17-b4-architect-review-decisions.md`). Implementation (`2026-10-17-b4-k7-catalogue-core.md`, `-k10-interfaces.md`, `-k9-moderation-work-queue.md`) starts only after the architect review and human approval.
 
 - Requested outcome:
   1. An analyst report for B#4: requirements with IDs, blocking gaps, Given/When/Then examples, and PLAN/contracts conflicts with spec.
   2. "For items 1-7, implement whichever you recommend, do the same for items C1-C3 + housekeeping". The human delegated these choices to the agent.
 - Applicable recorded requirement IDs: INV-05, INV-09, FR-05, FR-08, FR-09, AI-01, AI-02, AI-03, SEC-08, CON-02, D-16, D-17, D-20, D-33, OQ-04.
-- Permitted paths/actions: edits to `spec/`, `workflow/`, `references/DEV-B-COMMIT-PLAN.md` (gitignored, local only) and `logs/`. No application code, tests, dependencies or git actions.
+- Permitted paths/actions: edits to `spec/`, `workflow/`. No application code, tests, dependencies or git actions.
 - Explicit exclusions: no commits or pushes, and no `Ready` state, which only a human may set. Analyst item 8 (FakeLlmProvider details) was not part of the first delegation. The human delegated it separately in seq. 3.
 - Human approval gates: D-49–D-52 and AM-13–AM-15 were chosen by the agent under delegation. AM-13 (and the C1 resolution in D-51) changes the rule U-02 follows, so it needs Lim-ZY's approval.
 
@@ -32,7 +35,6 @@
 | `spec/data-model.md`, `ai.md`, `api.md`, `governance.md`, `product.md` | Source of truth | Requirements and existing decisions |
 | `workflow/PLAN.md`, `COMMIT-PLAN.md`, `contracts.md` (§3, §10, §12, §13, §16, §19–§21) | Plans and contracts | B#4 scope and K7/K9/K10 signatures |
 | `src/server/db/migrations/1791896395207_initial-schema.sql`, `src/server/config/ai.ts`, `src/server/shared/types.ts` | Code on the branch | `moderation_work` columns and unique key; AI config exposes no model when AI is disabled; Movie lock handles |
-| `references/DEV-B-COMMIT-PLAN.md` | Developer B's own working notes | Already planned "enqueue/cancel real" for B#4 |
 | Analyst handoff | Agent output, untrusted | Gaps B1–B14 and conflicts C1–C4; claims checked against the files above before deciding |
 
 ## 4. Interaction Timeline
@@ -78,7 +80,6 @@
 | `workflow/contracts.md` | Header revision and status; §3.3 step 9 and §10 call rule (C1); amendment pointers in §10, §12 and §13; §21 AM-07 renumbered to AM-12; new §22 (AM-13–AM-15, then AM-16 in seq. 3) |
 | `workflow/PLAN.md` | U-02 description and a new acceptance criterion for rating-only edits |
 | `workflow/COMMIT-PLAN.md` | B#4 paths and state `Spec review` |
-| `references/DEV-B-COMMIT-PLAN.md` | B#4 prompts rewritten for D-49–D-52 (gitignored) |
 | `logs/2026-10-17-b4-analysis-decisions.md` | This summary |
 
 - Dependencies added or changed: none.
@@ -129,4 +130,4 @@
 
 Reviewer: Gabriel
 Verification date: 17 Oct 2026
-Corrections or notes: NIL
+Corrections or notes: NIL. The "Workflow stage" row and the "Workflow position" bullet were added on 18 Oct 2026, after this verification (see `2026-10-18-b4-log-workflow-clarity.md`), and need re-verification.

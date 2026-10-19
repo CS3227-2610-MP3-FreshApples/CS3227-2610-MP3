@@ -19,7 +19,7 @@
 
 - Requested outcome: confirm whether the project's SoCLaaS information is correct and list discrepancies; after the models page was added, rectify all contradicting information and list any environment variable changes.
 - Applicable recorded requirement IDs: OQ-01, D-13, D-16, D-25, D-43, D-44, AI-03, CON-02 (all already on `master`/branch); new decision D-48 recorded on the human's instruction.
-- Permitted paths/actions: spec, workflow plans/contracts, AI config code and its unit test, `.env.example`, the local (git-ignored) `references/DEV-B-COMMIT-PLAN.md`, this log. No git writes.
+- Permitted paths/actions: spec, workflow plans/contracts, AI config code and its unit test, `.env.example`, this log. No git writes.
 - Explicit exclusions: budget/monthly-cap enforcement (human: usage is low, do not worry about budget limits); retention and permitted data (not covered by the guides).
 - Human approval gates: the human chose to remove the tokens-per-minute limit entirely and chose the model as "whichever is 'default'".
 
@@ -27,7 +27,6 @@
 
 | Source | Authority or reference | How it was used |
 | --- | --- | --- |
-| `references/cf_guides_soclaas_{access,api,quickstart,usage-limits,models,gui,project-ideas} [SoC DocHub].html` (git-ignored) | Untrusted external reference, saved by the human | Endpoint, auth, error shape, per-key limits, model table (context, prices) |
 | `spec/` (ai, api, deployment, governance, security, README) | Source of truth | Compared claims against the guides |
 | `workflow/contracts.md`, `workflow/PLAN.md` | Approved contracts / plan | Updated `soc_tokens` and OQ-01 status |
 
@@ -74,7 +73,6 @@
 | `src/server/config/ai.ts`, `src/server/config/types.ts` | Remove `SOC_LLM_TOKENS_PER_MINUTE` / `tokensPerMinute` |
 | `tests/unit/config/parse-config.test.ts` | Remove TPM cases; add test that a leftover TPM variable is ignored |
 | `.env.example` | Base URL, model and prices filled in; TPM removed |
-| `references/DEV-B-COMMIT-PLAN.md` (git-ignored) | TPM/`soc_tokens` mentions updated |
 | `logs/2026-10-16-soclaas-guide-reconciliation.md` | This summary |
 
 - Dependencies added or changed: none.
@@ -136,7 +134,7 @@ Verification status of this addendum: awaiting human verification.
 | ---: | --- | --- | --- | --- |
 | 5 | Human | Lim-ZY approves removing `soc_tokens`; asked for a curl command for `GET /v1/models` using the key in `.env.local`; if OQ-01 facts are not in the saved pages, assume they are not needed | Recorded approval (contracts.md §20 AM-11, D-48). Searched all saved pages: they mention only usage and request-metadata recording for reporting, quotas and auditing, nothing on prompt retention or permitted data. Resolved OQ-01 accordingly. Provided a curl command; the assistant did not read `.env.local` or run it | Chat |
 
-Changed files: `spec/governance.md` (OQ-01 resolved; D-16 note that the posture stays until a human ends it; D-48 approval and retention bullets; reference line), `spec/api.md`, `spec/README.md`, `spec/security.md` (provider retention wording), `workflow/contracts.md` (§20 AM-11), `workflow/PLAN.md` (B7 resolved), `references/DEV-B-COMMIT-PLAN.md` (git-ignored), this addendum. No code or tests changed.
+Changed files: `spec/governance.md` (OQ-01 resolved; D-16 note that the posture stays until a human ends it; D-48 approval and retention bullets; reference line), `spec/api.md`, `spec/README.md`, `spec/security.md` (provider retention wording), `workflow/contracts.md` (§20 AM-11), `workflow/PLAN.md` (B7 resolved), this addendum. No code or tests changed.
 
 Open item: when D-16's interim posture (development on the fake adapter, production `AI_ENABLED=false`) ends is a human decision; it was not changed.
 

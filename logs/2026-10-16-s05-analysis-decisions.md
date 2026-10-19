@@ -21,7 +21,7 @@
   1. An analyst report for S-05: requirements with IDs, blocking gaps, Given/When/Then examples, and PLAN/contracts conflicts with spec.
   2. "Update the specs to fill in the gaps according to whatever you recommend". The human delegated every choice to the agent.
 - Applicable recorded requirement IDs: SEC-06, SEC-10, SEC-11, D-12, D-13, D-22, D-33, ASM-10.
-- Permitted paths/actions: edits to `spec/`, `workflow/`, `references/DEV-B-COMMIT-PLAN.md` (gitignored, local only) and `logs/`. No application code, tests, dependencies or git actions.
+- Permitted paths/actions: edits to `spec/`, `workflow/`, and `logs/`. No application code, tests, dependencies or git actions.
 - Explicit exclusions: no commits or pushes, and no `Ready` state, which only a human may set.
 - Human approval gates: D-43–D-47 and AM-07–AM-10 were chosen by the agent under delegation, and their IDs follow the existing sequences. AM-08 and AM-10 change Developer A's modules (K2 and Identity) and need Lim-ZY's approval.
 
@@ -77,7 +77,6 @@
 | `workflow/contracts.md` | Header approval status by section; §8 and §9 amendment pointers; O-17 "Recorded in"; new §19 (AM-07–AM-10) |
 | `workflow/PLAN.md` | S-05 tracker row `Spec review`; S-05 requirements, allowed paths, description and acceptance criteria |
 | `workflow/COMMIT-PLAN.md` | B#3 paths and state |
-| `references/DEV-B-COMMIT-PLAN.md` | B#3 prompts rewritten for D-43–D-47 (gitignored) |
 | `logs/2026-10-16-s05-analysis-decisions.md` | This summary |
 
 - Dependencies added or changed: none.

@@ -13,9 +13,12 @@
 | Branch | `feat/ai-catalogue-contracts` |
 | Starting revision | `e9ceaa5` |
 | Participating agent roles | Main Claude Code session acting as the implementation agent |
+| Workflow stage | **Step 3 of 3** in B#4: analyst → architect → **implementation** (commit 2 of 3) |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
+
+- Workflow position: this session is part of the implementation step. It follows the analyst step (`2026-10-17-b4-analysis-decisions.md`), the architect step (`2026-10-17-b4-architect-review-decisions.md`) and commit 1 (`2026-10-17-b4-k7-catalogue-core.md`). It implements D-52, D-53 and D-57 as both developers approved them. One gap the earlier steps had not covered, the K8 `CapturedReviewVersion` type, went back to the human for a decision (§4 seq. 2); the agent did not decide it alone. The reviewer-tester agent checks the work next.
 
 - Requested outcome: define the K10 provider types (`LlmMessage`, `TokenUsage`, `LlmFailure`, `LlmProvider`) and runtime types (`AiJobDescriptor`, `BoundedInput`, `AiExecutionRequest`, `AiExecutionOutcome`, `AiExecutionController`, `SchedulerLeases`) as written in `workflow/contracts.md` §13. Add the D-53 scripted fake and a controller stub that always returns `disabled`, and wire the stub in `composition.ts` with no LLM provider built there.
 - Applicable recorded requirement IDs: D-16, D-52, D-53, D-57, api.md 8.2, contracts §1 rules 6–7, §13, §22 AM-15, AM-16, §23 AM-18.
@@ -29,8 +32,8 @@
 | --- | --- | --- |
 | `spec/governance.md` D-52, D-53, D-56, D-57; `spec/api.md` §8.2, §8.4 | Source of truth | Stub behaviour, fake behaviour, adapter shape, fake scope |
 | `workflow/contracts.md` §1, §2, §11 (`CapturedReviewVersion`), §13, §22 AM-15/AM-16, §23 AM-18 | Contracts | Signatures and import boundary |
-| `references/DEV-B-COMMIT-PLAN.md` B#4 commit 2 and Q-2 focus | Plan | Scope and the review focus on fake imports |
 | `src/server/services/catalogue/`, `tests/support/contracts/`, `tests/unit/catalogue/` | Code | House style for types, index, factories, contract suites and `server-only` mocking |
+| `logs/2026-10-17-b4-analysis-decisions.md`, `logs/2026-10-17-b4-architect-review-decisions.md` | Earlier verified logs (steps 1 and 2) | Where D-52, D-53 and D-57 came from and how they were approved |
 | Pasted task prompt | Human instruction | Scope and test list |
 
 ## 4. Interaction Timeline
@@ -134,4 +137,4 @@
 
 Reviewer: Gabriel
 Verification date: 17 Oct 2026
-Corrections or notes: NIL
+Corrections or notes: NIL. The "Workflow stage" row, the "Workflow position" bullet and the earlier-logs source row were added on 18 Oct 2026, after this verification (see `2026-10-18-b4-log-workflow-clarity.md`), and need re-verification.

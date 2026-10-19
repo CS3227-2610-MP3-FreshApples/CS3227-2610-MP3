@@ -13,9 +13,12 @@
 | Branch | `feat/ai-catalogue-contracts` |
 | Starting revision | `456e656` |
 | Participating agent roles | Main Claude Code session acting as the implementation agent |
+| Workflow stage | **Step 3 of 3** in B#4: analyst → architect → **implementation** (commit 3 of 3) |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
+
+- Workflow position: this session is the last commit of the implementation step. It follows the analyst step (`2026-10-17-b4-analysis-decisions.md`), the architect step (`2026-10-17-b4-architect-review-decisions.md`) and commits 1 and 2 (`2026-10-17-b4-k7-catalogue-core.md`, `2026-10-17-b4-k10-interfaces.md`). Two of the decisions it implements came from the architect step: D-58 (the Review lock position that makes `enqueue` race-free) and D-54/D-56 (the stub header). D-50 came from the analyst step. The reviewer-tester and code-quality agents (Q-1/Q-2) check the work next.
 
 - Requested outcome: a real K9 `enqueue` and `cancelForDeletedReview` running in the caller's Tx under the Review lock; the D-49 prompt and policy version constants (no policy text); a production `attemptAfterCommit` stub that returns `deferred`; wiring in `composition.ts`; call-recording fakes; a contract suite; and the tests listed in the prompt.
 - Applicable recorded requirement IDs: D-49, D-50, D-52, D-54 and D-56 (stub header only), D-58; contracts §12, §22 AM-14, AM-15, §23 AM-17 (locking only).
@@ -31,8 +34,7 @@
 | `workflow/contracts.md` §1, §2, §3, §12, §22 AM-14/AM-15, §23 AM-17 | Contracts | Signatures and rules |
 | `src/server/db/migrations/1791896395207_initial-schema.sql` | Code | `moderation_work` columns, `NULLS NOT DISTINCT` key, status check, runtime grants |
 | `src/server/services/catalogue/`, `src/server/services/ai/runtime/`, K7 and K10 tests | Code | House style for repositories, factories, stubs, contract suites and fakes |
-| `references/DEV-B-COMMIT-PLAN.md` B#4 commit 3 | Plan | Scope and Q-1/Q-2 focus |
-| Pasted task prompt | Human instruction | Scope and test list |
+| `logs/2026-10-17-b4-analysis-decisions.md`, `logs/2026-10-17-b4-architect-review-decisions.md` | Earlier verified logs (steps 1 and 2) | Where D-50, D-54, D-56 and D-58 came from and how they were approved |
 
 ## 4. Interaction Timeline
 
@@ -126,4 +128,4 @@
 
 Reviewer: Gabriel
 Verification date: 17 Oct 2026
-Corrections or notes: NIL
+Corrections or notes: NIL. The "Workflow stage" row, the "Workflow position" bullet and the earlier-logs source row were added on 18 Oct 2026, after this verification (see `2026-10-18-b4-log-workflow-clarity.md`), and need re-verification.

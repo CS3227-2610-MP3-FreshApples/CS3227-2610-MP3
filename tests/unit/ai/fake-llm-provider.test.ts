@@ -36,6 +36,7 @@ describe("FakeLlmProvider — script (D-53)", () => {
     { kind: "unavailable" },
     { kind: "rejected" },
     { kind: "malformed_response" },
+    { kind: "misconfigured" },
   ];
 
   it("returns each scripted outcome in order, then unavailable once the script is used up", async () => {
