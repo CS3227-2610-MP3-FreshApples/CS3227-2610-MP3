@@ -57,7 +57,7 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | SOC_LLM_API_KEY | Server-only secret, sent as `Authorization: Bearer <key>` (SoCLaaS keys have the form `clsk_<prefix>_<secret>`). Keys are issued per SoC account; rotating a key disables the old one at once (D-48) |
 | SOC_LLM_MODEL | `default`, the SoCLaaS operator-managed alias (D-48); confirm with `GET /v1/models` that the key can use it before enabling AI |
 | SOC_LLM_REQUESTS_PER_MINUTE | Verified allocation or environment partition, no guessed default. The SoCLaaS default limit is 90 requests per minute per API key (OQ-01, D-48); development and production values must sum to at most 90. Production 60, development 30 (D-25) |
-| AI_DAILY_BUDGET_MICRODOLLARS | Required positive budget when AI is enabled; counted per UTC calendar day (D-13, D-25). Production 53,333,333; development 26,666,666 (sum within the USD 80/day allocation) |
+| AI_DAILY_BUDGET_MICRODOLLARS | Required positive budget when AI is enabled; counted per UTC calendar day (D-13, D-25). Must be at least the AI-03 reservation for AI_INPUT_TOKEN_LIMIT input tokens and 1,200 output tokens at the configured prices, or AI is disabled (D-78). Production 53,333,333; development 26,666,666 (sum within the USD 80/day allocation) |
 | SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK | Input price of SOC_LLM_MODEL in microdollars per million tokens, as reported by `GET /v1/models`: 411810 on 16 October 2026 (D-48); no default; missing value disables AI |
 | SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK | Output price of SOC_LLM_MODEL in microdollars per million tokens, as reported by `GET /v1/models`: 1456571 on 16 October 2026 (D-48); no default; missing value disables AI |
 | AI_ENABLED | Explicit boolean; false until provider validation succeeds |
@@ -65,7 +65,7 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | AI_MAX_CONCURRENT_REQUESTS | Default and maximum 1 per environment, enforced through PostgreSQL (D-65) |
 | AI_ATTEMPT_TIMEOUT_MS | Default and maximum 30000 (D-65) |
 | AI_MAX_ATTEMPTS | Default and maximum 2 (D-65) |
-| AI_EXECUTION_DEADLINE_MS | Default and maximum 75000, must leave headroom under function maxDuration (D-65) |
+| AI_EXECUTION_DEADLINE_MS | Default and maximum 75000, minimum 15000; must leave headroom under function maxDuration (D-65, D-76) |
 | AI_SUMMARY_SAMPLE_SIZE | Default and initial maximum 20 |
 | AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; eligibility checked in daily sweep |
 | AI_SUMMARY_MAX_MOVIES_PER_RUN | Initial maximum 1; increase only after runtime/capacity validation and spec revision |
