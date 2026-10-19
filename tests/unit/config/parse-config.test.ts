@@ -355,6 +355,101 @@ describe("parseConfig — AI configuration (D-16, D-28, D-37)", () => {
   });
 });
 
+describe("parseConfig — AI execution limits (D-65, D-76, D-78)", () => {
+  it("accepts the D-65 maxima and the D-76 minimum deadline", () => {
+    const config = parseConfig(
+      envWith({
+        AI_MAX_CONCURRENT_REQUESTS: "1",
+        AI_MAX_ATTEMPTS: "2",
+        AI_ATTEMPT_TIMEOUT_MS: "30000",
+        AI_EXECUTION_DEADLINE_MS: "15000",
+      }),
+    );
+
+    expect(config.ai.enabled).toBe(true);
+    expect(config.ai.enabled && config.ai.value.execution).toMatchObject({
+      maxConcurrentRequests: 1,
+      maxAttempts: 2,
+      attemptTimeoutMs: 30_000,
+      executionDeadlineMs: 15_000,
+    });
+  });
+
+  it("accepts values below the maxima", () => {
+    const config = parseConfig(envWith({ AI_MAX_ATTEMPTS: "1", AI_ATTEMPT_TIMEOUT_MS: "1000" }));
+
+    expect(config.ai.enabled).toBe(true);
+  });
+
+  it.each([
+    ["AI_MAX_CONCURRENT_REQUESTS", "2"],
+    ["AI_MAX_ATTEMPTS", "3"],
+    ["AI_ATTEMPT_TIMEOUT_MS", "30001"],
+    ["AI_EXECUTION_DEADLINE_MS", "75001"],
+    ["AI_EXECUTION_DEADLINE_MS", "14999"],
+  ])("disables AI when %s is %j without invalidating core", (variable, value) => {
+    const config = parseConfig(envWith({ [variable]: value }));
+
+    expect(config.core.valid).toBe(true);
+    expect(config.ai.enabled).toBe(false);
+    expect(!config.ai.enabled && issueVariables(config.ai.issues)).toEqual([variable]);
+  });
+
+  // With the synthetic prices, one maximum reservation for 8,000 input and 1,200 output tokens is
+  // ceil((8,000 × 150,000 + 1,200 × 600,000) ÷ 1,000,000) = 1,920 microdollars.
+  it("accepts a daily budget that fits exactly one maximum reservation", () => {
+    expect(parseConfig(envWith({ AI_DAILY_BUDGET_MICRODOLLARS: "1920" })).ai.enabled).toBe(true);
+  });
+
+  it("disables AI when the daily budget cannot fit one maximum reservation", () => {
+    const config = parseConfig(envWith({ AI_DAILY_BUDGET_MICRODOLLARS: "1919" }));
+
+    expect(config.core.valid).toBe(true);
+    expect(config.ai.enabled).toBe(false);
+    expect(!config.ai.enabled && issueVariables(config.ai.issues)).toEqual(["AI_DAILY_BUDGET_MICRODOLLARS"]);
+  });
+
+  it("sizes the maximum reservation from AI_INPUT_TOKEN_LIMIT", () => {
+    // ceil((4,000 × 150,000 + 1,200 × 600,000) ÷ 1,000,000) = 1,320
+    expect(parseConfig(envWith({ AI_INPUT_TOKEN_LIMIT: "4000", AI_DAILY_BUDGET_MICRODOLLARS: "1320" })).ai.enabled).toBe(true);
+    expect(parseConfig(envWith({ AI_INPUT_TOKEN_LIMIT: "4000", AI_DAILY_BUDGET_MICRODOLLARS: "1319" })).ai.enabled).toBe(false);
+  });
+
+  it("rounds the maximum reservation up", () => {
+    // (8,000 × 1 + 1,200 × 1) ÷ 1,000,000 = 0.0092, so one microdollar is needed.
+    const config = parseConfig(
+      envWith({
+        SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: "1",
+        SOC_LLM_OUTPUT_PRICE_MICRODOLLARS_PER_MTOK: "1",
+        AI_DAILY_BUDGET_MICRODOLLARS: "1",
+      }),
+    );
+
+    expect(config.ai.enabled).toBe(true);
+  });
+
+  it("computes the maximum reservation exactly at prices where floating point would round", () => {
+    // ceil((8,000 × 9,007,199,254,740,991 + 1,200 × 600,000) ÷ 1,000,000) = 72,057,594,038,648
+    const env = (budget: string) =>
+      envWith({
+        SOC_LLM_INPUT_PRICE_MICRODOLLARS_PER_MTOK: String(Number.MAX_SAFE_INTEGER),
+        AI_DAILY_BUDGET_MICRODOLLARS: budget,
+      });
+
+    expect(parseConfig(env("72057594038648")).ai.enabled).toBe(true);
+    const config = parseConfig(env("72057594038647"));
+    expect(config.ai.enabled).toBe(false);
+    expect(!config.ai.enabled && issueVariables(config.ai.issues)).toEqual(["AI_DAILY_BUDGET_MICRODOLLARS"]);
+  });
+
+  it("names no budget or price value in the budget issue", () => {
+    const config = parseConfig(envWith({ AI_DAILY_BUDGET_MICRODOLLARS: "1919" }));
+    const text = JSON.stringify(config.ai);
+
+    expect(text).not.toMatch(/1919|1920|150000|600000/);
+  });
+});
+
 describe("parseConfig — secret handling", () => {
   it("never includes a variable value in any issue", () => {
     const leakedValues = {
