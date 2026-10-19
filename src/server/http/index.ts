@@ -1,6 +1,12 @@
 import "server-only";
 
-import { TransactionConflict } from "../shared/errors";
+export {
+  clientIpFromVercelHeaders,
+  placeholderClientIp,
+  type ClientIpResolver,
+} from "./client-ip";
+
+import { ServiceUnavailableError, TransactionConflict } from "../shared/errors";
 import type { Brand, DomainError, FieldErrors, RequestId, Result, RowVersion } from "../shared/types";
 
 const MAX_JSON_BODY_BYTES = 32 * 1024;
@@ -55,15 +61,18 @@ export function runRoute(
 ): (request: Request) => Promise<Response> {
   return async (request) => {
     const requestId = newRequestId();
+    // Preserve NextRequest's runtime implementation. Reconstructing it with the
+    // global Request constructor crosses Undici/Next.js private-field brands in
+    // a production bundle and fails before the Route Handler runs.
+    const routedRequest = request.clone();
+    routedRequest.headers.set("X-Request-Id", requestId);
 
     try {
-      return responseWithHeaders(await handler(request, requestId), requestId);
+      return responseWithHeaders(await handler(routedRequest, requestId), requestId);
     } catch (error) {
-      if (!(error instanceof TransactionConflict)) {
-        return responseWithHeaders(internalErrorResponse(requestId), requestId);
-      }
-
-      return errorResponse({ kind: "conflict" }, requestId);
+      if (error instanceof TransactionConflict) return errorResponse({ kind: "conflict" }, requestId);
+      if (error instanceof ServiceUnavailableError) return errorResponse({ kind: "unavailable" }, requestId);
+      return responseWithHeaders(internalErrorResponse(requestId), requestId);
     }
   };
 }

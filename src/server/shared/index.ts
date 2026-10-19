@@ -1,6 +1,6 @@
 import "server-only";
 
-export { TransactionConflict } from "./errors";
+export { ServiceUnavailableError, TransactionConflict } from "./errors";
 export type {
   AccountId,
   AccountRole,
