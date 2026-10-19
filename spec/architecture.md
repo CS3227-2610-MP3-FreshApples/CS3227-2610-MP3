@@ -32,7 +32,7 @@ HTTP handlers validate transport inputs and delegate to domain services. Domain 
 
 ### 6.4 Data Ownership
 
-Each module owns writes to its tables. Cross-module operations use explicit services and one transaction where consistency is required. Moderation may call review-visibility and account-status services; it must not duplicate their logic. Only the Identity account-status service writes Account rows (D-20). Transactions that lock several rows follow the global lock order in [data-model.md](data-model.md). The database is shared infrastructure with migrations, constraints and indexes, not separate per-role storage.
+Each module owns writes to its tables. Cross-module operations use explicit services and one transaction where consistency is required. Moderation may call review-visibility and account-status services; it must not duplicate their logic. Only Identity services write Account rows (D-20). Public registration and D-51 first-Admin bootstrap are separate named Identity operations that reuse private validation, hashing, duplicate-email and Account-insertion primitives; public registration cannot select a role. The bootstrap transaction serializes its Admin-existence check through the recorded Account table lock and introduces no bootstrap-specific table. Transactions that lock several rows follow the global lock order in [data-model.md](data-model.md). The database is shared infrastructure with migrations, constraints and indexes, not separate per-role storage.
 
 ### 6.5 Communication
 
