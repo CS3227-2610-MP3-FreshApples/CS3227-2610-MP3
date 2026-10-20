@@ -21,15 +21,19 @@ import {
 } from "./services/ai/runtime";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
+  createAdminMovieService,
   createMovieLocks,
   createReviewsChangedMarker,
   createSummarySchedule,
+  type AdminMovieService,
   type MovieLocks,
   type ReviewsChangedMarker,
   type SummarySchedule,
 } from "./services/catalogue";
+import type { MovieArchiveService } from "./services/catalogue-archive";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
+import { createAdminMovieRepository } from "./repositories/catalogue";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
 import {
   createAuthService,
@@ -84,6 +88,19 @@ export const reviewsChangedMarker: ReviewsChangedMarker | null =
 /** K7 summary-schedule writes (O-20, D-51); `null` exactly when `database` is. */
 export const summarySchedule: SummarySchedule | null =
   database === null ? null : createSummarySchedule({ sql: database });
+
+/** FR-05 Admin Movie reads and metadata writes; `null` exactly when `database` is. */
+export const adminMovieService: AdminMovieService | null =
+  database === null || auditLog === null
+    ? null
+    : createAdminMovieService({ database, movies: createAdminMovieRepository({ sql: database }), auditLog });
+
+/**
+ * Movie archive/restore orchestrator (P-12). Unwired until U-02 (Developer A) provides K8
+ * `lockReviewsOfMovie`; the archive and restore routes return 503 until then. Wire it with
+ * `createMovieArchiveService` from ./services/catalogue-archive once K8 is on `master`.
+ */
+export const movieArchiveService: MovieArchiveService | null = null;
 
 /**
  * The K10 runtime (D-71, D-78): with AI enabled and a database, the provider, the real controller and
