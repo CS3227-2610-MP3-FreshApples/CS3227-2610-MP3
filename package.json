@@ -12,7 +12,8 @@
     "test:e2e": "node tests/setup/e2e-run.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
     "db:verify-first-admin": "node scripts/verify-first-admin.mjs",
-    "check:secrets": "node scripts/check-secrets.mjs"
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "sandbox": "node scripts/sandbox.mjs"
   },
   "dependencies": {
     "@node-rs/argon2": "2.2.2",

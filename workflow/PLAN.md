@@ -376,7 +376,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: repeated actions, normalized no-ops, clearing, stable list ordering, DELETE ETag, restore response and atomic audit/revision behavior.
 
 **Progress (20 Oct):** B#6 commit 1 (Admin Movie API) is in `740533a`. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a01-admin-movie-api.md`. Both criteria above stay open until these items land:
-- **Admin UI:** B#6 commit 3.
+- **Admin UI:** B#6 commit 3 is implemented in the working tree and awaits review (`workflow/handoffs/A-01-A-02/2026-10-20-a01-a02-admin-ui.md`). Its e2e asserts archive's interim 503; restore is not exercised until K8 is wired.
 - **AT-02 public round trip:** blocked on U-01 (Developer A). When U-01 merges, replace the `archived_at` column assertion in `tests/integration/api/admin/admin-movies.test.ts` with a public GET /movies check, and cover the UI round trip in commit 3.
 - **Archive vs review-submission race (verification §11.3) and archive/restore in deployed builds:** blocked on U-02. These currently return 503 (D-84). Wire the real K8 and add the race test together, at the D-84 exit.
 
@@ -391,7 +391,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: terminal deletion, repeated DELETE, publication timestamps, mixed PATCH audit selection, references and field errors.
 
 **Progress (20 Oct):** B#6 commit 2 (Admin Announcement API) is implemented in the working tree and awaits review. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a02-admin-announcement-api.md`. Both criteria above stay open until these items land:
-- **Admin UI:** B#6 commit 3.
+- **Admin UI:** B#6 commit 3 is implemented in the working tree and awaits review (`workflow/handoffs/A-01-A-02/2026-10-20-a01-a02-admin-ui.md`). It covers create (draft), edit, publish and unpublish. Its prompt did not name delete, so there is no Admin UI delete control yet; Developer B decides whether to add one.
 - **AT-06 public half:** blocked on U-01 (Developer A). When U-01 merges, add public GET /announcements checks to `tests/integration/api/admin/admin-announcements.test.ts`: drafts and deleted rows never appear, publish/unpublish/delete change the public list, ordering is published_at DESC, id ASC, and an archived Movie reference has no link.
 
 ### Task A-03: Automatic profanity moderation
