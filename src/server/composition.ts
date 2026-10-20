@@ -31,6 +31,16 @@ import {
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
+import { createPublicMovieReadRepository } from "./repositories/catalogue";
+import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
+import {
+  createPublicCatalogueReadService,
+  type PublicCatalogueReadService,
+} from "./services/catalogue";
+import {
+  createPublicAnnouncementReadService,
+  type PublicAnnouncementReadService,
+} from "./services/announcements";
 import {
   createAuthService,
   createAuthGuards,
@@ -84,6 +94,24 @@ export const reviewsChangedMarker: ReviewsChangedMarker | null =
 /** K7 summary-schedule writes (O-20, D-51); `null` exactly when `database` is. */
 export const summarySchedule: SummarySchedule | null =
   database === null ? null : createSummarySchedule({ sql: database });
+
+/** U-01 public catalogue reads; `null` exactly when the database is unavailable. */
+export const publicCatalogueReadService: PublicCatalogueReadService | null =
+  database === null
+    ? null
+    : createPublicCatalogueReadService({
+        database,
+        movies: createPublicMovieReadRepository({ sql: database }),
+      });
+
+/** U-01 public Announcement reads; `null` exactly when the database is unavailable. */
+export const publicAnnouncementReadService: PublicAnnouncementReadService | null =
+  database === null
+    ? null
+    : createPublicAnnouncementReadService({
+        database,
+        announcements: createPublicAnnouncementReadRepository({ sql: database }),
+      });
 
 /**
  * The K10 runtime (D-71, D-78): with AI enabled and a database, the provider, the real controller and
