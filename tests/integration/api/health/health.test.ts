@@ -9,6 +9,7 @@ vi.mock("next/server", () => ({ connection: () => Promise.resolve() }));
 
 import { READINESS_PROBE_TIMEOUT_MS } from "../../../../src/server/services/health";
 import { expectHealthHeaders, loggedLine } from "../../../unit/health/health-assertions";
+import { connectAsOwner } from "../../database/schema-fixtures";
 import { testDatabaseUrl } from "../../database/test-database";
 
 // Synthetic placeholder values only; none of these are real credentials.
@@ -29,6 +30,9 @@ function coreEnv(databaseUrl: string): Record<string, string> {
     REPORT_SUSPENSION_THRESHOLD: "",
     CRON_SECRET: "",
     AI_ENABLED: "false",
+    ADMIN_BOOTSTRAP_SECRET: "synthetic-admin-bootstrap-secret-0123456789",
+    ADMIN_BOOTSTRAP_EMAIL: "admin@example.test",
+    ADMIN_BOOTSTRAP_PASSWORD: "Synthetic-admin-password1!",
   };
 }
 
@@ -100,24 +104,58 @@ afterEach(async () => {
 });
 
 describe("GET /api/v1/health/ready (AT-26)", () => {
-  it("returns 200 with a reachable database while AI is disabled and CRON_SECRET is missing", async () => {
+  it("returns 503 with a reachable database and no Admin even while bootstrap is configured", async () => {
     const { GET } = await routeWith(coreEnv(testDatabaseUrl()), "ready");
 
     const response = await GET();
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(503);
     expectHealthHeaders(response);
-    expect(await response.text()).toBe('{"status":"ready"}');
-    expect(consoleError).not.toHaveBeenCalled();
+    expect(await response.text()).toBe('{"status":"unavailable"}');
+    expect(loggedLine(consoleError.mock.calls).reason).toBe("admin_bootstrap_required");
   });
 
-  it("returns 200 when AI is enabled but its configuration is invalid", async () => {
+  it("still returns 503 without an Admin when optional AI configuration is invalid", async () => {
     const { GET } = await routeWith({ ...coreEnv(testDatabaseUrl()), AI_ENABLED: "true", AI_PROVIDER: "" }, "ready");
 
     const response = await GET();
 
-    expect(response.status).toBe(200);
-    expect(await response.text()).toBe('{"status":"ready"}');
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('{"status":"unavailable"}');
+  });
+
+  it("returns 503 when no Admin exists and bootstrap configuration is absent", async () => {
+    const env = coreEnv(testDatabaseUrl());
+    delete env.ADMIN_BOOTSTRAP_SECRET;
+    delete env.ADMIN_BOOTSTRAP_EMAIL;
+    delete env.ADMIN_BOOTSTRAP_PASSWORD;
+    const { GET } = await routeWith(env, "ready");
+
+    const response = await GET();
+
+    expect(response.status).toBe(503);
+    expect(await response.text()).toBe('{"status":"unavailable"}');
+    expect(loggedLine(consoleError.mock.calls).reason).toBe("admin_bootstrap_required");
+  });
+
+  it("returns 200 only after an Admin exists", async () => {
+    const owner = await connectAsOwner();
+    try {
+      await owner.query(
+        `INSERT INTO app.account (normalized_email, password_hash, display_name, role, status)
+         VALUES ('readiness-admin@example.test', 'synthetic-hash', 'Readiness Admin', 'ADMIN', 'active')`,
+      );
+      const { GET } = await routeWith(coreEnv(testDatabaseUrl()), "ready");
+
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      expect(await response.text()).toBe('{"status":"ready"}');
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      await owner.query("DELETE FROM app.account WHERE normalized_email = 'readiness-admin@example.test'");
+      await owner.end();
+    }
   });
 
   it("returns 503 without opening a connection when core configuration is invalid", async () => {

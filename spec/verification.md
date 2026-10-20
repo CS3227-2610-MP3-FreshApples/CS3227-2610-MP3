@@ -48,11 +48,17 @@ Security fixtures must include "ignore previous instructions" in reviews, forged
 
 For each release, record test command, source revision, environment, pass/fail result and evidence path. Track requirement → implementation task → automated/manual test → result. Mark unimplemented, untested and deferred items explicitly; do not present this starting specification as evidence of implementation.
 
+The local S-04 Identity mapping is recorded in
+`workflow/handoffs/s04-release-evidence.md`. It intentionally leaves FR-01 and
+AT-01 partial pending the deferred public authentication pages and U-03/R-02,
+and leaves Preview/Production separation, deployed bootstrap/removal, deployed
+health and Vercel secret configuration as operator-required evidence.
+
 - AT-23 (FR-03, FR-09): rating-only edits retain clearance but never clear pending/flagged states. Body edits to published Reviews remove old public eligibility immediately. Clearance updates rating aggregates and summary revision atomically. Approval does not undo author deletion/admin hiding; restoring hidden content does not bypass screening. Duplicate dispatches deduplicate by content revision, and human approval wins over an in-flight AI result.
 - AT-24 (AI-02, DEP-10): simulate a crash after saving pending work but before dispatch, then recover automatically. Verify backoff, maximum 3 failed executions, no attempt charge for capacity deferral, secret-authenticated recovery, fair pending order and no lost work. Measure recovery backlog after an outage under the expected submission workload.
 
 - AT-25 (FR-06, SEC-01): Admin can find a USER and manually suspend them with zero Reports, then unsuspend them. Check reason, CSRF and If-Match enforcement, non-Admin/ADMIN-target rejection, atomic session revocation/audit, fresh-login requirement, same-status no-op, cycle advancement only on reinstatement and serialization with concurrent Report acceptance.
-- AT-26 (health contract): anonymous monitors reach both health endpoints without login redirects. Database outage leaves live at 200 and ready at 503; missing core configuration fails readiness, while AI outage alone does not. Verify generic exact response shapes, no-store, 2-second database timeout, no sensitive details or side effects, and no provider calls.
+- AT-26 (health contract): anonymous monitors reach both health endpoints without login redirects. Database outage leaves live at 200 and ready at 503; missing core configuration fails readiness; zero Admins fails readiness even with valid bootstrap configuration; after first-Admin commit readiness succeeds; AI outage alone does not fail readiness. Verify generic exact response shapes, no-store, the 2-second database-probe timeout, no sensitive details or side effects, and no provider calls.
 
 ### 11.3 A-01/A-02 decision acceptance examples
 

@@ -37,6 +37,10 @@ export type CronConfig =
   | { readonly enabled: true; readonly secret: string }
   | { readonly enabled: false; readonly issues: readonly ConfigIssue[] };
 
+export type AdminBootstrapConfig =
+  | { readonly enabled: true; readonly secret: string; readonly email: string; readonly password: string }
+  | { readonly enabled: false; readonly issues: readonly ConfigIssue[] };
+
 export interface AiSettings {
   readonly provider: AiProvider;
   readonly soc: {
@@ -79,6 +83,7 @@ export type AiConfig =
 export interface AppConfig {
   readonly core: CoreConfigResult;
   readonly cron: CronConfig;
+  readonly bootstrap: AdminBootstrapConfig;
   readonly ai: AiConfig;
   readonly logLevel: LogLevel;
 }

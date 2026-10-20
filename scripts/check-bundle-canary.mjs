@@ -12,6 +12,9 @@ export const CANARY_VARIABLES = [
   "RATE_LIMIT_KEY_SECRET",
   "CRON_SECRET",
   "SOC_LLM_API_KEY",
+  "ADMIN_BOOTSTRAP_EMAIL",
+  "ADMIN_BOOTSTRAP_PASSWORD",
+  "ADMIN_BOOTSTRAP_SECRET",
 ];
 /** Connection strings carry their canary in the password (D-41). */
 const URL_VARIABLES = new Set(["DATABASE_URL", "MIGRATION_DATABASE_URL"]);

@@ -11,7 +11,15 @@ const PORT = 3100;
 const BASE_URL = `http://${HOST}:${PORT}`;
 
 /** Set per run by tests/setup/e2e-run.mjs. */
-function fromWrapper(name: "DATABASE_URL" | "SESSION_SECRET" | "RATE_LIMIT_KEY_SECRET" | "CRON_SECRET"): string {
+function fromWrapper(name:
+  | "DATABASE_URL"
+  | "SESSION_SECRET"
+  | "RATE_LIMIT_KEY_SECRET"
+  | "CRON_SECRET"
+  | "ADMIN_BOOTSTRAP_EMAIL"
+  | "ADMIN_BOOTSTRAP_PASSWORD"
+  | "ADMIN_BOOTSTRAP_SECRET"
+): string {
   const value = process.env[name];
   if (value === undefined || value === "") {
     throw new Error(`${name} is not set; run the suite with npm run test:e2e (D-42)`);
@@ -57,6 +65,9 @@ export default defineConfig({
       SESSION_SECRET: fromWrapper("SESSION_SECRET"),
       RATE_LIMIT_KEY_SECRET: fromWrapper("RATE_LIMIT_KEY_SECRET"),
       CRON_SECRET: fromWrapper("CRON_SECRET"),
+      ADMIN_BOOTSTRAP_EMAIL: fromWrapper("ADMIN_BOOTSTRAP_EMAIL"),
+      ADMIN_BOOTSTRAP_PASSWORD: fromWrapper("ADMIN_BOOTSTRAP_PASSWORD"),
+      ADMIN_BOOTSTRAP_SECRET: fromWrapper("ADMIN_BOOTSTRAP_SECRET"),
     },
   },
 });

@@ -140,6 +140,7 @@ export class TransactionConflict extends Error { readonly kind = "transaction_co
 | --- | --- | --- | --- | --- |
 | 1 | Account (acting User) | `FOR SHARE` | K3 `lockActiveUserShared` | A (Identity) |
 | 1 | Account (status target) | `FOR UPDATE` | K4 `lockUserAccount`, `lockUserAccountAtVersion` | A (Identity) |
+| 1 | Account table (D-83 first-Admin only) | `SHARE ROW EXCLUSIVE` | Identity-internal bootstrap operation | A (Identity) |
 | 2 | Movie | `FOR SHARE` | K7 `lockActiveMovieShared` | B (Catalogue) |
 | 2 | Movie | `FOR UPDATE` | K7 `lockActiveMovieForUpdate`, `lockMovieForUpdate`; Catalogue-internal archive/restore | B (Catalogue) |
 | 3 | Review | `FOR UPDATE` / `FOR SHARE` | K8 `lockReviewForTransition`, `lockReviewsOfMovie`; Reviews-internal write and report-submission paths | A (Reviews) |
@@ -203,6 +204,34 @@ Each step names the contract that performs it. "Unlocked read" is rule 2. Every 
 4. Commit.
 
 This serializes with report acceptance on the Account lock (AT-25).
+
+**D-83 first-Admin bootstrap, Identity-internal, A**
+
+1. Before the Tx, validate and normalize the configured email and validate/hash
+   the password using the same private primitives as public registration.
+2. Tx begins. The first database operation is
+   `LOCK TABLE app.account IN SHARE ROW EXCLUSIVE MODE`.
+3. Query Admin existence after the lock. If an Admin exists, return the typed
+   already-provisioned outcome without an Account or AuditEntry write.
+4. Otherwise insert one active ADMIN through the private Account insertion
+   primitive. Public registration remains a separate named operation that can
+   insert only active USER and accepts no role/mode selector.
+5. On a normalized-email conflict, return a typed safe conflict; never promote
+   an existing USER and write no audit entry.
+6. K5 records `account.admin_provisioned`; commit Account and AuditEntry
+   together. An audit failure rolls back the Account insert.
+7. No `admin_bootstrap` table, completion marker, advisory lock or
+   bootstrap-state repository method exists. Admin existence is the durable
+   idempotency marker.
+
+The deployment-only POST ignores browser identity, cookies, CSRF tokens and
+Origin. Before calling Identity it constant-time compares the separately
+configured high-entropy `ADMIN_BOOTSTRAP_SECRET`; a missing, wrong, disabled or
+removed secret never invokes Identity. The human-approved mapping is recorded
+in `spec/api.md`: configuration/service/dependency unavailability is 503,
+missing or incorrect secret while enabled is 403, normalized-email conflict is
+409, and both created and already-provisioned outcomes are 200 with distinct
+minimal `status` bodies. Availability is checked before the secret.
 
 **Movie archive or restore, A-01, B**
 
@@ -742,7 +771,7 @@ Resolved on 12 October 2026: the human adopted the recommended resolution for ev
 | O-10 | Server-generated `X-Request-Id` response header; inbound IDs ignored | api.md 8.1 |
 | O-11 | zod, strict mode; `Validator<T>` wraps a zod schema | governance.md D-22, tech-stack.md |
 | O-12 | The "422 for insufficient reviews" wording is removed; the summary GET returns 200 `insufficient_reviews`. No DomainError kind is needed | api.md 8.1 |
-| O-13 | `GET /api/v1/auth/csrf` returns `{ csrfToken }` and sets `fa_presession` when there is no session; header `X-CSRF-Token`; cookies `fa_session`/`fa_presession`, `__Host-` prefixed on HTTPS; failure 403 `csrf_failed` | api.md, security.md |
+| O-13 | D-14 defines the complete CSRF wire contract: `GET /api/v1/auth/csrf` returns `csrf_v1.<issuedAt>.<nonce>.<signature>`; HMAC-SHA-256 under `SESSION_SECRET` binds it to the current session or signed pre-session; token TTL is 8 hours; `fa_presession` TTL is 30 minutes; header is `X-CSRF-Token`; hosted cookies are `__Host-`-prefixed, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, with no `Domain`; login clears pre-session and rotates binding; failure is 403 `csrf_failed` | governance.md D-14, api.md, security.md |
 | O-14 | K3 owns the cron-secret guard (`requireCronCaller`); both cron routes use it | §6 below |
 | O-15 | Vercel `x-real-ip`; fixed placeholder locally; verify against Vercel docs before release | security.md |
 | O-16 | Non-USER status target returns 403 `forbidden` | api.md 8.4 |
@@ -844,9 +873,9 @@ export function createConsoleSecurityLog(): SecurityLog;
 | ID | Change | Spec basis |
 | --- | --- | --- |
 | AM-07 | K6 windows, admission and input validity. These cover the epoch-aligned database-clock windows, admission when `count + units <= limit` through one atomic statement, and the read-only `check` (count below the limit, no row created). They also cover `retryAfterSeconds = ceil(window end − now())` with a minimum of 1, and a throw when `limit`, `windowSeconds` or `units` is invalid or `units > limit`. New `purgeExpired()`, called once per invocation by the review-moderation cron route | D-43, D-45 |
-| AM-08 | K6 keys and policies, and the K2 client-IP helper. These cover the `bucket_key` format, HMAC-SHA256 over `<limit>:email:` and `<limit>:ip:`, and raw account UUIDs. They also cover the fixed `RATE_LIMIT_POLICIES` and the SoC policies built by K10 from AI configuration. The composition root injects `clientIpFromVercelHeaders` for `development` and `production` and `placeholderClientIp` otherwise. The S-04 login sequence is check, verify, then consume on failure, with the generic error whatever the consume outcome | D-44, SEC-06 |
+| AM-08 | K6 keys and policies, and the K2 client-IP helper. These cover the `bucket_key` format, HMAC-SHA256 over `<limit>:email:` and `<limit>:ip:`, and raw account UUIDs. They also cover the fixed `RATE_LIMIT_POLICIES` and the SoC policies built by K10 from AI configuration. The composition root injects `clientIpFromVercelHeaders` for `development` and `production` and `placeholderClientIp` otherwise. The S-04 login sequence is check, verify, then consume on every failed-authentication path: unknown email, invalid password and known suspended account all consume one email and one IP unit and return the same generic credential error; pre-throttled requests do not verify or increment; successful active-account login consumes nothing | D-44, SEC-06 |
 | AM-09 | K5 validates every entry with a strict zod schema and throws on a violation. It checks the closed unions, UUID ids and request ID, and flat scalar metadata of at most 20 keys with values of at most 1,000 code points. It also rejects the forbidden key names. Operator commands generate one request ID per run. Metadata is passed to SQL as a JSON string cast to `jsonb`, because `SqlParam` has no object variant (AM-05 unchanged) | D-46 |
-| AM-10 | `SecurityLog` beside K5, with a console implementation and a recording fake in `tests/support/fakes/`. K2 `runRoute` records `access.denied`, `auth.csrf_failed` and `rate_limit.rejected`. Identity records `auth.login_failed` and `auth.login_throttled`. The composition root builds `createAuditLog`, `createRateLimiter`, `createRateLimitKeys` and `createConsoleSecurityLog` from valid core configuration | D-47, D-23 |
+| AM-10 | `SecurityLog` beside K5, with a console implementation and a recording fake in `tests/support/fakes/`. K2/auth handlers record `access.denied` for authenticated 403 authorization denials and `auth.csrf_failed` for CSRF failures; K2/rate-limit consumers record `rate_limit.rejected`. K3 receives the same server-only dependency and records safe `access.denied` events for role/status failures. Identity records `auth.login_failed` and `auth.login_throttled`. Missing/invalid 401 credentials are not logged. The composition root builds `createAuditLog`, `createRateLimiter`, `createRateLimitKeys`, `createConsoleSecurityLog` and the K3 guards from valid core configuration | D-47, D-23 |
 
 ## 20. D-48 amendment (16 October 2026)
 

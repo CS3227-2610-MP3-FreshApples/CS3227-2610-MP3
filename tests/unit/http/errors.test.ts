@@ -58,6 +58,21 @@ describe("K2 request identity and error mapping", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
 
+  it("passes the generated route request ID to the handler request context", async () => {
+    let handlerRequestId: string | null = null;
+    const route = runRoute(async (request) => {
+      handlerRequestId = request.headers.get("x-request-id");
+      return new Response(null, { status: 204 });
+    });
+
+    const response = await route(new Request("https://app.example.test/resource", {
+      headers: { "x-request-id": "client-supplied" },
+    }));
+
+    expect(handlerRequestId).toBe(response.headers.get("x-request-id"));
+    expect(handlerRequestId).not.toBe("client-supplied");
+  });
+
   it("maps transaction conflicts and unexpected errors to safe responses", async () => {
     const conflict = await runRoute(async () => {
       throw new TransactionConflict();

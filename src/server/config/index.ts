@@ -5,6 +5,7 @@ export type {
   AiConfig,
   AiProvider,
   AiSettings,
+  AdminBootstrapConfig,
   AppConfig,
   AppEnv,
   ConfigIssue,

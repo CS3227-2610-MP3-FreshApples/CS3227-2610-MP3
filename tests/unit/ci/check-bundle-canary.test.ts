@@ -14,12 +14,25 @@ const CANARY_ENV: Record<string, string> = {
   RATE_LIMIT_KEY_SECRET: "test-canary-rate-limit-key",
   CRON_SECRET: "test-canary-cron-secret",
   SOC_LLM_API_KEY: "test-canary-soc-llm-api-key",
+  ADMIN_BOOTSTRAP_EMAIL: "test-canary-admin@example.test",
+  ADMIN_BOOTSTRAP_PASSWORD: "test-canary-admin-password1!",
+  ADMIN_BOOTSTRAP_SECRET: "test-canary-admin-bootstrap-secret",
 };
 
 describe("canaryValues", () => {
   it("covers every server-only secret named in D-41", () => {
     expect([...CANARY_VARIABLES].sort()).toEqual(
-      ["CRON_SECRET", "DATABASE_URL", "MIGRATION_DATABASE_URL", "RATE_LIMIT_KEY_SECRET", "SESSION_SECRET", "SOC_LLM_API_KEY"].sort(),
+      [
+        "ADMIN_BOOTSTRAP_EMAIL",
+        "ADMIN_BOOTSTRAP_PASSWORD",
+        "ADMIN_BOOTSTRAP_SECRET",
+        "CRON_SECRET",
+        "DATABASE_URL",
+        "MIGRATION_DATABASE_URL",
+        "RATE_LIMIT_KEY_SECRET",
+        "SESSION_SECRET",
+        "SOC_LLM_API_KEY",
+      ].sort(),
     );
   });
 

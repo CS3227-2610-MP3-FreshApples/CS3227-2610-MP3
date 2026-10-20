@@ -9,21 +9,28 @@ export const READINESS_PROBE_TIMEOUT_MS = 2_000;
  */
 export type ReadinessInput =
   | { readonly invalidCoreVariables: readonly string[] }
-  | { readonly probe: () => Promise<void> };
+  | {
+      readonly probe: () => Promise<void>;
+      readonly adminProvisioned?: () => Promise<boolean>;
+    };
 
 export type ReadinessFailure =
   | { readonly ready: false; readonly reason: "core_config_invalid"; readonly variables: readonly string[] }
-  | { readonly ready: false; readonly reason: "database_unavailable" | "unexpected_error" };
+  | { readonly ready: false; readonly reason: "database_unavailable" | "admin_bootstrap_required" | "unexpected_error" };
 
 export type Readiness = { readonly ready: true } | ReadinessFailure;
 
 const READY: Readiness = { ready: true };
 const DATABASE_UNAVAILABLE: ReadinessFailure = { ready: false, reason: "database_unavailable" };
 
+class DatabaseProbeFailure extends Error {}
+class ReadinessProbeTimeout extends Error {}
+class AdminBootstrapRequired extends Error {}
+
 async function probeWithin(probe: () => Promise<void>, ms: number): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const expired = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Error("readiness probe timed out")), ms);
+    timer = setTimeout(() => reject(new ReadinessProbeTimeout()), ms);
   });
   try {
     await Promise.race([probe(), expired]);
@@ -42,10 +49,27 @@ export async function assessReadiness(input: ReadinessInput): Promise<Readiness>
     return { ready: false, reason: "core_config_invalid", variables: [...new Set(input.invalidCoreVariables)] };
   }
   try {
-    await probeWithin(input.probe, READINESS_PROBE_TIMEOUT_MS);
+    await probeWithin(async () => {
+      try {
+        await input.probe();
+      } catch {
+        throw new DatabaseProbeFailure();
+      }
+      if (input.adminProvisioned !== undefined) {
+        let provisioned: boolean;
+        try {
+          provisioned = await input.adminProvisioned();
+        } catch {
+          throw new DatabaseProbeFailure();
+        }
+        if (!provisioned) throw new AdminBootstrapRequired();
+      }
+    }, READINESS_PROBE_TIMEOUT_MS);
     return READY;
-  } catch {
-    return DATABASE_UNAVAILABLE;
+  } catch (error) {
+    if (error instanceof DatabaseProbeFailure || error instanceof ReadinessProbeTimeout) return DATABASE_UNAVAILABLE;
+    if (error instanceof AdminBootstrapRequired) return { ready: false, reason: "admin_bootstrap_required" };
+    return { ready: false, reason: "unexpected_error" };
   }
 }
 

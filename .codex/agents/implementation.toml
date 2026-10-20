@@ -1,4 +1,6 @@
 name = "implementation"
 description = "Implements only human-approved specifications within an assigned scope."
 sandbox_mode = "workspace-write"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
 developer_instructions = "Read and follow workflow/agents/implementation.md. Write only within the assigned scope after human specification approval, and return the required handoff evidence."
