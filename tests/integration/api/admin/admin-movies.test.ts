@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 vi.mock("server-only", () => ({}));
 
-// K8 `lockReviewsOfMovie` is Developer A's (U-02) and is not on `master` yet. Until it is, the composition
+// D-84: K8 `lockReviewsOfMovie` is Developer A's (U-02) and is not on `master` yet. Until it is, the composition
 // root leaves the archive/restore orchestrator unwired, so these tests wire it with the PostgreSQL-backed
 // stand-in from tests/support/fakes/review-locks.ts. Every other dependency is the real composition.
 vi.mock("../../../../src/server/composition", async (importOriginal) => {

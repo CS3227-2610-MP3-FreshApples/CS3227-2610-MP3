@@ -585,6 +585,8 @@ Otherwise they return `stale`, and on an archived Movie they return `movie_archi
 
 **Fake:** automatic transitions return `stale` and admin transitions return `stale_version` unless scripted. The fake never clears.
 
+**Interim consumer note (D-84):** until U-02 merges, B's archive/restore orchestrator declares a structural `ReviewsOfMovieLock` type with this section's `lockReviewsOfMovie` signature, stays unwired in production (503), and is tested with a test-only PostgreSQL stand-in. The K8 signatures and ownership are unchanged.
+
 ## 12. K9 — Moderation work dispatch
 
 **Provider → consumer:** B → A. **Spec basis:** AI-02 "Automatic dispatch and recovery", FR-09, DEP-10; AT-21, AT-24.

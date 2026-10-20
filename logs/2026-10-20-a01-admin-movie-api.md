@@ -19,7 +19,7 @@
 - Applicable recorded requirement IDs: FR-05, INV-05, INV-09, AT-02; D-20, D-46, D-51, D-79–D-81; contracts §3.3, P-01, P-12.
 - Permitted paths/actions: application code and tests for A-01, the composition root, the handoff and this log.
 - Explicit exclusions: Admin pages, migrations, dependencies, spec edits, git writes.
-- Human approval gates: K8 interim decision recording; diff review; reviewer/tester pass.
+- Human approval gates: K8 interim decision number (assigned D-84 by Developer B); Developer A review of D-84 (approved, reported by Developer B); diff review; reviewer/tester pass.
 
 ## 3. Sources Consulted
 
@@ -39,13 +39,15 @@
 | 2 | Implementation agent | Tests first | Wrote the unit tests (validation, orchestration order) and the API integration test with a PostgreSQL K8 stand-in | — |
 | 3 | Implementation agent | Implement | Added the repository, input schemas, service, orchestrator, composition wiring and routes. Archive/restore are unwired in production until K8 exists | Handoff `workflow/handoffs/A-01-A-02/2026-10-20-a01-admin-movie-api.md` |
 | 4 | Implementation agent | Verify | Ran tsc, lint, unit, integration, build and a mutation check. All passed; the mutations were detected | §8 |
+| 5 | Human | Record the K8 decision | Agent asked for the number (decision IDs are human-assigned). Developer B chose D-84 over the collision-free D-89. Agent recorded D-84 in `spec/governance.md` and referenced it from `workflow/contracts.md` §11, `workflow/PLAN.md` A-01, code comments, the handoff and this log | Developer B's answer in this session |
+| 6 | Human | Suggest a commit message; record Lim-ZY's approval of D-84 | Agent recorded the approval in `spec/governance.md` D-84 as reported by Developer B and suggested a commit message. No git writes | Developer B's report in this session |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
 | Item | Source/decision-maker | Status | Rationale | Affected artifacts |
 | --- | --- | --- | --- | --- |
-| Use option (a) for K8: a B-side structural type and a test stand-in | Human (20 Oct session, per prior log) | approved but **unrecorded** (no decision number) | K8 is A's and is unmerged | orchestrator, composition, tests |
-| `movieArchiveService = null` in production, so archive/restore return 503 until K8 is wired | Agent | proposed | Follows from option (a); avoids duplicating A's Reviews locking in B's module | `src/server/composition.ts` |
+| D-84: use option (a) for K8 (a B-side structural type and a test stand-in) | Developer B (option chosen 20 Oct; number D-84 assigned this session) | approved by both developers (Lim-ZY's approval reported by Developer B, 20 Oct); number collides with `feat/ai-summary-core` D-84 | K8 is A's and is unmerged | `spec/governance.md`, `workflow/contracts.md` §11, `workflow/PLAN.md`, orchestrator, composition, tests |
+| `movieArchiveService = null` in production, so archive/restore return 503 until K8 is wired | Agent proposal, recorded in D-84 | approved by Developer B | Follows from option (a); avoids duplicating A's Reviews locking in B's module | `src/server/composition.ts` |
 | Per-request `runRoute` wrapper for `[id]` routes | Agent | proposed | K2 does not pass the route context; avoids a K2 contract change | `[id]` route files |
 | Empty or non-object PATCH body error key `request` | Agent | proposed | D-80 does not name a key | `movie-input.ts` |
 | Admin Movie projection fields | Agent | proposed | api.md says only "metadata, archive state, version" | `admin-movies.ts` |
@@ -70,6 +72,7 @@
 | `tests/unit/catalogue/movie-input.test.ts`, `movie-archive.test.ts` | Unit tests |
 | `tests/integration/api/admin/admin-movies.test.ts`, `tests/support/fakes/review-locks.ts` | API integration tests, interim K8 stand-in |
 | `workflow/handoffs/A-01-A-02/2026-10-20-a01-admin-movie-api.md`, this log | Handoff and disclosure |
+| `spec/governance.md`, `workflow/contracts.md`, `workflow/PLAN.md` | D-84 recorded and referenced (documentation only) |
 
 - Dependencies added or changed: none (zod 4.6.7 was already pinned).
 - Reused ideas, code, or documentation and attribution: the test login helpers follow `tests/integration/api/auth/admin-guard-consumer.test.ts`.
@@ -101,7 +104,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| K8 option (a) decision not recorded; archive/restore return 503 in deployed builds | A-01 is not complete until K8 is wired | Developer B, Developer A | Record the decision number; wire the real K8 after U-02 merges |
+| D-84 recorded; archive/restore return 503 in deployed builds; D-84 collides with `feat/ai-summary-core` | A-01 is not complete until K8 is wired | Developer B, Developer A | Reconcile numbering at merge; wire the real K8 after U-02 merges |
 | Admin pages and the AT-02 UI round trip | AT-02 is open | Developer B | Next increment |
 | Archive-vs-review race test | §11.3 is open | Developer B, after U-02 | Add with the real K8 |
 | Agent choices (`request` key, projection fields) | Minor contract detail | Developer B | Confirm or amend |

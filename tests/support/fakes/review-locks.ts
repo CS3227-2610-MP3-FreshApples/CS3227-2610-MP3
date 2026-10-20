@@ -8,7 +8,7 @@ export interface RecordingReviewsOfMovieLock extends ReviewsOfMovieLock {
 }
 
 /**
- * Interim K8 stand-in for archive/restore tests until U-02 (Developer A) merges the real
+ * Interim K8 stand-in (D-84) for archive/restore tests until U-02 (Developer A) merges the real
  * `lockReviewsOfMovie` (workflow/contracts.md §11). It takes the same locks the contract names: every
  * Review of the Movie `FOR UPDATE` in ascending id order (D-20, D-79). Replace it with the real K8 once
  * U-02 is on `master`.

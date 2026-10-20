@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Task ID | A-01 (API half; Admin pages not in this increment) |
-| Requirement/decision IDs | FR-05, INV-05, INV-09, AT-02; D-20, D-46, D-51, D-79, D-80, D-81; contracts §3.3, K2, K3, K5, K7, K8, P-01, P-12 |
+| Requirement/decision IDs | FR-05, INV-05, INV-09, AT-02; D-20, D-46, D-51, D-79, D-80, D-81, D-84; contracts §3.3, K2, K3, K5, K7, K8, P-01, P-12 |
 | Source revision | `7d7c574` on `feat/admin-catalogue` (uncommitted working tree) |
 | Permitted paths/actions | `src/app/api/v1/admin/movies/**`, `src/server/{repositories,services}/catalogue*/**`, `src/server/composition.ts`, `tests/**`; no migrations, dependencies, git writes or spec edits |
-| Next action | Human: record the K8 interim decision (see Gaps), review the diff, then hand off to the code-quality/test agent and the reviewer/tester |
+| Next action | Human: Developer B reviews the diff, then hand off to the code-quality/test agent and the reviewer/tester |
 
 ## Endpoints
 
@@ -62,7 +62,7 @@ Covered from the task brief: USER → 403 with no mutation or audit, on all six 
 
 ## Known gaps and unverified items
 
-1. **K8 is not available. The decision is unrecorded.** The real `lockReviewsOfMovie` is Developer A's (U-02) and is not on any branch. On 20 Oct the human chose option (a), a B-side structural type with a test fake (`logs/2026-10-20-b6-readiness-merge-and-renumbering.md`), but no decision number has been recorded because of the D-number clash with `feat/ai-summary-core`. Consequences now in the code:
+1. **K8 is not available (D-84).** The real `lockReviewsOfMovie` is Developer A's (U-02) and is not on any branch. D-84 (`spec/governance.md`) records the interim option: a B-side structural type with a test stand-in. Both developers approved it on 20 Oct (Lim-ZY's approval as reported by Developer B). `feat/ai-summary-core` also uses D-84, so the numbering must be reconciled at merge. Consequences now in the code:
    - `movieArchiveService` is `null` in the composition root, so in a deployed build DELETE and restore return **503 `service_unavailable`** until K8 is wired.
    - The archive/restore API tests inject the orchestrator through a partial `vi.mock` of the composition root, with the PostgreSQL stand-in in place of K8.
    - When U-02 merges, wire `createMovieArchiveService` with the real K8, delete the stand-in and the mock, and rerun the suite.

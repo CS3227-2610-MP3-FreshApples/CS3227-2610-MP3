@@ -15,7 +15,7 @@ import {
 
 /**
  * The K8 operation this orchestrator needs (workflow/contracts.md §11): every Review of the Movie
- * `FOR UPDATE` in ascending id order. Developer A's Reviews module (U-02) provides the implementation.
+ * `FOR UPDATE` in ascending id order. Developer A's Reviews module (U-02) provides the implementation (D-84).
  */
 export interface ReviewsOfMovieLock {
   lockReviewsOfMovie(tx: Tx, movie: MovieUpdateLock): Promise<void>;

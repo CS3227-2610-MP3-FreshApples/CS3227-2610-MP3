@@ -96,7 +96,7 @@ export const adminMovieService: AdminMovieService | null =
     : createAdminMovieService({ database, movies: createAdminMovieRepository({ sql: database }), auditLog });
 
 /**
- * Movie archive/restore orchestrator (P-12). Unwired until U-02 (Developer A) provides K8
+ * Movie archive/restore orchestrator (P-12, D-84). Unwired until U-02 (Developer A) provides K8
  * `lockReviewsOfMovie`; the archive and restore routes return 503 until then. Wire it with
  * `createMovieArchiveService` from ./services/catalogue-archive once K8 is on `master`.
  */
