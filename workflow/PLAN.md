@@ -28,7 +28,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
 | U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
-| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | Ready |
+| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | Blocked |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
 | A-04 | B | Admin review queue: approve, hide, restore | A-03, U-02 | 18 Oct | Blocked |
@@ -374,6 +374,11 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Acceptance Criteria:**
 - [ ] AT-02 round trip with U-01 public views. Derived/actor fields rejected. Stale write → 409 with no change. USER → 403.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: repeated actions, normalized no-ops, clearing, stable list ordering, DELETE ETag, restore response and atomic audit/revision behavior.
+
+**Progress (20 Oct):** B#6 commit 1 (Admin Movie API) is in `740533a`. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a01-admin-movie-api.md`. Both criteria above stay open until these items land:
+- **Admin UI:** B#6 commit 3.
+- **AT-02 public round trip:** blocked on U-01 (Developer A). When U-01 merges, replace the `archived_at` column assertion in `tests/integration/api/admin/admin-movies.test.ts` with a public GET /movies check, and cover the UI round trip in commit 3.
+- **Archive vs review-submission race (verification §11.3) and archive/restore in deployed builds:** blocked on U-02. These currently return 503 (D-84). Wire the real K8 and add the race test together, at the D-84 exit.
 
 ### Task A-02: Admin announcements
 

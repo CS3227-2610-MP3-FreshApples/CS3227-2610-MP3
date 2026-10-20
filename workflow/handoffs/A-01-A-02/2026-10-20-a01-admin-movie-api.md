@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Task ID | A-01 (API half; Admin pages not in this increment) |
+| Task ID | A-01, B#6 commit 1 (API only; the Admin pages are B#6 commit 3) |
 | Requirement/decision IDs | FR-05, INV-05, INV-09, AT-02; D-20, D-46, D-51, D-79, D-80, D-81, D-84; contracts §3.3, K2, K3, K5, K7, K8, P-01, P-12 |
 | Source revision | `7d7c574` on `feat/admin-catalogue` (uncommitted working tree) |
 | Permitted paths/actions | `src/app/api/v1/admin/movies/**`, `src/server/{repositories,services}/catalogue*/**`, `src/server/composition.ts`, `tests/**`; no migrations, dependencies, git writes or spec edits |
@@ -66,8 +66,9 @@ Covered from the task brief: USER → 403 with no mutation or audit, on all six 
    - `movieArchiveService` is `null` in the composition root, so in a deployed build DELETE and restore return **503 `service_unavailable`** until K8 is wired.
    - The archive/restore API tests inject the orchestrator through a partial `vi.mock` of the composition root, with the PostgreSQL stand-in in place of K8.
    - When U-02 merges, wire `createMovieArchiveService` with the real K8, delete the stand-in and the mock, and rerun the suite.
-2. Admin pages (`/admin/movies` UI, a confirmation dialog naming the Movie) are not implemented. The AT-02 UI round trip with U-01 is still open.
-3. The archive-vs-review-submission race (§11.3) needs U-02's review write path and is not tested.
-4. Agent choice to confirm: a PATCH with an empty object, or a non-object body, reports its field error under the key `request`. D-80 does not name the key.
-5. Agent choice to confirm: the Admin Movie projection is `id, title, synopsis, releaseDate, genres, director, cast, runtimeMinutes, archivedAt, version, createdAt, updatedAt`, with no summary or revision internals. api.md names only "current metadata, archive state, version".
-6. The PLAN.md tracker row for A-01 is not updated.
+2. Out of commit 1 scope: the Admin pages (B#6 commit 3) and the AT-02 UI round trip with U-01.
+3. Blocked on U-02: the archive-vs-review-submission race (§11.3). Tracked in the PLAN.md A-01 progress note and the D-84 exit.
+4. Resolved 20 Oct (Developer B): an empty or non-object PATCH body reports its field error under the key `request`.
+5. Resolved 20 Oct (Developer B): the Admin Movie projection is `id, title, synopsis, releaseDate, genres, director, cast, runtimeMinutes, archivedAt, version, createdAt, updatedAt`, with no summary or revision internals.
+6. Resolved 20 Oct: the PLAN.md A-01 row is set to In progress, with a progress note listing the remaining items.
+7. Observed, not in scope: `tests/integration/api/auth/csrf-boundary.test.ts` (S-04, Developer A) failed once in four integration runs (expiry case: 204 instead of 401). The likely cause is that the local container's clock is about 1 s ahead of the host, against the test's 1-second margin. Reported to Developer A.
