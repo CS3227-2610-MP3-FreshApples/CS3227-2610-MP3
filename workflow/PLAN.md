@@ -328,7 +328,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Description:** Root layout and separate `/app` and `/admin` navigation shells. K12 primitives with labelled inputs, field-associated errors, visible focus, status not shown by colour alone, a polite live region, and a confirmation dialog that names its target. Rating display `8/10` and aggregate `8.3/10`.
 **Acceptance Criteria:**
 - [ ] Components are keyboard-operable (manual checklist recorded) and do not import `src/server`.
-- [ ] B has reviewed the component API before A-01 starts.
+- [x] B has reviewed the component API before A-01 starts.
 
 ### Task U-01: Public catalogue, details, announcements (read)
 
@@ -369,7 +369,8 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 **Owner:** B. **Depends on:** S-04 (guards), S-05, S-07. **Reqs:** FR-05, INV-05, INV-09, AT-02.
 **Description:** `/admin/movies` CRUD, archive (soft, with a confirmation naming the Movie) and restore. Writable fields only, with If-Match. Archive/restore bump `reviews_revision` (restored → summary pending). Audited. Admin pages.
-**Decision resolution (19 Oct):** D-79–D-81 define repeated actions, no-op/version behavior, input defaults/clearing, ordering and bodyless DELETE ETags. Actual archive/restore alone advances `reviews_revision`; no-ops preserve markers and timestamps. No implementation readiness is implied: S-04/S-07 dependency evidence and B's S-07 component review remain to be recorded. Shared-contract cross-review is complete: Lim-ZY approved D-79–D-81 on 20 Oct. The archive/restore implementation also requires the real K8 `lockReviewsOfMovie` from U-02 (a fake suffices only for isolated orchestration tests).
+**Decision resolution (19 Oct):** D-79–D-81 define repeated actions, no-op/version behavior, input defaults/clearing, ordering and bodyless DELETE ETags. Actual archive/restore alone advances `reviews_revision`; no-ops preserve markers and timestamps. Shared-contract cross-review is complete: Lim-ZY approved D-79–D-81 on 20 Oct. The archive/restore implementation also requires the real K8 `lockReviewsOfMovie` from U-02 (a fake suffices only for isolated orchestration tests).
+**Readiness evidence (20 Oct):** S-04 is merged (PR #13). The K3 Admin guards and CSRF that A-01 consumes pass S04-AC-01 (`tests/integration/api/auth/admin-guard-consumer.test.ts`, recorded in `workflow/handoffs/s04-release-evidence.md`). S-04's open AT-01 E2E and Vercel operator evidence do not affect A-01; they stay tracked under S-04, R-02 and R-04. S-07 is merged (PR #10) and B reviewed the K12 component API on 20 Oct (S-07 acceptance). S-05 is merged (PR #9).
 **Acceptance Criteria:**
 - [ ] AT-02 round trip with U-01 public views. Derived/actor fields rejected. Stale write → 409 with no change. USER → 403.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: repeated actions, normalized no-ops, clearing, stable list ordering, DELETE ETag, restore response and atomic audit/revision behavior.
@@ -378,7 +379,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 **Owner:** B. **Depends on:** A-01. **Reqs:** FR-07, AT-06.
 **Description:** `/admin/announcements` create (draft), edit, publish/unpublish (republish sets a new `published_at`), soft delete, audited. Archived Movie reference keeps the announcement but omits the public link.
-**Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review is complete (Lim-ZY approved D-79–D-81 on 20 Oct). A-01 readiness remains a prerequisite; this entry does not mark the task Ready.
+**Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review is complete (Lim-ZY approved D-79–D-81 on 20 Oct). A-01 was set Ready on 20 Oct. Only a human sets A-02 Ready; this entry does not.
 **Acceptance Criteria:**
 - [ ] AT-06; empty/oversize content rejected; drafts never appear through U-01 endpoints.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: terminal deletion, repeated DELETE, publication timestamps, mixed PATCH audit selection, references and field errors.
