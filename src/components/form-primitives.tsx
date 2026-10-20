@@ -21,7 +21,7 @@ export function FormField({ children, error, hint, label, name }: FormFieldProps
       {cloneElement(control, {
         "aria-describedby": describedBy || undefined,
         "aria-invalid": error ? true : undefined,
-        className: `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700${control.props.className ? ` ${control.props.className}` : ""}`,
+        className: `rounded-md border border-slate-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700${control.props.className ? ` ${control.props.className}` : ""}`,
         id: name,
         name,
       })}
@@ -38,12 +38,12 @@ type TextFieldProps = Readonly<{
   name?: string;
 }> & Omit<InputHTMLAttributes<HTMLInputElement>, "aria-describedby" | "id" | "name">;
 
-export function TextField({ error, hint, id, label, name, ...inputProps }: TextFieldProps) {
+export function TextField({ autoComplete, error, hint, id, label, name, ...inputProps }: TextFieldProps) {
   const fieldName = name ?? id ?? "field";
 
   return (
     <FormField error={error} hint={hint} label={label} name={fieldName}>
-      <input {...inputProps} />
+      <input {...inputProps} autoComplete={autoComplete} />
     </FormField>
   );
 }
