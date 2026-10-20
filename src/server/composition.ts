@@ -31,6 +31,8 @@ import {
   type SummarySchedule,
 } from "./services/catalogue";
 import type { MovieArchiveService } from "./services/catalogue-archive";
+import { createAdminAnnouncementService, type AdminAnnouncementService } from "./services/announcements";
+import { createAnnouncementRepository } from "./repositories/announcements";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAdminMovieRepository } from "./repositories/catalogue";
@@ -101,6 +103,16 @@ export const adminMovieService: AdminMovieService | null =
  * `createMovieArchiveService` from ./services/catalogue-archive once K8 is on `master`.
  */
 export const movieArchiveService: MovieArchiveService | null = null;
+
+/** FR-07 Admin Announcement reads and writes; `null` exactly when `database` is. */
+export const adminAnnouncementService: AdminAnnouncementService | null =
+  database === null || auditLog === null
+    ? null
+    : createAdminAnnouncementService({
+        database,
+        announcements: createAnnouncementRepository({ sql: database }),
+        auditLog,
+      });
 
 /**
  * The K10 runtime (D-71, D-78): with AI enabled and a database, the provider, the real controller and

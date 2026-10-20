@@ -29,7 +29,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
 | U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
-| A-02 | B | Admin announcements | A-01 | 16 Oct | Blocked |
+| A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
 | A-04 | B | Admin review queue: approve, hide, restore | A-03, U-02 | 18 Oct | Blocked |
 | A-05 | B | Report decisions, strikes, threshold suspension | U-03, S-04 | 19 Oct | Blocked |
@@ -385,9 +385,14 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Owner:** B. **Depends on:** A-01. **Reqs:** FR-07, AT-06.
 **Description:** `/admin/announcements` create (draft), edit, publish/unpublish (republish sets a new `published_at`), soft delete, audited. Archived Movie reference keeps the announcement but omits the public link.
 **Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review is complete (Lim-ZY approved D-79–D-81 on 20 Oct). A-01 was set Ready on 20 Oct. Only a human sets A-02 Ready; this entry does not.
+**Readiness (20 Oct):** Developer B set A-02 Ready. A-02 needs only A-01's Admin guards and Movie rows; both are on `feat/admin-catalogue` (`740533a`). A-01's open items (UI, U-01 round trip, K8 wiring) do not affect A-02. The API is B#6 commit 2 on the same branch. Developer B's choices, as for A-01: the Admin Announcement projection is `id, title, body, movieId, state, publishedAt, authorId, version, createdAt, updatedAt`; GET /admin/announcements returns every state with no filter parameter; an empty or non-object PATCH body reports under the key `request`. U-01 is not merged, so the "drafts never appear through U-01 endpoints" criterion and AT-06's public half stay open until it merges; until then the tests assert the stored state.
 **Acceptance Criteria:**
 - [ ] AT-06; empty/oversize content rejected; drafts never appear through U-01 endpoints.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: terminal deletion, repeated DELETE, publication timestamps, mixed PATCH audit selection, references and field errors.
+
+**Progress (20 Oct):** B#6 commit 2 (Admin Announcement API) is implemented in the working tree and awaits review. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a02-admin-announcement-api.md`. Both criteria above stay open until these items land:
+- **Admin UI:** B#6 commit 3.
+- **AT-06 public half:** blocked on U-01 (Developer A). When U-01 merges, add public GET /announcements checks to `tests/integration/api/admin/admin-announcements.test.ts`: drafts and deleted rows never appear, publish/unpublish/delete change the public list, ordering is published_at DESC, id ASC, and an archived Movie reference has no link.
 
 ### Task A-03: Automatic profanity moderation
 
