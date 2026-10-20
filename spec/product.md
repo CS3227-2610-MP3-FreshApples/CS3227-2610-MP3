@@ -96,7 +96,7 @@ Duplicate normalized email, invalid credentials, expired session and suspended a
 
 #### Requirements
 
-Show paginated text listings with title, release year, genres, average rating and review count. Support case-insensitive title search and newest-release/title sorting. Detail pages include synopsis, director, cast, release date, genres, runtime and visible reviews.
+Show paginated text listings with title, release year, genres, average rating and review count. Support case-insensitive title search and newest-release/title sorting. Detail pages include synopsis, director, cast, release date, genres, runtime and visible reviews. U-01 owns the public movie metadata and aggregate read; U-02 owns the visible review listing and its public endpoint.
 
 #### Acceptance Criteria
 
@@ -178,7 +178,7 @@ Drafts never appear through public APIs. Publishing exposes the approved content
 
 #### Edge Cases
 
-Archived associated Movies do not break the announcement. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
+Archived associated Movies do not break the announcement: the public announcement remains readable and its movie reference is null while the Movie is archived. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
 
 ### 4.8 Public AI Review Summary (FR-08)
 

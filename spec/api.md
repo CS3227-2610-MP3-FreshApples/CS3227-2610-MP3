@@ -6,7 +6,9 @@
 
 Base path: /api/v1, implemented by Next.js App Router Route Handlers using the Node.js runtime. JSON requests/responses; reject unknown mutation fields with 422. Successful reads/updates return 200, creates 201, deletes/logout 204, and references to already-running AI work 202. Cookies carry sessions; state-changing browser requests require CSRF protection. IDs, ownership, roles and account status are validated server-side.
 
-Lists return { items, page, pageSize, total }; page starts at 1, pageSize defaults to 20 and caps at 100. Non-integer, zero, negative or over-cap page/pageSize values return 422; they are not clamped. Stable ordering always includes ID. Timestamps use ISO 8601 UTC. Private responses use Cache-Control: no-store.
+Lists return { items, page, pageSize, total }; page starts at 1, pageSize defaults to 20 and caps at 100. Non-integer, zero, negative or over-cap page/pageSize values return 422; they are not clamped. Stable ordering always includes ID. Timestamps use ISO 8601 UTC. Private responses use Cache-Control: no-store. Public changing reads also use `Cache-Control: no-store` during the initial release.
+
+Public catalogue query semantics: `q` is optional and is trimmed before validation and case-insensitive title matching. An omitted `q`, an empty `q`, and a `q` containing only trim-able whitespace all mean no title filter. A non-empty `q` longer than 200 Unicode code points returns 422. `release_desc` orders known release dates newest first, places null release dates last, and uses ascending ID as the tie-breaker; `title_asc` orders case-insensitively by title and uses ascending ID as the tie-breaker. Public pages use Server Components that call the corresponding server-side read services directly; the Route Handlers remain the versioned HTTP contract for browser/API consumers.
 
 Errors have { error: { code, message, fieldErrors?, requestId } }. Use 400 for malformed input, 401 for no valid session, 403 for forbidden role/status or failed CSRF/Origin checks, 404 for missing or ownership-protected objects (including malformed path IDs), 409 for conflicts/stale writes, 413 for bodies over 32 KiB, 415 for unsupported content types, 422 for valid JSON with invalid or unknown fields, 428 for a missing If-Match, 429 for limits (with Retry-After), 500 for unexpected server faults, and 503 for unavailable dependencies. Never return stack traces or provider raw errors. Every response carries a server-generated X-Request-Id header equal to error.requestId; inbound request IDs are ignored.
 
@@ -36,7 +38,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /auth/csrf | Anonymous or authenticated | { csrfToken } for the X-CSRF-Token header; sets the pre-session cookie when no session exists (security.md, D-14) |
 | POST /internal/bootstrap/admin | Deployment operator secret only | 200 `{ status: "created" | "already_provisioned" }`; ignores browser identity, cookies, CSRF and Origin (D-51) |
 | GET /movies | Public | q ≤200, sort=release_desc/title_asc, page, pageSize → active Movie summaries |
-| GET /movies/:id | Public | active Movie detail and aggregate |
+| GET /movies/:id | Public | active Movie detail and aggregate; synopsis, director, cast, release date, genres, runtime, average rating and review count; visible review listings belong to GET /movies/:id/reviews in U-02 |
 | GET /movies/:id/reviews | Public | page, pageSize; newest first → visible Review projections |
 | POST /movies/:id/reviews | User | rating, body → own Review; restores author-deleted row when allowed |
 | PATCH /reviews/:id | Owning User | rating and/or body → updated Review |
@@ -45,7 +47,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /reports | User | reviewId, category, explanation → own Report receipt |
 | GET /me/reports | User | Reports submitted by caller only, page, pageSize |
 | GET /me/reports/:id | Owning User | submitted report status/disposition; never reports received; no private evidence history or notes |
-| GET /announcements | Public | published announcements, page, pageSize |
+| GET /announcements | Public | published announcements, page, pageSize → `{ id, publishedAt, title, body, movie }`; `movie` is `{ id, title }` for an active referenced Movie and `null` for no reference or an archived referenced Movie |
 | GET /movies/:id/summary | Public | current summary state/output; never starts generation |
 | GET /internal/cron/summaries | Scheduler secret only | bounded daily sweep; process pending Movies; no browser/session access |
 | GET /internal/cron/review-moderation | Scheduler secret only | bounded automatic recovery of due review checks |
