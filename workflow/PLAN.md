@@ -28,7 +28,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
 | U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
-| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | Blocked |
+| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | Ready |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | Blocked |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
 | A-04 | B | Admin review queue: approve, hide, restore | A-03, U-02 | 18 Oct | Blocked |
@@ -369,7 +369,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 **Owner:** B. **Depends on:** S-04 (guards), S-05, S-07. **Reqs:** FR-05, INV-05, INV-09, AT-02.
 **Description:** `/admin/movies` CRUD, archive (soft, with a confirmation naming the Movie) and restore. Writable fields only, with If-Match. Archive/restore bump `reviews_revision` (restored → summary pending). Audited. Admin pages.
-**Decision resolution (19 Oct):** D-79–D-81 define repeated actions, no-op/version behavior, input defaults/clearing, ordering and bodyless DELETE ETags. Actual archive/restore alone advances `reviews_revision`; no-ops preserve markers and timestamps. No implementation readiness is implied: S-04/S-07 dependency evidence, B's S-07 component review and shared-contract cross-review remain to be recorded. The archive/restore implementation also requires the real K8 `lockReviewsOfMovie` from U-02 (a fake suffices only for isolated orchestration tests).
+**Decision resolution (19 Oct):** D-79–D-81 define repeated actions, no-op/version behavior, input defaults/clearing, ordering and bodyless DELETE ETags. Actual archive/restore alone advances `reviews_revision`; no-ops preserve markers and timestamps. No implementation readiness is implied: S-04/S-07 dependency evidence and B's S-07 component review remain to be recorded. Shared-contract cross-review is complete: Lim-ZY approved D-79–D-81 on 20 Oct. The archive/restore implementation also requires the real K8 `lockReviewsOfMovie` from U-02 (a fake suffices only for isolated orchestration tests).
 **Acceptance Criteria:**
 - [ ] AT-02 round trip with U-01 public views. Derived/actor fields rejected. Stale write → 409 with no change. USER → 403.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: repeated actions, normalized no-ops, clearing, stable list ordering, DELETE ETag, restore response and atomic audit/revision behavior.
@@ -378,7 +378,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 **Owner:** B. **Depends on:** A-01. **Reqs:** FR-07, AT-06.
 **Description:** `/admin/announcements` create (draft), edit, publish/unpublish (republish sets a new `published_at`), soft delete, audited. Archived Movie reference keeps the announcement but omits the public link.
-**Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review and A-01 readiness remain prerequisites; this entry does not mark the task Ready.
+**Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review is complete (Lim-ZY approved D-79–D-81 on 20 Oct). A-01 readiness remains a prerequisite; this entry does not mark the task Ready.
 **Acceptance Criteria:**
 - [ ] AT-06; empty/oversize content rejected; drafts never appear through U-01 endpoints.
 - [ ] D-79–D-81 acceptance examples in spec/verification.md: terminal deletion, repeated DELETE, publication timestamps, mixed PATCH audit selection, references and field errors.
