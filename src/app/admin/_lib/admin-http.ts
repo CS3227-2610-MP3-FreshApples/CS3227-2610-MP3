@@ -24,6 +24,14 @@ export type AdminFailure = Readonly<{
 
 export type AdminResult<T> = Readonly<{ ok: true; value: T }> | AdminFailure;
 
+export type AdminAccount = Readonly<{
+  displayName: string;
+  role: "ADMIN";
+  status: "active";
+}>;
+
+export type LogoutResult = Readonly<{ ok: true }> | Readonly<{ ok: false; message: string }>;
+
 export type ListPage<T> = Readonly<{
   items: readonly T[];
   page: number;
@@ -78,6 +86,14 @@ async function readErrorBody(response: Response): Promise<Record<string, unknown
   } catch {
     return null;
   }
+}
+
+function isAdminAccount(value: unknown): value is AdminAccount {
+  const account = record(value);
+  return account !== null
+    && typeof account.displayName === "string"
+    && account.role === "ADMIN"
+    && account.status === "active";
 }
 
 /** Maps an API error response (api.md 8.1 error contract) to a safe, user-facing failure. */
@@ -135,6 +151,36 @@ async function csrfToken(fetcher: Fetcher): Promise<string | null> {
   if (!response.ok) return null;
   const token = record(await response.json())?.csrfToken;
   return typeof token === "string" && token.length > 0 ? token : null;
+}
+
+/** Reads the active Admin projection used by the Admin shell. */
+export async function getAdminAccount(fetcher: Fetcher): Promise<AdminResult<AdminAccount>> {
+  try {
+    const response = await fetcher("/api/v1/auth/me", { cache: "no-store", credentials: "same-origin" });
+    if (!response.ok) return failureFromResponse(response);
+    const body: unknown = await response.json();
+    return isAdminAccount(body) ? { ok: true, value: body } : failure("unavailable");
+  } catch {
+    return failure("unavailable");
+  }
+}
+
+/** Logs out an Admin through the same CSRF-aware request sequence as other Admin mutations. */
+export async function adminLogout(fetcher: Fetcher, replace: (href: string) => void): Promise<LogoutResult> {
+  try {
+    const token = await csrfToken(fetcher);
+    if (token === null) return { ok: false, message: "We couldn’t sign you out right now. Please try again." };
+    const response = await fetcher("/api/v1/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRF-Token": token },
+    });
+    if (response.status !== 204) return { ok: false, message: "We couldn’t sign you out right now. Please try again." };
+    replace("/sign-in");
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "We couldn’t sign you out right now. Please try again." };
+  }
 }
 
 /**
