@@ -4,7 +4,7 @@
 - **Reviewed revision:** `c7f29ed` on `feat/ai-summary-core` (D-86–D-92 and AM-23–AM-24 approved by both developers).
 - **Resolutions:** `d72e8bb` (D-93, AM-25) and `1786886` (D-94, D-95, B#14 paths).
 - **Authorization:** the human (thegrimbee, Developer B) ran the read-only architect preflight, then instructed the agent to resolve every blocker as the agent recommended, with multiple commits allowed. The work was limited to spec, contract and plan text: no code, tests, migrations, push or PR.
-- **Approval state:** D-93–D-95 and AM-25 are recorded by Developer B; Developer A's (Lim-ZY) approval is pending.
+- **Approval state:** D-93–D-95 and AM-25 were recorded by Developer B and approved by both developers on 21 October 2026. Lim-ZY's approval is recorded as reported by Developer B.
 
 ## Findings and resolutions
 
@@ -39,4 +39,4 @@
 
 ## Next action
 
-Developer A reviews D-93–D-95 and AM-25. After approval, set U-04a to `Ready` and give the implementation agent D-86–D-93, AM-23 and AM-25, and the D-93 test requirements.
+A human sets U-04a to `Ready` and gives the implementation agent D-86–D-93, AM-23 and AM-25, and the D-93 test requirements.

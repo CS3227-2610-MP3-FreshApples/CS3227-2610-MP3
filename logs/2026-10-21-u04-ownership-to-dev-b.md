@@ -28,7 +28,6 @@
 | `workflow/COMMIT-PLAN.md`, `workflow/PLAN.md` | Plan of record | Current A#9/A#10, B#7 and U-04 rows |
 | `spec/governance.md` | Recorded decisions | Highest decision number on `master` (D-84); team ownership table |
 | Commit `855f3ca` on local `feat/ai-summary-core` | Earlier draft by thegrimbee | Wording of the reassignment, reapplied under a new number |
-| `references/DEV-B-COMMIT-PLAN.md` | Personal notes (gitignored) | B#7 dependency on A#6 |
 
 ## 4. Interaction Timeline
 

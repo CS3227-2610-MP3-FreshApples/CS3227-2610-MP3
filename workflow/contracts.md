@@ -4,7 +4,7 @@ Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by th
 
 A-01/A-02 clarification (19 October 2026): D-79–D-81 are recorded under the current human requester's delegated decision authority. Their edits to §3.3, K2 and K5 change no signatures. **Status: approved by both developers (Lim-ZY and thegrimbee) on 20 October 2026.** The K8 no-op wording and K2 historical notes are corrected to match existing authoritative specifications.
 
-Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers. The U-04a amendments (§26) are approved by both developers. The U-04a architect-review amendments (§27) await Developer A's approval.
+Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers. The U-04a amendments (§26) are approved by both developers. The U-04a architect-review amendments (§27) are approved by both developers.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -946,7 +946,7 @@ These amendments came from the U-04a analyst preflight. Developer B (thegrimbee)
 
 ## 27. U-04a architect-review amendments (21 October 2026)
 
-These amendments came from the U-04a architect preflight. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: recorded by Developer B; approval by Developer A (Lim-ZY) pending.** No signature in K7 or K10 changes.
+These amendments came from the U-04a architect preflight. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B.** No signature in K7 or K10 changes.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |

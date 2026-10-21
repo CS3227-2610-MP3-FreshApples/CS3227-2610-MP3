@@ -27,7 +27,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Ready |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Ready |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
-| U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect findings resolved in D-93–D-95, awaiting Developer A's approval) |
+| U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect findings resolved in D-93–D-95, approved 21 Oct) |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
