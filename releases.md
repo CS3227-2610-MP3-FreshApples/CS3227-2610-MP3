@@ -6,7 +6,7 @@ FreshApples is under active development. No production application release has b
 
 The product website is deployed independently through GitHub Pages. The Next.js application will use a separate free Vercel domain when it is ready for release.
 
-## D-51 first-Admin bootstrap evidence
+## D-83 first-Admin bootstrap evidence
 
 The following checklist is the deterministic release record for the operator-only Vercel environment-variable removal procedure in `spec/deployment.md` 10.3. It is an evidence template, not proof that the Vercel control plane was executed. A human deployment operator must complete and retain it outside the repository with secrets and environment values redacted.
 
