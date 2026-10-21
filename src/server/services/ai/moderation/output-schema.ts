@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import type { Result } from "../../../shared";
-import { codePointCount, isSafeText, parseJsonContent } from "../output-text";
+import { codePointCount, isSafeText, isStorableText, parseJsonContent } from "../output-text";
 
 /** AI-02 bounds, in Unicode code points (D-100). */
 export const MODERATION_EXPLANATION_MAX_CODE_POINTS = 800;
@@ -58,8 +58,12 @@ const moderationOutputSchema = z.strictObject({
   matches: z
     .array(
       z.strictObject({
-        // Not trimmed and not safe-text checked: it must copy the body exactly (D-100).
-        quote: z.string().refine((value) => inRange(value, MODERATION_QUOTE_MAX_CODE_POINTS)),
+        // Not trimmed and not safe-text checked: it must copy the body exactly (D-100). It must still be storable,
+        // so half of a surrogate pair copied from the body is rejected (D-103).
+        quote: z
+          .string()
+          .refine((value) => inRange(value, MODERATION_QUOTE_MAX_CODE_POINTS))
+          .refine(isStorableText),
         reason: boundedText(MODERATION_REASON_MAX_CODE_POINTS),
       }),
     )

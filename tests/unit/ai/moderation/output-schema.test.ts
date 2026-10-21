@@ -165,6 +165,19 @@ describe("rejected output (AI-02, AI-04)", () => {
     expect(valid({ ...VALID, limitations: ["<img src=x>"] })).toBe(false);
   });
 
+  it("rejects a quote holding half of a surrogate pair copied from the body (D-103)", () => {
+    const body = "Great film 😀 overall.";
+    const half = "😀".slice(0, 1);
+
+    expect(body.includes(half)).toBe(true);
+    expect(valid({ ...VALID, assessment: "uncertain", matches: [{ quote: half, reason: "Half a pair." }] }, body)).toBe(
+      false,
+    );
+    expect(valid({ ...VALID, assessment: "uncertain", matches: [{ quote: "😀", reason: "Whole pair." }] }, body)).toBe(
+      true,
+    );
+  });
+
   it("rejects control characters and lone surrogates outside quotes", () => {
     expect(valid({ ...VALID, explanation: "bell\u0007" })).toBe(false);
     expect(valid({ ...VALID, explanation: "half \ud800 pair" })).toBe(false);

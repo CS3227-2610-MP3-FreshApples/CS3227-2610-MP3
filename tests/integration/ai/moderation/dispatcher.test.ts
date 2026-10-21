@@ -609,6 +609,24 @@ describe("races during the provider call (AI-02: late output never overrides)", 
     ]);
   });
 
+  it("defers stale work of a Movie archived during the call and records the attempt (D-103)", async () => {
+    const seeded = await seedReview();
+    await seedWork(seeded.reviewId);
+    const h = harness({
+      script: [success(CLEAN)],
+      duringCall: async () => {
+        await owner.query("UPDATE app.movie SET archived_at = now() WHERE id = $1", [seeded.movieId]);
+      },
+    });
+
+    await expect(attempt(h, seeded)).resolves.toBe("deferred");
+
+    const work = await onlyWork(seeded.reviewId);
+    expect(work).toMatchObject({ status: "pending", execution_count: 0 });
+    expect(work.last_attempt_at).not.toBeNull();
+    expect(await review(seeded.reviewId)).toMatchObject({ moderation_state: "pending" });
+  });
+
   it("returns stale work to pending for a rating-only edit, without consuming an execution", async () => {
     const seeded = await seedReview();
     await seedWork(seeded.reviewId);
@@ -639,6 +657,41 @@ describe("version change (D-49)", () => {
       ["profanity-policy-v0", "superseded"],
       [PROFANITY_POLICY_VERSION, "completed"],
     ]);
+  });
+
+  it("migrates an abandoned running row under an older version", async () => {
+    const seeded = await seedReview();
+    await seedWork(seeded.reviewId, { policyVersion: "profanity-policy-v0", status: "running", nextAttemptInSeconds: -1 });
+
+    await expect(attempt(harness({ script: [success(CLEAN)] }), seeded)).resolves.toBe("cleared");
+
+    expect((await workRows(seeded.reviewId)).map(({ policy_version, status }) => [policy_version, status])).toEqual([
+      ["profanity-policy-v0", "superseded"],
+      [PROFANITY_POLICY_VERSION, "completed"],
+    ]);
+  });
+
+  it("defers while a live claim under an older version runs, with no write", async () => {
+    const seeded = await seedReview();
+    await seedWork(seeded.reviewId, { policyVersion: "profanity-policy-v0", status: "running", nextAttemptInSeconds: 60 });
+    const h = harness({ script: [success(CLEAN)] });
+
+    await expect(attempt(h, seeded)).resolves.toBe("deferred");
+
+    expect(h.provider.requests).toHaveLength(0);
+    expect(await onlyWork(seeded.reviewId)).toMatchObject({ status: "running", policy_version: "profanity-policy-v0" });
+  });
+
+  it("supersedes leftover other-version work beside a settled current row, as after a rollback (D-103)", async () => {
+    const seeded = await seedReview();
+    await seedWork(seeded.reviewId, { status: "superseded" });
+    await seedWork(seeded.reviewId, { policyVersion: "profanity-policy-v2" });
+    const h = harness({ script: [success(CLEAN)] });
+
+    await expect(attempt(h, seeded)).resolves.toBe("not_current");
+
+    expect(h.provider.requests).toHaveLength(0);
+    expect((await workRows(seeded.reviewId)).map(({ status }) => status)).toEqual(["superseded", "superseded"]);
   });
 
   it("keeps needs_manual_review work under an older version and does not screen again", async () => {

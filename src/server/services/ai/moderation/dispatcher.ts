@@ -84,6 +84,16 @@ function outstandingIds(rows: readonly ModerationWorkRow[]): string[] {
   return rows.filter((row) => OUTSTANDING.has(row.status)).map((row) => row.id);
 }
 
+/** Other-version work that no execution holds: `pending`, or `running` with an expired claim (D-101, D-103). */
+function isUnheldOtherVersion(row: ModerationWorkRow): boolean {
+  return !isCurrentVersion(row) && (row.status === "pending" || (row.status === "running" && row.claimExpired));
+}
+
+/** D-103 L3: leftover other-version work beside a settled current-version row, so it cannot hold the sweep slot. */
+function obsoleteOtherVersionIds(rows: readonly ModerationWorkRow[]): string[] {
+  return rows.filter(isUnheldOtherVersion).map((row) => row.id);
+}
+
 /** AI-02's fixed publication rule: clean → cleared; suspected or uncertain → flagged. */
 function attemptFor(assessment: ModerationAssessment): ScreeningAttempt {
   return assessment === "no_profanity_detected" ? "cleared" : "flagged";
@@ -147,14 +157,11 @@ export function createModerationDispatcher(deps: {
     if (rows.some((row) => row.status === "running" && !row.claimExpired)) {
       return "deferred";
     }
-    const migratable = rows.filter((row) => row.status === "pending" || row.status === "running");
+    const migratable = obsoleteOtherVersionIds(rows);
     if (migratable.length === 0) {
       return rows.some((row) => row.status === "needs_manual_review") ? "manual_review" : "not_current";
     }
-    await work.supersede(
-      tx,
-      migratable.map((row) => row.id),
-    );
+    await work.supersede(tx, migratable);
     await work.insertPendingUnlessRecorded(tx, {
       reviewId,
       contentRevision,
@@ -190,8 +197,10 @@ export function createModerationDispatcher(deps: {
       case "completed":
       case "superseded":
       case "cancelled":
+        await work.supersede(tx, obsoleteOtherVersionIds(rows));
         return settled("not_current");
       case "needs_manual_review":
+        await work.supersede(tx, obsoleteOtherVersionIds(rows));
         return settled("manual_review");
       case "running":
         if (!current.claimExpired) {
@@ -314,8 +323,8 @@ export function createModerationDispatcher(deps: {
         case "stale": {
           const gate = await reviewGate(tx, locked.value, contentRevision, rows);
           if (gate === "deferred") {
-            // Archived meanwhile: the work waits for the restore (AI-02).
-            await work.releaseClaim(tx, row.id, 0);
+            // Archived meanwhile: the work waits for the restore (AI-02, D-103).
+            await work.recordStaleAttempt(tx, row.id);
             return "deferred";
           }
           if (gate !== null) {

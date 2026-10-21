@@ -17,18 +17,29 @@ export function codePointCount(value: string): number {
   return Array.from(value).length;
 }
 
+// String iteration yields a valid pair as one code point, so a surrogate code point here is unpaired.
+function isLoneSurrogate(code: number): boolean {
+  return code >= FIRST_SURROGATE && code <= LAST_SURROGATE;
+}
+
+/** D-96, D-103: `jsonb` cannot store an unpaired surrogate, so stored provider text must have none. */
+export function isStorableText(value: string): boolean {
+  for (const character of value) {
+    if (isLoneSurrogate(character.codePointAt(0) as number)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * D-87 safe text: no C0 control other than LF, no DEL, no unpaired surrogate (D-96: `jsonb` cannot store one), no
- * URL and no markup. String iteration yields a valid pair as one code point, so a surrogate here is unpaired.
+ * URL and no markup.
  */
 export function isSafeText(value: string): boolean {
   for (const character of value) {
     const code = character.codePointAt(0) as number;
-    if (
-      (code < FIRST_PRINTABLE && code !== LINE_FEED) ||
-      code === DELETE ||
-      (code >= FIRST_SURROGATE && code <= LAST_SURROGATE)
-    ) {
+    if ((code < FIRST_PRINTABLE && code !== LINE_FEED) || code === DELETE || isLoneSurrogate(code)) {
       return false;
     }
   }

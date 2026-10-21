@@ -940,6 +940,15 @@ Design decision D-102 (Admin job status read): Recorded by thegrimbee on 21 Octo
   - `errorCode` is the D-64 `error_code` (a fixed vocabulary that never holds provider text), or null.
 - **Never returned:** the input snapshot, input hash, dedup key, prompts, model, requester, explanation, matches, limitations, Review text or raw provider errors.
 
+Design decision D-103 (A-03 review resolutions): Recorded by thegrimbee on 21 October 2026 from the B#7 independent review (Q-2 findings M1, L1–L5, I1); Developer B delegated the choices to the agent's recommendations. Amends D-46, D-100, D-101 and D-102 where stated.
+- **Request ID of automatic audit entries (M1, amends D-46):** the K9 `attemptAfterCommit` signature carries no request ID, so the `review.auto_clear` and `review.auto_flag` entries written during a review request use a random UUID generated for that attempt, not the response's `X-Request-Id`. They are correlated with the request through `target_id` (the Review) and the `jobId` metadata. Entries written by the recovery sweep use the cron request's ID, as D-46 requires. Passing the request ID through K9 would be a contract change in Developer A's review write; it is a possible follow-up, not part of B#7.
+- **Quotes (L1, amends D-100):** a `quote` with an unpaired UTF-16 surrogate is rejected as invalid output, as D-96 does for other text, because `jsonb` cannot store it. Before this, such output passed validation and failed storage as a transient fault.
+- **Stale result on an archived Movie (L2, clarifies D-101):** the work becomes `pending` with `next_attempt_at = now()` and `last_attempt_at = now()`, like any other stale result, and the result is `deferred`.
+- **Leftover other-version work (L3, amends D-101 step 6):** when the current-version row is final or `needs_manual_review`, `pending` rows and `running` rows with an expired claim of the same revision under other versions become `superseded`, so after a version rollback they cannot hold the sweep slot.
+- **Accepted risk, deferral then settlement fault (L4):** if K10 defers and the settlement transaction then fails, the claim expires and recovery counts one execution, although AI-02 says capacity deferrals consume none. This needs a database fault right after a deferral; the count is conservative and stops at manual review. Accepted.
+- **Accepted risk, claim ownership (L5):** publish and settlement check that the claimed row is still `running`, not a claim token. Only an execution that outlives the 120-second claim can be confused with a later claim, and K10's 90-second AIJob lease (P-08) still blocks its publication. R-04 verifies `maxDuration` on the deployment. Accepted.
+- **Status 202 (I1, clarifies D-102):** api.md's 202 for "references to already-running AI work" does not apply to `GET /ai/jobs/:id`, which is a read and returns 200 in every state.
+
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.
