@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 // B#6 commit 3 (A-01/A-02 UI; FR-05, FR-07, D-21): the Admin movie and announcement screens against the
 // real API and a disposable database. Synthetic data only. The public halves of AT-02/AT-06 wait on
-// U-01, and archive/restore return 503 until K8 is wired (D-84), so this spec asserts that interim state.
+// U-01; Admin archive/restore uses the production K8 lock boundary (D-84).
 
 const MOVIE_TITLE = "Synthetic E2E Movie";
 const UNKNOWN_MOVIE_ID = "00000000-0000-4000-8000-00000000e2e0";
@@ -106,11 +106,15 @@ test.describe.serial("Admin movie and announcement screens", () => {
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
-    // D-84: archive returns 503 until U-02's K8 is wired. Replace with the archived/restore round trip then.
     await page.getByRole("button", { name: `Archive ${MOVIE_TITLE}` }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Archive movie" }).click();
-    await expect(page.locator(ERROR_MESSAGE)).toContainText("temporarily unavailable");
-    await expect(page.getByRole("row", { name: new RegExp(MOVIE_TITLE) }).getByRole("status")).toHaveText("Active");
+    const row = page.getByRole("row", { name: new RegExp(MOVIE_TITLE) });
+    await expect(row.getByRole("status")).toHaveText("Archived");
+    await expect(page.getByRole("status").filter({ hasText: `Archived “${MOVIE_TITLE}”.` })).toBeVisible();
+
+    await row.getByRole("button", { name: `Restore ${MOVIE_TITLE}` }).click();
+    await expect(row.getByRole("status")).toHaveText("Active");
+    await expect(page.getByRole("status").filter({ hasText: `Restored “${MOVIE_TITLE}”.` })).toBeVisible();
   });
 
   test("announcement: draft with field errors, then publish and unpublish", async ({ page }) => {
