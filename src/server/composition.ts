@@ -30,7 +30,7 @@ import {
   type ReviewsChangedMarker,
   type SummarySchedule,
 } from "./services/catalogue";
-import type { MovieArchiveService } from "./services/catalogue-archive";
+import { createMovieArchiveService, type MovieArchiveService } from "./services/catalogue-archive";
 import { createAdminAnnouncementService, type AdminAnnouncementService } from "./services/announcements";
 import { createAnnouncementRepository } from "./repositories/announcements";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
@@ -61,7 +61,16 @@ import {
   type AccountStatusService,
   type FirstAdminBootstrapService,
 } from "./services/identity";
-import { createReviewReadService, createReviewService, type ReviewReadService, type ReviewService } from "./services/reviews";
+import {
+  createReviewLocksAndReads,
+  createReviewReadService,
+  createReviewService,
+  createReviewTransitions,
+  type ReviewLocksAndReads,
+  type ReviewReadService,
+  type ReviewService,
+  type ReviewTransitions,
+} from "./services/reviews";
 
 // The composition root (D-23): the only module-level instances in src/server, created once per server instance.
 
@@ -103,6 +112,20 @@ export const reviewsChangedMarker: ReviewsChangedMarker | null =
 export const summarySchedule: SummarySchedule | null =
   database === null ? null : createSummarySchedule({ sql: database });
 
+const reviewRepository = database === null ? null : createReviewRepository({ sql: database });
+
+/** K8 review locks and screening reads (D-84), shared by review transitions and Movie archive. */
+export const reviewLocks: ReviewLocksAndReads | null =
+  database === null || movieLocks === null || reviewRepository === null
+    ? null
+    : createReviewLocksAndReads({ reviews: reviewRepository, movieLocks });
+
+/** K8 review transition provider (D-84); callers own authorization, audit, and ModerationWork orchestration. */
+export const reviewTransitions: ReviewTransitions | null =
+  database === null || reviewsChangedMarker === null || reviewRepository === null
+    ? null
+    : createReviewTransitions({ reviews: reviewRepository, reviewsChangedMarker });
+
 /** U-01 public catalogue reads; `null` exactly when the database is unavailable. */
 export const publicCatalogueReadService: PublicCatalogueReadService | null =
   database === null
@@ -127,12 +150,18 @@ export const adminMovieService: AdminMovieService | null =
     ? null
     : createAdminMovieService({ database, movies: createAdminMovieRepository({ sql: database }), auditLog });
 
-/**
- * Movie archive/restore orchestrator (P-12, D-84). Unwired until U-02 (Developer A) provides K8
- * `lockReviewsOfMovie`; the archive and restore routes return 503 until then. Wire it with
- * `createMovieArchiveService` from ./services/catalogue-archive once K8 is on `master`.
- */
-export const movieArchiveService: MovieArchiveService | null = null;
+/** Movie archive/restore orchestrator (P-12, D-84); it shares K8's Movie-then-Review lock order. */
+export const movieArchiveService: MovieArchiveService | null =
+  database === null || auditLog === null || movieLocks === null || reviewsChangedMarker === null || reviewLocks === null
+    ? null
+    : createMovieArchiveService({
+        database,
+        movies: createAdminMovieRepository({ sql: database }),
+        movieLocks,
+        reviewLocks,
+        marker: reviewsChangedMarker,
+        auditLog,
+      });
 
 /** FR-07 Admin Announcement reads and writes; `null` exactly when `database` is. */
 export const adminAnnouncementService: AdminAnnouncementService | null =
@@ -172,11 +201,11 @@ export const moderationDispatcher: ModerationDispatcher = createDeferredModerati
 
 /** U-02 review creation/resubmission; `null` exactly when its database dependencies are unavailable. */
 export const reviewService: ReviewService | null =
-  database !== null && rateLimiter !== null && rateLimitKeys !== null && movieLocks !== null && reviewsChangedMarker !== null && moderationWorkQueue !== null
+  database !== null && rateLimiter !== null && rateLimitKeys !== null && movieLocks !== null && reviewsChangedMarker !== null && moderationWorkQueue !== null && reviewRepository !== null
     ? createReviewService({
         database,
         accounts: createAccountRepository({ sql: database }),
-        reviews: createReviewRepository({ sql: database }),
+        reviews: reviewRepository,
         movieLocks,
         reviewsChangedMarker,
         moderationWorkQueue,
@@ -187,7 +216,7 @@ export const reviewService: ReviewService | null =
     : null;
 
 export const reviewReadService: ReviewReadService | null =
-  database === null ? null : createReviewReadService({ database, reviews: createReviewRepository({ sql: database }) });
+  database === null || reviewRepository === null ? null : createReviewReadService({ database, reviews: reviewRepository });
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();
