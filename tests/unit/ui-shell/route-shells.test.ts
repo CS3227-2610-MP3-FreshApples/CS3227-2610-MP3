@@ -9,7 +9,7 @@ import UserLayout from "../../../src/app/app/layout";
 import AdminLayout from "../../../src/app/admin/layout";
 import PublicLayout from "../../../src/app/(public)/layout";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/", useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 function markup(layout: (props: { children: React.ReactNode }) => React.ReactNode): string {
   return renderToStaticMarkup(layout({ children: createElement("p", null, "Shell content") }));

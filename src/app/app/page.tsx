@@ -3,6 +3,7 @@ import Link from "next/link";
 export default function UserOverviewPage() {
   return (
     <section className="space-y-8" aria-labelledby="user-overview-title">
+      <Link className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:border-blue-700 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2" href="/">← Back to main page</Link>
       <header className="max-w-3xl space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Your account</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl" id="user-overview-title">Your overview</h1>

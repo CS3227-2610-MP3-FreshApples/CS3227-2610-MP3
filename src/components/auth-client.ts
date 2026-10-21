@@ -41,6 +41,7 @@ const GENERIC_LOGIN_MESSAGE = "We couldn’t sign you in. Check your email and p
 const RATE_LIMITED_MESSAGE = "Too many sign-in attempts. Please try again later.";
 const UNAVAILABLE_MESSAGE = "We couldn’t sign you in right now. Please try again later.";
 const DUPLICATE_EMAIL_MESSAGE = "An account may already exist for this email. Try signing in.";
+const LOGOUT_FAILURE_MESSAGE = "We couldn’t sign you out right now. Please try again.";
 
 function validAccount(value: unknown): value is AuthAccount {
   if (typeof value !== "object" || value === null) return false;
@@ -111,6 +112,38 @@ export async function submitLogin(input: LoginInput, fetcher: Fetcher = fetch): 
     return { ok: true, account };
   } catch {
     return { ok: false, kind: "unavailable", message: UNAVAILABLE_MESSAGE };
+  }
+}
+
+export type LogoutResult =
+  | Readonly<{ ok: true }>
+  | Readonly<{ ok: false; message: string }>;
+
+export async function submitLogout(fetcher: Fetcher = fetch): Promise<LogoutResult> {
+  try {
+    const csrfResponse = await fetcher("/api/v1/auth/csrf", {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    if (!csrfResponse.ok) return { ok: false, message: LOGOUT_FAILURE_MESSAGE };
+
+    const csrfBody: unknown = await csrfResponse.json();
+    const csrfToken = typeof csrfBody === "object" && csrfBody !== null
+      ? (csrfBody as { csrfToken?: unknown }).csrfToken
+      : undefined;
+    if (typeof csrfToken !== "string" || csrfToken.length === 0) {
+      return { ok: false, message: LOGOUT_FAILURE_MESSAGE };
+    }
+
+    const logoutResponse = await fetcher("/api/v1/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "X-CSRF-Token": csrfToken },
+    });
+    if (logoutResponse.status !== 204) return { ok: false, message: LOGOUT_FAILURE_MESSAGE };
+    return { ok: true };
+  } catch {
+    return { ok: false, message: LOGOUT_FAILURE_MESSAGE };
   }
 }
 

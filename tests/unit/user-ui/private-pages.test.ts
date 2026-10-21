@@ -1,6 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 import UserOverviewPage from "../../../src/app/app/page";
 import UserReviewsPage from "../../../src/app/app/reviews/page";
@@ -21,6 +23,7 @@ describe("private User pages", () => {
     expect(rendered).toContain("No published reviews yet");
     expect(rendered).toContain("No submitted reports yet");
     expect(rendered).toContain("rounded-xl");
+    expect(rendered).toContain('href="/">← Back to main page</a>');
     expect(rendered).toContain('href="/app/reviews"');
     expect(rendered).toContain('href="/app/reports"');
   });
