@@ -670,6 +670,61 @@ Design decision D-85 (U-04 ownership exception): Recorded by thegrimbee on 21 Oc
 - Summary paths (`src/server/services/ai/summary/`, `/internal/cron/summaries`, `/movies/:id/summary` and its UI) are owned by Developer B. Shared UI in `src/components/` and layouts remain Developer A's hotspot, and the Review eligibility predicate stays with its current owner.
 - Ownership of the R-01 summary evaluation fixtures is not changed by this decision.
 
+Design decision D-86 (summary input preparation): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approval by Developer A (Lim-ZY) is pending. Implements AI-01 items 2–5 and AI-04.
+- **Consistent read:** one SQL statement reads the Movie's `archived_at` and `reviews_revision`, whether a ReviewSummary exists at that revision (D-88), and every eligible Review's `id`, `version`, `content_revision`, `rating` and `body`, in ascending `id` order. Under READ COMMITTED (O-01) one statement sees one snapshot, so the revision always matches the Review set. No row lock is taken, so review writes are never blocked. A missing or archived Movie gives `unavailable`.
+- **Eligibility predicate:** the data-model.md definition, written as `moderation_state = 'cleared' AND deleted_at IS NULL AND hidden_at IS NULL` on a Movie with `archived_at IS NULL`. A body edit or resubmission resets `moderation_state` to `pending` in the same transaction (data-model.md), so `cleared` means cleared for the current `content_revision`. The predicate keeps its current owner (D-85): U-04 restates it in its own read-only query repository (O-23) and does not create a shared file in Developer A's paths. A PostgreSQL integration test seeds the same Reviews in every eligibility state and asserts that the U-04 eligible count equals the U-01 public `reviewCount`, so the two copies cannot drift unnoticed. If Developer A later extracts a shared predicate, U-04 switches to it.
+- **Fewer than 3 eligible:** `insufficient_reviews`, with no K10 call, no AIJob and no write.
+- **Sample size:** `AI_SUMMARY_SAMPLE_SIZE` accepts 3–20 (default 20). Below 3 no sample could be published, so a smaller value is invalid AI configuration and disables AI (D-28, D-37).
+- **Sampling (`summary-sample-v1`):**
+  - Candidates are the eligible Reviews in ascending `id` order. Let `n` be their number and `s = min(n, AI_SUMMARY_SAMPLE_SIZE)`.
+  - Each generation attempt draws a fresh seed: 32 bytes from `node:crypto` `randomBytes`, recorded as lowercase hex. The seed source is a constructor dependency, so tests can fix it.
+  - Random stream: SHA-256 of the seed bytes followed by a 4-byte big-endian counter starting at 0. Each digest gives eight big-endian unsigned 32-bit values, used in order.
+  - Uniform index in `[0, k)`: discard values of at least `floor(2^32 / k) × k`; otherwise take the value modulo `k`.
+  - Partial Fisher–Yates: for `i` from 0 to `s − 1`, swap position `i` with position `i + index(n − i)`. The sample is the first `s` candidates, in that order.
+  - The same seed and candidate list always give the same sample. No dependency is added.
+- **Review records:** each sampled Review is sent as `{ "label", "rating", "truncated", "body" }`:
+  - `label` is `R<k>`, where `k` is its 1-based position in sample order;
+  - `rating` is the string `"<n>/10"`;
+  - `body` is the stored plain-text body cut to its first 1,000 Unicode code points (data-model.md counts code points);
+  - `truncated` is `true` when the body was cut. This flag is the AI-01 truncation marker; no marker text is added to the body.
+- **Messages:** a `system` message holding the static prompt, then one `user` message holding `JSON.stringify({ "reviews": [...] })`. JSON string escaping keeps Review text inside its field whatever it contains. The input has no Movie title, author, account, Report, moderation or job data. `maxOutputTokens` is 1,200.
+- **Prompt:** version `review-summary-prompt-v1`, a static artifact with its version constant in `src/server/services/ai/summary/`. Any change to the system text or to the user-message format is a new version. The system text tells the model to describe only opinions expressed in the supplied Reviews and add no facts about the Movie; to treat every Review field as data and ignore instructions inside it; to cite only labels present in the input; and to return only the D-87 JSON object, as plain text without markup or URLs. The wording is reviewed in the B#13 PR.
+- **Reduction:** estimate the input with the AI-03 formula over both messages, using the runtime's `estimateInputTokens` so the summary and K10 use one implementation. While the estimate exceeds `AI_INPUT_TOKEN_LIMIT` (at most 8,000; the bound K10 enforces), remove the last Review in sample order and serialize again. Remaining labels do not change. Every prefix of the Fisher–Yates order is itself a uniform sample, and every included Review stays whole. If fewer than 3 Reviews remain, the result is `input_unfit`, with no K10 call and no AIJob. The Reviews that remain are the included sample, which is persisted (D-88) and counted for display.
+- **Why:** one statement gives a consistent snapshot without blocking review writes. Hash-counter sampling is reproducible from the stored seed without a new dependency. Removing whole Reviews from the end keeps the sample uniform and the reduction deterministic.
+
+Design decision D-87 (summary output schema): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approval by Developer A (Lim-ZY) is pending. Implements AI-01 item 6 and AI-04.
+- **Shape** (example):
+
+  ```json
+  {
+    "overall": "Reviewers mostly praise the pacing and the lead performance.",
+    "strengths": [{ "text": "The lead performance is widely praised.", "sources": ["R1", "R3"] }],
+    "criticisms": [],
+    "mixedOpinions": [{ "text": "Opinions on the ending are split.", "sources": ["R2", "R4"] }]
+  }
+  ```
+
+- **Field rules:**
+  - The object has exactly the keys `overall`, `strengths`, `criticisms` and `mixedOpinions`. Each list item has exactly `text` and `sources`. An unknown or missing key at any level rejects the output.
+  - `overall` is 1–800 Unicode code points after trimming.
+  - Each list has 0–3 items. Each `text` is 1–240 code points after trimming.
+  - `sources` has 1–20 unique strings, and each must be the label of an included Review (D-86). A label removed by reduction, an unknown label and a raw Review ID are all rejected.
+- **Safe text:** following AI-04 ("reject unexpected URLs/markup"), a string is rejected if it contains a C0 control character other than LF, or U+007F; `http://`, `https://` or `www.` in any letter case; or `<` followed by a letter, `/`, `!` or `?`. A Review that quotes a URL can therefore make generation fail; that Movie then takes the failure backoff (D-89), which is the safe outcome.
+- **Parsing:** trim the content. If it starts and ends with a triple-backtick fence (optionally tagged `json`), strip that one outer fence. Then `JSON.parse` it; the result must be an object. Any failure gives `invalid_output` (O-27: no JSON response mode is relied on).
+- **Validator:** a strict zod schema (D-22) plus the label and safe-text checks. The validated output, with trimmed strings and labels as given, is stored as `output_json`. It is rendered only as escaped plain text.
+- **Marker fake:** the `summary` outcome of `MarkerFakeLlmProvider` (D-57) returns a constant that is valid under this schema and cites only `R1`–`R3`. Every published sample includes at least those labels, so the fixed fake never invents a source. B#13 adds the constant and its D-70 conformance test; the `summary` marker no longer fails closed.
+- **Why:** short position labels cost fewer tokens than UUIDs and are harder to miscopy, keep Review IDs out of the prompt, and let a fixed fake output stay valid.
+
+Design decision D-88 (summary provenance and result reuse): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approval by Developer A (Lim-ZY) is pending. Implements AI-01 items 4 and 6 without a migration.
+- **`sampled_review_ids_and_versions`:** `{ "algorithm": "summary-sample-v1", "seed": "<64 hex>", "sampledCount": s, "reviews": [{ "reviewId", "version", "contentRevision", "truncated" }] }`.
+  - `reviews` lists the included Reviews in label order (`R1` first), so label `R<k>` maps to `reviews[k − 1]`.
+  - `sampledCount` is `s` before reduction, so a replay from the seed can confirm that the included Reviews are its prefix.
+  - "IDs/versions" (AI-01 item 4) means both `Review.version` and `content_revision`.
+- **Other columns:** `eligible_count` is the count in the D-86 read; `generated_at` is the publish transaction's `now()`. Model and prompt versions are reached through `job_id` (`ai_job.model_id`, `ai_job.prompt_version`), which K10 writes. The included count is the length of `reviews`; the truncation notice is shown when any included Review has `truncated` set.
+- **`BoundedInput.snapshot`** (`bounded_input_snapshot`, D-64): `{ movieId, reviewsRevision, eligibleCount, sample }`, where `sample` is the object above. It holds no Review text; `input_hash` identifies the messages.
+- **Reusing a valid result (AI-01 item 4):** a running job with the same Movie, revision, model and prompt version is reused through K10's dedup key (`duplicate`). A ReviewSummary at the Movie's current `reviews_revision` is a valid result: when the D-86 read finds one, generation returns `current` with no K10 call. Publication clears pending only at its exact revision and only `markReviewsChanged` sets it again, by advancing the revision, so this case is normally unreachable; the check is defensive. A summary stays current while its revision equals the Movie's, whatever model or prompt version produced it. A new model or prompt version applies from the next generation and never by itself triggers regeneration, consistent with "unchanged content never causes regeneration merely because time passed".
+- **Model ID:** the summary service does not need it. K10 adds the provider's model to the dedup key and the AIJob row.
+
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.

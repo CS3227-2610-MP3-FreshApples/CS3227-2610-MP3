@@ -13,6 +13,19 @@ This expands FR-08 and FR-09. Both runtime AI features use SoC LLM; no other run
 7. Recheck active Movie, source revision and execution lease before publication. Publish and clear the pending marker atomically only if all match. Concurrent changes invalidate the result and retain pending work.
 8. Keep unchanged summaries valid without a 24-hour expiry. Review creation/edit/deletion/hide/restore and Movie visibility changes invalidate immediately; never display old text afterward. Archived Movies return public 404. Restored Movies become pending.
 
+Input preparation, sampling, truncation, reduction and the prompt version (`review-summary-prompt-v1`) are in D-86. Reviews are labelled `R1`, `R2`, … in sample order, and the output cites those labels. Expected validated output (field rules D-87):
+
+```json
+{
+  "overall": "Reviewers mostly praise the pacing and the lead performance.",
+  "strengths": [{ "text": "The lead performance is widely praised.", "sources": ["R1", "R3"] }],
+  "criticisms": [],
+  "mixedOpinions": [{ "text": "Opinions on the ending are split.", "sources": ["R2", "R4"] }]
+}
+```
+
+Provenance storage and result reuse are in D-88.
+
 The public UI shows generation time, included and eligible counts, truncation notice and the fixed label "AI summary of a sample; may miss opinions or make mistakes". Counts/times come from the server. Missing/stale output shows awaiting scheduled update with no generation/retry control. Zero to two Reviews show insufficient reviews. Reading a summary requires no account or job access.
 
 ### Scheduling and load
