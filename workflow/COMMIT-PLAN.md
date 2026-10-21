@@ -4,6 +4,8 @@ Status: **approved; S-01–S-07 and U-01/A#4 are merged; U-02a/A#5 is merged in 
 
 This plan sets the order in which each developer opens PRs, which files each PR may touch, and which **sync points** require something to be on `master` first. Commit messages below are templates: humans make the commits (`AGENTS.md` § Git). Requirement IDs in messages are copied from `spec/`. Task IDs appear only in PR titles and bodies.
 
+Current state (21 Oct 2026): U-02c/A#7 is merged in PR #22 (`368282c`). U-03/A#8 has passed independent analyst and architect readiness review, and the human implementation gate was explicitly approved in this task. It remains **In progress/review**; it must not be marked `Ready` by the agent.
+
 ## 1. Why a commit plan helps here
 
 It is worth having, kept at PR granularity, not every commit:
@@ -60,8 +62,8 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | A#4 | U-01 | `feat/catalogue-public` | `feat(catalogue): public movie list, search and detail (FR-02)` · `feat(announcements): public published list (FR-07)` · `feat(ui): movie browse and detail pages` | catalogue read queries, `src/app/api/v1/movies/` (GET), `…/announcements/` (GET), pages | SP-1 | Merged (PR #16, `6269f63`) |
 | A#5 | U-02a | `feat/reviews-core` | `feat(reviews): create/edit/delete own review (FR-03, INV-03)` · `feat(reviews): eligibility, aggregates and revision bump (INV-02, INV-09)` · `test(reviews): concurrency and stale If-Match` | reviews services/repos, review routes, tests | SP-2 | Merged (PR #17, `998dd90`); archive/create race completed with K8 in PR #19 |
 | A#6 | U-02b | `feat/reviews-transitions` | `feat(reviews): version-guarded clearance, approve, hide, restore interface (FR-09)` · `test(reviews): K8 contract tests and fake` | reviews transitions + fake | A#5 | Merged (PR #19, `bdb86f5`) (**SP-3**) |
-| A#7 | U-02c | `feat/reviews-moderation-hook` | `feat(reviews): enqueue moderation in-transaction and attempt after commit (AI-02)` · `feat(ui): my reviews with pending/held/published state` | review routes (`maxDuration`), `/me/reviews`, pages | A#6, B#4 | Increments 1–3 implemented and post-review remediation complete; browser E2E remains unverified because the production build is environment-blocked (**SP-4**) |
-| A#8 | U-03 | `feat/moderation-report-submission` | `feat(moderation): submit report with evidence snapshot (FR-04, INV-04, INV-07)` · `feat(moderation): reporter-only report history` · `feat(ui): report user flow` | report-submission service, `/reports`, `/me/reports`, pages | A#7 | Planned (**SP-5**) |
+| A#7 | U-02c | `feat/reviews-moderation-hook` | `feat(reviews): enqueue moderation in-transaction and attempt after commit (AI-02)` · `feat(ui): my reviews with pending/held/published state` | review routes (`maxDuration`), `/me/reviews`, pages | A#6, B#4 | Merged in PR #22 (`368282c`); browser E2E remains unverified because the production build is environment-blocked (**SP-4**) |
+| A#8 | U-03 | `feat/moderation-report-submission` | `feat(moderation): submit report with evidence snapshot (FR-04, INV-04, INV-07)` · `feat(moderation): reporter-only report history` · `feat(ui): report user flow` | report-submission service, `/reports`, `/me/reports`, pages | A#7 | In progress/review (analyst and architect readiness approved; human implementation gate approved in this task) (**SP-5**) |
 | A#9 | — | — | Reassigned to Developer B as B#13 (D-85) | — | — | Moved |
 | A#10 | — | — | Reassigned to Developer B as B#14 (D-85) | — | — | Moved |
 | A#11 | R-01/R-02 | `test/user-security-e2e` | `test(ai): summary benign and adversarial fixtures (AT-11)` · `test(e2e): user journey` · `test(api): user access matrix (AT-01, AT-04)` | `tests/` | SP-6 | Planned |
