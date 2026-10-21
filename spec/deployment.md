@@ -66,8 +66,8 @@ Validity rules (D-37). A core variable that breaks a rule makes core configurati
 | AI_ATTEMPT_TIMEOUT_MS | Default and maximum 30000 (D-65) |
 | AI_MAX_ATTEMPTS | Default and maximum 2 (D-65) |
 | AI_EXECUTION_DEADLINE_MS | Default and maximum 75000, minimum 15000; must leave headroom under function maxDuration (D-65, D-76) |
-| AI_SUMMARY_SAMPLE_SIZE | Default and initial maximum 20 |
-| AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; eligibility checked in daily sweep |
+| AI_SUMMARY_SAMPLE_SIZE | Default and initial maximum 20, minimum 3 (D-86) |
+| AI_SUMMARY_INTERVAL_DAYS | Default 1; supported lower-load option 7; no other value is valid (D-89); eligibility checked in daily sweep |
 | AI_SUMMARY_MAX_MOVIES_PER_RUN | Initial maximum 1; increase only after runtime/capacity validation and spec revision |
 | CRON_SECRET | High-entropy server-only scheduler secret, distinct per environment; protects both recovery and summary sweeps |
 | ADMIN_BOOTSTRAP_EMAIL | Optional first-Admin bootstrap input; sensitive deployment configuration, used only by the explicit one-time bootstrap operation and removed after successful provisioning |

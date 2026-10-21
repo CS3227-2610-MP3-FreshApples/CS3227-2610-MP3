@@ -3,9 +3,19 @@ import "server-only";
 import type { Result } from "../../shared";
 import type { LlmCompletion, LlmFailure, LlmMessage, LlmProvider, TokenUsage } from "./types";
 
-// Canned outputs (D-57). They follow the field rules of ai.md AI-02; A-03 adds their conformance test against
-// the AI-02 output schema (D-70). The AI-01 `summary` output is not here: its field names are not recorded
-// yet, so the `summary` marker fails closed until U-04 records them and adds the constant and its test.
+// Canned outputs (D-57). `clean` and `flag` follow the field rules of ai.md AI-02; A-03 adds their conformance
+// test against the AI-02 output schema (D-70). `summary` follows the D-87 schema; U-04 owns its conformance test.
+
+/**
+ * `[fake-llm:summary]`: a valid D-87 summary. It cites only `R1`–`R3`, which every published sample includes,
+ * so the fixed output never invents a source (D-87).
+ */
+export const MARKER_FAKE_SUMMARY_OUTPUT = JSON.stringify({
+  overall: "Fake provider: reviewers share a mix of praise and criticism.",
+  strengths: [{ text: "Fake provider: some reviewers praise the film.", sources: ["R1", "R2"] }],
+  criticisms: [{ text: "Fake provider: some reviewers criticise the film.", sources: ["R3"] }],
+  mixedOpinions: [{ text: "Fake provider: opinions on the film are divided.", sources: ["R1", "R3"] }],
+});
 
 /** `[fake-llm:clean]`: a valid AI-02 `no_profanity_detected` output. */
 export const MARKER_FAKE_CLEAN_OUTPUT = JSON.stringify({
@@ -44,6 +54,7 @@ const TIMEOUT = failure({ kind: "timeout" });
 const OUTCOMES: ReadonlyMap<string, Result<LlmCompletion, LlmFailure>> = new Map([
   ["clean", success(MARKER_FAKE_CLEAN_OUTPUT)],
   ["flag", success(MARKER_FAKE_FLAG_OUTPUT)],
+  ["summary", success(MARKER_FAKE_SUMMARY_OUTPUT)],
   ["invalid", success(MARKER_FAKE_INVALID_OUTPUT)],
   ["unavailable", UNAVAILABLE],
   ["rejected", failure({ kind: "rejected" })],

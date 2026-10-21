@@ -27,7 +27,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Merged (PR #16, `6269f63`) |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | U-02a implementation complete on `feat/reviews-core`; K8/archive-race remains a cross-owner follow-up |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
-| U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
+| U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect findings resolved in D-93–D-95, approved 21 Oct) |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
@@ -359,11 +359,15 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 ### Task U-04: Scheduled public review summary
 
-**Owner:** A. **Depends on:** U-02, S-06. **Reqs:** FR-08, AI-01, AI-04, INV-09, DEP-09, AT-07, AT-08, AT-20.
+**Owner:** B (reassigned from A by D-85; A reviews). **Depends on:** S-06. U-02 is needed only for acceptance through real review mutations (D-91). **Reqs:** FR-08, AI-01, AI-04, INV-09, DEP-09, AT-07, AT-08, AT-20.
+**Decisions:** input preparation D-86, output schema D-87, provenance and reuse D-88, scheduling D-89, public projection D-90, sequencing D-91, B#13 paths D-92, architect-review resolutions D-93 (B#13) and D-94 (B#14), accepted risks and acceptance items D-95.
 **Description:** Changed-Movie selection order and backoff; fewer than 3 eligible → `insufficient_reviews` with no execution; seeded uniform sampling without replacement (≤ 20) with persisted IDs/versions; 1,000-character truncation markers and 8,000-token cap; JSON schema validation (lengths, allowed source IDs); publication guarded by revision and lease. `GET /internal/cron/summaries` (Bearer `CRON_SECRET`, aggregate counts only, scheduler lease, one Movie per run). `GET /movies/:id/summary` (read-only states). Summary UI with the fixed disclaimer and no generate/retry control.
 **Acceptance Criteria:**
 - [ ] AT-07/08/20 subcases with the fake: unchanged Movie → no provider call; review edit during generation → no stale publish; missing/invalid secret, including an Admin cookie alone → 401; missed run recovered; fair ordering under a failing Movie.
 - [ ] Fabricated source IDs or oversize fields in output → rejected, nothing published.
+- [ ] AT-08 and INV-09 pass against real U-02 review create, edit, delete, hide and restore, not synthetic fixtures (D-91).
+- [ ] B#13 tests listed in D-93 (parity with distinct counts, sampling vector, fixed seeds, real-controller publish, rollback cases, D-70 conformance).
+- [ ] D-95 acceptance items: summary index migration, R-04 read-cost and backlog measurements, parity extended to U-02.
 
 ### Task A-01: Admin movie management
 
@@ -477,7 +481,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 | Thu 16 | U-02 (K8 interface merged early) | A-02; start A-03 against K8 | **SP-3:** K8 on `master` |
 | Fri 17 | U-02 merge | A-03 merge | **Checkpoint:** register → review → auto-screen → held/cleared works end to end with the fake |
 | Sat 18 | U-03 | A-04 | Report submission available to B |
-| Sun 19 | U-04 | A-05, A-06 | **Feature freeze** at end of day |
+| Sun 19 | — | U-04, A-05, A-06 | **Feature freeze** at end of day |
 | Mon 20 | R-01 (summary), R-02 (User) | R-01 (moderation), R-02 (Admin), R-04 rehearsal | Live SoC smoke per feature (if B7 resolved) |
 | Tue 21 | Peer test User flows; fixes; UserGuide | Peer test Admin flows; fixes; DeveloperGuide | Release candidate SHA chosen |
 | Wed 22 | R-05 website, reflections, logs | R-04 production deploy + smoke | Released and online |
