@@ -15,13 +15,15 @@ import {
   type MovieLocks,
   type ReviewsChangedMarker,
 } from "../../../src/server/services/catalogue";
-import type { MovieId, Tx } from "../../../src/server/shared";
+import { createReviewRepository } from "../../../src/server/repositories/reviews";
+import { createReviewLocksAndReads } from "../../../src/server/services/reviews";
+import type { AccountId, MovieId, Tx } from "../../../src/server/shared";
 import {
   describeCatalogueCoreContract,
   type MovieSeed,
   type StoredMovie,
 } from "../../support/contracts/catalogue-core.contract";
-import { connectAsOwner, expectViolation } from "../database/schema-fixtures";
+import { connectAsOwner, expectViolation, insertAccount, insertReview } from "../database/schema-fixtures";
 import { testDatabaseUrl } from "../database/test-database";
 
 const LOCK_NOT_AVAILABLE = "55P03";
@@ -32,6 +34,8 @@ const db: Database & Sql = createDatabase({ url: testDatabaseUrl(), caCert: null
 const locks: MovieLocks = createMovieLocks({ sql: db });
 const marker: ReviewsChangedMarker = createReviewsChangedMarker({ sql: db });
 const schedule = createSummarySchedule({ sql: db });
+const reviewRepository = createReviewRepository({ sql: db });
+const reviewLocks = createReviewLocksAndReads({ reviews: reviewRepository, movieLocks: locks });
 
 /** The archiving session in race tests, and a second session that observes lock waits and holds locks. */
 let owner: Client;
@@ -153,8 +157,9 @@ describe("Catalogue core — PostgreSQL archive races (D-51, FR-05)", () => {
     await owner.query("TRUNCATE app.movie CASCADE");
   });
 
-  it("a review-style Tx racing an archive gets archived, not not_found, and marks nothing", async () => {
+  it("an archive-first Review create is rejected after the Movie lock resolves", async () => {
     const movieId = await seedMovie({ reviewsRevision: 2 });
+    const authorId = (await insertAccount(owner)) as AccountId;
     await beginArchive(movieId);
 
     const review = db.withTransactionResult(async (tx) => {
@@ -163,13 +168,49 @@ describe("Catalogue core — PostgreSQL archive races (D-51, FR-05)", () => {
       if (!locked.ok) {
         return locked;
       }
-      return { ok: true as const, value: await marker.markReviewsChanged(tx, locked.value) };
+      return { ok: true as const, value: await reviewRepository.insert(tx, movieId, authorId, { rating: 7, body: "Synthetic review body." }) };
     });
     await waitForLockWait();
     await owner.query("COMMIT");
 
     expect(await review).toEqual({ ok: false, error: { kind: "archived" } });
+    const { rows } = await owner.query("SELECT id FROM app.review WHERE movie_id = $1", [movieId]);
+    expect(rows).toEqual([]);
     expect(await stored(movieId)).toMatchObject({ archived: true, reviewsRevision: 2, summaryPendingSince: null });
+  });
+
+  it("a create-first Review survives while the waiting archive commits afterward", async () => {
+    const movieId = await seedMovie();
+    const authorId = (await insertAccount(owner)) as AccountId;
+    let entered!: () => void;
+    const createEntered = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let release!: () => void;
+    const releaseCreate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const review = inRuntimeTx(async (tx) => {
+      const locked = await locks.lockActiveMovieForUpdate(tx, movieId);
+      if (!locked.ok) return locked;
+      const saved = await reviewRepository.insert(tx, movieId, authorId, { rating: 7, body: "Synthetic review body." });
+      entered();
+      await releaseCreate;
+      return { ok: true as const, value: saved.id };
+    });
+    await createEntered;
+
+    const archive = beginArchive(movieId);
+    await waitForLockWait();
+    release();
+    await expect(review).resolves.toEqual({ ok: true, value: expect.any(String) });
+    await archive;
+    await owner.query("COMMIT");
+
+    const { rows } = await owner.query("SELECT id FROM app.review WHERE movie_id = $1", [movieId]);
+    expect(rows).toHaveLength(1);
+    expect(await stored(movieId)).toMatchObject({ archived: true, reviewsRevision: 0, summaryPendingSince: null });
   });
 
   it("lockActiveMovieShared racing an archive also gets archived", async () => {
@@ -256,6 +297,23 @@ describe("Catalogue core — PostgreSQL row locks", () => {
     await inRuntimeTx(async (tx) => {
       await locks.lockMovieForUpdate(tx, movieId);
       await expectRowLockedAgainst(movieId, "FOR SHARE");
+    });
+  });
+
+  it("the archive lock order holds every Review row after the Movie lock", async () => {
+    const movieId = await seedMovie();
+    const authorId = await insertAccount(owner);
+    const reviewId = await insertReview(owner, movieId, authorId);
+
+    await inRuntimeTx(async (tx) => {
+      const movie = await locks.lockMovieForUpdate(tx, movieId);
+      expect(movie).toEqual({ ok: true, value: { movieId, archived: false, reviewsRevision: 0 } });
+      if (!movie.ok) throw new Error("expected Movie lock");
+      await reviewLocks.lockReviewsOfMovie(tx, movie.value);
+      await expectViolation(
+        observer.query("SELECT id FROM app.review WHERE id = $1 FOR UPDATE NOWAIT", [reviewId]),
+        LOCK_NOT_AVAILABLE,
+      );
     });
   });
 });

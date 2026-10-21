@@ -5,22 +5,27 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 
 vi.mock("server-only", () => ({}));
 
-// D-84: K8 `lockReviewsOfMovie` is Developer A's (U-02) and is not on `master` yet. Until it is, the composition
-// root leaves the archive/restore orchestrator unwired, so these tests wire it with the PostgreSQL-backed
-// stand-in from tests/support/fakes/review-locks.ts. Every other dependency is the real composition.
+// Keep a recording wrapper around the real K8 lock provider so archive tests can assert no-op behavior
+// without replacing the production composition.
 vi.mock("../../../../src/server/composition", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../../src/server/composition")>();
   const { createMovieArchiveService } = await import("../../../../src/server/services/catalogue-archive");
   const { createAdminMovieRepository } = await import("../../../../src/server/repositories/catalogue");
-  const { createPostgresReviewsOfMovieLockStandIn } = await import("../../../support/fakes/review-locks");
-  const database = actual.database!;
-  const reviewLocksStandIn = createPostgresReviewsOfMovieLockStandIn(database);
+  const reviewLocks = actual.reviewLocks!;
+  const calls: string[] = [];
+  const reviewLocksStandIn = {
+    calls,
+    async lockReviewsOfMovie(tx: Parameters<typeof reviewLocks.lockReviewsOfMovie>[0], movie: Parameters<typeof reviewLocks.lockReviewsOfMovie>[1]) {
+      calls.push(movie.movieId);
+      return reviewLocks.lockReviewsOfMovie(tx, movie);
+    },
+  };
   return {
     ...actual,
     reviewLocksStandIn,
     movieArchiveService: createMovieArchiveService({
-      database,
-      movies: createAdminMovieRepository({ sql: database }),
+      database: actual.database!,
+      movies: createAdminMovieRepository({ sql: actual.database! }),
       movieLocks: actual.movieLocks!,
       reviewLocks: reviewLocksStandIn,
       marker: actual.reviewsChangedMarker!,

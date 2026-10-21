@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { Sql, SqlParam } from "../../db";
-import type { AccountId, ContentRevision, MovieId, ModerationState, ReviewId, RowVersion, Tx } from "../../shared";
+import type { AccountId, ContentRevision, MovieId, ModerationState, MovieUpdateLock, ReviewId, ReviewUpdateLock, RowVersion, Tx } from "../../shared";
 
 export interface ReviewRecord {
   readonly id: ReviewId;
@@ -37,6 +37,26 @@ export interface ReviewRow {
   readonly updated_at: Date;
 }
 
+export interface ReviewTransitionRow {
+  readonly id: ReviewId;
+  readonly version: RowVersion;
+  readonly content_revision: ContentRevision;
+  readonly moderation_state: ModerationState;
+  readonly hidden_at: Date | null;
+  readonly deleted_at: Date | null;
+}
+
+export interface ReviewScreeningRow {
+  readonly id: ReviewId;
+  readonly content_revision: ContentRevision;
+  readonly version: RowVersion;
+  readonly body: string;
+  readonly moderation_state: ModerationState;
+  readonly hidden_at: Date | null;
+  readonly deleted_at: Date | null;
+  readonly movie_archived: boolean;
+}
+
 export interface ReviewRepository {
   /** Returns a Review with its public author identity, or null when the id is absent. */
   findById(tx: Tx, reviewId: ReviewId): Promise<ReviewRecord | null>;
@@ -52,6 +72,14 @@ export interface ReviewRepository {
   softDelete(tx: Tx, reviewId: ReviewId): Promise<ReviewRecord>;
   listPublic(tx: Tx, movieId: MovieId, page: number, pageSize: number): Promise<{ readonly items: readonly ReviewRecord[]; readonly total: number } | null>;
   listOwn(tx: Tx, authorId: AccountId, page: number, pageSize: number): Promise<{ readonly items: readonly ReviewRecord[]; readonly total: number }>;
+  lockForTransition(tx: Tx, reviewId: ReviewId, movie: MovieUpdateLock): Promise<ReviewTransitionRow | null>;
+  lockAllForMovie(tx: Tx, movie: MovieUpdateLock): Promise<void>;
+  readForScreening(tx: Tx, reviewId: ReviewId): Promise<ReviewScreeningRow | null>;
+  applyAutomatic(tx: Tx, review: ReviewUpdateLock, state: Extract<ModerationState, "cleared" | "flagged">): Promise<ReviewTransitionRow | null>;
+  approveAdmin(tx: Tx, review: ReviewUpdateLock): Promise<ReviewTransitionRow | null>;
+  hideAdmin(tx: Tx, review: ReviewUpdateLock): Promise<ReviewTransitionRow | null>;
+  restoreAdmin(tx: Tx, review: ReviewUpdateLock): Promise<ReviewTransitionRow | null>;
+  hideForAcceptedReport(tx: Tx, review: ReviewUpdateLock): Promise<ReviewTransitionRow | null>;
 }
 
 export interface ReviewContent {
@@ -115,6 +143,53 @@ const COUNT_PUBLIC = `
 const ACTIVE_MOVIE = `SELECT 1 FROM app.movie WHERE id = $1 AND archived_at IS NULL`;
 const LIST_OWN = `${FIND_BY_ID.replace("WHERE r.id = $1", "WHERE r.author_id = $1 ORDER BY r.updated_at DESC, r.id ASC LIMIT $2 OFFSET $3")}`;
 const COUNT_OWN = `SELECT count(*)::integer AS total FROM app.review WHERE author_id = $1`;
+const LOCK_FOR_TRANSITION = `
+  SELECT id, version, content_revision, moderation_state, hidden_at, deleted_at
+    FROM app.review
+   WHERE id = $1 AND movie_id = $2
+   FOR UPDATE`;
+const LOCK_ALL_FOR_MOVIE = `
+  SELECT id
+    FROM app.review
+   WHERE movie_id = $1
+   ORDER BY id ASC
+   FOR UPDATE`;
+const READ_FOR_SCREENING = `
+  SELECT r.id, r.content_revision, r.version, r.body, r.moderation_state,
+         r.hidden_at, r.deleted_at, m.archived_at IS NOT NULL AS movie_archived
+    FROM app.review r
+    JOIN app.movie m ON m.id = r.movie_id
+   WHERE r.id = $1`;
+const APPLY_AUTOMATIC = `
+  UPDATE app.review
+     SET moderation_state = $2, clearance_source = 'ai', version = version + 1, updated_at = now()
+   WHERE id = $1
+     AND version = $3
+     AND content_revision = $4
+     AND moderation_state = 'pending'
+     AND hidden_at IS NULL
+     AND deleted_at IS NULL
+   RETURNING id, version, content_revision, moderation_state, hidden_at, deleted_at`;
+const APPROVE_ADMIN = `
+  UPDATE app.review
+     SET moderation_state = 'cleared', clearance_source = 'admin', version = version + 1, updated_at = now()
+   WHERE id = $1 AND version = $2
+   RETURNING id, version, content_revision, moderation_state, hidden_at, deleted_at`;
+const HIDE_ADMIN = `
+  UPDATE app.review
+     SET hidden_at = now(), version = version + 1, updated_at = now()
+   WHERE id = $1 AND version = $2 AND hidden_at IS NULL
+   RETURNING id, version, content_revision, moderation_state, hidden_at, deleted_at`;
+const RESTORE_ADMIN = `
+  UPDATE app.review
+     SET hidden_at = NULL, version = version + 1, updated_at = now()
+   WHERE id = $1 AND version = $2 AND hidden_at IS NOT NULL
+   RETURNING id, version, content_revision, moderation_state, hidden_at, deleted_at`;
+const HIDE_ACCEPTED_REPORT = `
+  UPDATE app.review
+     SET hidden_at = now(), version = version + 1, updated_at = now()
+   WHERE id = $1 AND version = $2 AND hidden_at IS NULL
+   RETURNING id, version, content_revision, moderation_state, hidden_at, deleted_at`;
 
 function toRecord(row: ReviewRow): ReviewRecord {
   return {
@@ -189,6 +264,44 @@ export function createReviewRepository(deps: { readonly sql: Sql }): ReviewRepos
         deps.sql.query<{ total: number }>(tx, COUNT_OWN, [authorId]),
       ]);
       return { items: items.map(toRecord), total: count[0]?.total ?? 0 };
+    },
+    async lockForTransition(tx, reviewId, movie) {
+      const row = (await deps.sql.query<ReviewTransitionRow>(tx, LOCK_FOR_TRANSITION, [reviewId, movie.movieId]))[0];
+      return row === undefined ? null : row;
+    },
+    async lockAllForMovie(tx, movie) {
+      await deps.sql.query(tx, LOCK_ALL_FOR_MOVIE, [movie.movieId]);
+    },
+    async readForScreening(tx, reviewId) {
+      const row = (await deps.sql.query<ReviewScreeningRow>(tx, READ_FOR_SCREENING, [reviewId]))[0];
+      return row === undefined ? null : row;
+    },
+    async applyAutomatic(tx, review, state) {
+      const row = (
+        await deps.sql.query<ReviewTransitionRow>(tx, APPLY_AUTOMATIC, [
+          review.reviewId,
+          state,
+          review.version,
+          review.contentRevision,
+        ])
+      )[0];
+      return row === undefined ? null : row;
+    },
+    async approveAdmin(tx, review) {
+      const row = (await deps.sql.query<ReviewTransitionRow>(tx, APPROVE_ADMIN, [review.reviewId, review.version]))[0];
+      return row === undefined ? null : row;
+    },
+    async hideAdmin(tx, review) {
+      const row = (await deps.sql.query<ReviewTransitionRow>(tx, HIDE_ADMIN, [review.reviewId, review.version]))[0];
+      return row === undefined ? null : row;
+    },
+    async restoreAdmin(tx, review) {
+      const row = (await deps.sql.query<ReviewTransitionRow>(tx, RESTORE_ADMIN, [review.reviewId, review.version]))[0];
+      return row === undefined ? null : row;
+    },
+    async hideForAcceptedReport(tx, review) {
+      const row = (await deps.sql.query<ReviewTransitionRow>(tx, HIDE_ACCEPTED_REPORT, [review.reviewId, review.version]))[0];
+      return row === undefined ? null : row;
     },
   };
 }
