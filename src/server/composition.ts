@@ -12,17 +12,20 @@ import {
   createDeferredModerationDispatcher,
   createDisabledModerationSweep,
   createModerationDispatcher,
+  createModerationJobReadService,
   createModerationSweep,
   createModerationWorkQueue,
   logUnreviewedPolicyIssue,
   PROFANITY_POLICY_VERSION,
   requiresDispatcherStub,
   type ModerationDispatcher,
+  type ModerationJobReadService,
   type ModerationRecovery,
   type ModerationSweep,
   type ModerationWorkQueue,
 } from "./services/ai/moderation";
 import {
+  createModerationJobReadRepository,
   createModerationReviewReadRepository,
   createModerationWorkRepository,
   createReviewModerationRepository,
@@ -329,6 +332,12 @@ const moderationRecoveryDispatcher: (ModerationDispatcher & ModerationRecovery) 
 /** K9 dispatcher: the real one, or the D-52 stub that returns `deferred` and writes nothing (D-56, D-101). */
 export const moderationDispatcher: ModerationDispatcher =
   moderationRecoveryDispatcher ?? createDeferredModerationDispatcher();
+
+/** Admin review-moderation job status read (D-102); `null` exactly when `database` is. It never calls K10. */
+export const moderationJobReadService: ModerationJobReadService | null =
+  database === null
+    ? null
+    : createModerationJobReadService({ database, jobs: createModerationJobReadRepository({ sql: database }) });
 
 /**
  * DEP-10 review-moderation recovery sweep (D-101): `null` exactly when `database` is. The real sweep runs with the
