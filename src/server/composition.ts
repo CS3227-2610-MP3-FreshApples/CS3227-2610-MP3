@@ -110,6 +110,9 @@ import {
   type ReviewTransitions,
 } from "./services/reviews";
 import { createReportReadService, createReportService, type ReportReadService, type ReportService } from "./services/moderation";
+import { createAdminReviewService, type AdminReviewService } from "./services/moderation/admin-reviews";
+import { createAdminReviewQueryRepository } from "./repositories/moderation/admin-review-query-repository";
+import { createAdminReviewWorkRepository } from "./repositories/moderation/admin-review-work-repository";
 
 // The composition root (D-23): the only module-level instances in src/server, created once per server instance.
 
@@ -289,6 +292,19 @@ export const publicSummaryReadService: PublicSummaryReadService | null =
         database,
         summaries: createPublicSummaryReadRepository({ sql: database }),
         log: createConsolePublicSummaryReadLog(),
+      });
+
+/** A-04 manual moderation, available independently of AI configuration. */
+export const adminReviewService: AdminReviewService | null =
+  database === null || reviewLocks === null || reviewTransitions === null || auditLog === null
+    ? null
+    : createAdminReviewService({
+        database,
+        queries: createAdminReviewQueryRepository({ sql: database }),
+        reviewLocks,
+        transitions: reviewTransitions,
+        work: createAdminReviewWorkRepository({ sql: database }),
+        auditLog,
       });
 
 /** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
