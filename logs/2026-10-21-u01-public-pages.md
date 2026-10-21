@@ -32,3 +32,9 @@ The original temporary external baselines for Increments 1–4 were no longer pr
 ## Cache Components compatibility correction
 
 The human reported a Next.js 16.4 build error caused by route-segment configuration exports that are incompatible with `nextConfig.cacheComponents`. Removed the redundant `dynamic = "force-dynamic"` exports from the three public pages and the redundant `runtime = "nodejs"` exports from the three public read Route Handlers; Node.js remains the default Route Handler runtime. The reported configuration errors disappeared from the subsequent Turbopack build attempt. Focused public page/API tests, the full unit suite (48 files, 716 tests), type-check, lint and diff checks passed. Turbopack still cannot complete because its CSS worker is denied a process/port operation in this environment; webpack remains blocked by its pre-existing TypeScript `--showConfig` parsing failure. No commit was made.
+
+## Public read-service unavailable-state correction
+
+The human reported that the Announcements page throws `Public announcement read service is unavailable.` at runtime when the server composition cannot initialize the public read service. The same null-service throw existed on the Movie list and Movie detail pages. Added a focused red test that reproduced the announcement exception, then replaced all three throws with a shared, text-only accessible unavailable state using the generic public API message. The focused page tests passed (2 files, 5 tests); the full unit suite passed (49 files, 717 tests), as did type-check, lint, and diff checks. The production build was intentionally skipped under the existing human-approved Turbopack permission exception. No dependency, migration, specification, credential, production-data, generated-source, or Git-history change was made. Human verification remains pending.
+
+The human reviewed the correction and explicitly authorized committing the completed changes.

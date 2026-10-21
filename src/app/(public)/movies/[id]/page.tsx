@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { PublicReadUnavailable } from "../../../../components/public-read-unavailable";
 import { publicCatalogueReadService } from "../../../../server/composition";
 import { parseId } from "../../../../server/http";
 
@@ -11,7 +12,7 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
   const movieId = parseId<"MovieId">((await params).id);
   if (!movieId.ok) notFound();
   if (publicCatalogueReadService === null) {
-    throw new Error("Public catalogue read service is unavailable.");
+    return <PublicReadUnavailable title="Movie details" titleId="movie-title" />;
   }
 
   const movie = await publicCatalogueReadService.getMovie(movieId.value);

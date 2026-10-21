@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { PublicReadUnavailable } from "../../../components/public-read-unavailable";
 import { publicAnnouncementReadService } from "../../../server/composition";
 
 const PAGE_SIZE = 20;
 
 export default async function AnnouncementsPage() {
   if (publicAnnouncementReadService === null) {
-    throw new Error("Public announcement read service is unavailable.");
+    return <PublicReadUnavailable title="Announcements" titleId="announcements-title" />;
   }
 
   const result = await publicAnnouncementReadService.listAnnouncements({ page: 1, pageSize: PAGE_SIZE });

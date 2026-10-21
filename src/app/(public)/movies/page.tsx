@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PublicReadUnavailable } from "../../../components/public-read-unavailable";
 import { publicCatalogueReadService } from "../../../server/composition";
 import { normalizePublicMovieListQuery } from "../../../server/services/catalogue";
 
@@ -24,7 +25,7 @@ export default async function MoviesPage({ searchParams }: MoviesPageProps) {
     return <InvalidMovieSearch />;
   }
   if (publicCatalogueReadService === null) {
-    throw new Error("Public catalogue read service is unavailable.");
+    return <PublicReadUnavailable title="Movies" titleId="movies-title" />;
   }
 
   const result = await publicCatalogueReadService.listMovies(query.value);
