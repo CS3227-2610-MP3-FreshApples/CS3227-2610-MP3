@@ -36,11 +36,11 @@ The brief states the submission deadline as 23 October (Friday), 2 pm SGT. In th
 
 | Owner | Role features | Substantial shared responsibilities |
 | --- | --- | --- |
-| Developer A (Lim-ZY) | User UI, discovery, reviews, reporting, summary, optional watchlist | Identity/session implementation, public API contracts, User security tests, user guide |
-| Developer B (thegrimbee) | Admin UI, Movie CRUD, moderation, announcements, review profanity moderation | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
+| Developer A (Lim-ZY) | User UI, discovery, reviews, reporting, optional watchlist (summary moved to Developer B, D-85) | Identity/session implementation, public API contracts, User security tests, user guide |
+| Developer B (thegrimbee) | Admin UI, Movie CRUD, moderation, announcements, review profanity moderation, public review summary (U-04, D-85) | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
 | Both | Cross-review and end-to-end integration | Architecture, provider adapter contract, threat model, acceptance tests, reflections, logs, product website and release |
 
-The Developer A/Developer B split above is adopted (12 October 2026). Developer A is Lim-ZY and Developer B is thegrimbee (GitHub usernames); tester accounts remain open under OQ-06. Shared foundations must have clear owners without splitting a role's features between developers. D-20 assigns the account-status service to Identity (Developer A); Moderation (Developer B) calls it.
+The Developer A/Developer B split above is adopted (12 October 2026). Developer A is Lim-ZY and Developer B is thegrimbee (GitHub usernames); tester accounts remain open under OQ-06. Shared foundations must have clear owners without splitting a role's features between developers. D-85 is the one recorded exception: the User-facing public review summary (U-04) is owned by Developer B. D-20 assigns the account-status service to Identity (Developer A); Moderation (Developer B) calls it.
 
 ### SDD and specialized-agent workflow
 
@@ -514,7 +514,7 @@ Design decision D-70 (marker fake delivery and output-schema tests): Approved by
   - `timeout` waits for the signal to abort;
   - statelessness;
   - the promise never rejects.
-- **Schema tests move:** the AI-01 and AI-02 output schemas do not exist yet. The task that adds each schema adds the D-57 conformance test for the fake's constants in `tests/`: U-04 (Developer A) for `summary`, and A-03 (Developer B) for `clean` and `flag`. Until then, S-06 writes the constants to match the field rules in ai.md AI-01 and AI-02.
+- **Schema tests move:** the AI-01 and AI-02 output schemas do not exist yet. The task that adds each schema adds the D-57 conformance test for the fake's constants in `tests/`: U-04 (Developer A; Developer B since D-85) for `summary`, and A-03 (Developer B) for `clean` and `flag`. Until then, S-06 writes the constants to match the field rules in ai.md AI-01 and AI-02.
 - **Why:** S-06 must not create or import feature-owned schemas. The conformance test still exists before any journey depends on the fake's outputs (R-02).
 
 Design decision D-71 (S-06 paths and wiring): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Every path below is owned by Developer B. Resolves the conflict between PLAN.md S-06's allowed paths and D-52, D-56, D-57, D-65 and architecture.md 6.6.
@@ -663,6 +663,192 @@ Design decision D-84 (Interim K8 dependency for Movie archive/restore): Recorded
 - **Until U-02 merges:** the composition root leaves the orchestrator unwired, so DELETE `/admin/movies/:id` and POST `/admin/movies/:id/restore` return 503 `service_unavailable`. Developer B's code does not lock or query Review rows in production.
 - **Tests:** isolated orchestration unit tests use fakes. API integration tests inject the orchestrator with a test-only PostgreSQL stand-in in `tests/support/` that takes the contracted locks (Reviews of the Movie `FOR UPDATE`, ascending id). The stand-in is not production code and is not evidence for U-02's K8.
 - **Exit:** when U-02 is on `master`, wire the orchestrator with the real K8, remove the stand-in and the test injection, rerun the A-01 suites against the real K8, and add the archive-versus-review-submission race test (verification §11.3). A-01 is not complete before this.
+
+Design decision D-85 (U-04 ownership exception): Recorded by thegrimbee on 21 October 2026. Approved by both developers (Lim-ZY and thegrimbee) on 20 October 2026; Lim-ZY's approval is recorded as reported by Developer B. First drafted as D-79 on the unmerged `feat/ai-summary-core` branch, which is being discarded; D-79 on `master` is the U-01 public read decision.
+- U-04 (public review summary: FR-08, AI-01) moves from Developer A to Developer B, as B#13 and B#14 in `workflow/COMMIT-PLAN.md` (formerly A#9 and A#10). Developer A reviews both PRs.
+- This is the only exception to the rule in "Team ownership" that a role's features are not split between developers. All other User features stay with Developer A.
+- Summary paths (`src/server/services/ai/summary/`, `/internal/cron/summaries`, `/movies/:id/summary` and its UI) are owned by Developer B. Shared UI in `src/components/` and layouts remain Developer A's hotspot, and the Review eligibility predicate stays with its current owner.
+- Ownership of the R-01 summary evaluation fixtures is not changed by this decision.
+
+Design decision D-86 (summary input preparation): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 items 2–5 and AI-04.
+- **Consistent read:** one SQL statement reads the Movie's `archived_at` and `reviews_revision`, whether a ReviewSummary exists at that revision (D-88), and every eligible Review's `id`, `version`, `content_revision`, `rating` and `body`, in ascending `id` order. Under READ COMMITTED (O-01) one statement sees one snapshot, so the revision always matches the Review set. No row lock is taken, so review writes are never blocked. A missing or archived Movie gives `unavailable`.
+- **Eligibility predicate:** the data-model.md definition, written as `moderation_state = 'cleared' AND deleted_at IS NULL AND hidden_at IS NULL` on a Movie with `archived_at IS NULL`. A body edit or resubmission resets `moderation_state` to `pending` in the same transaction (data-model.md), so `cleared` means cleared for the current `content_revision`. The predicate keeps its current owner (D-85): U-04 restates it in its own read-only query repository (O-23) and does not create a shared file in Developer A's paths. A PostgreSQL integration test seeds the same Reviews in every eligibility state and asserts that the U-04 eligible count equals the U-01 public `reviewCount`, so the two copies cannot drift unnoticed. If Developer A later extracts a shared predicate, U-04 switches to it.
+- **Fewer than 3 eligible:** `insufficient_reviews`, with no K10 call, no AIJob and no write.
+- **Sample size:** `AI_SUMMARY_SAMPLE_SIZE` accepts 3–20 (default 20). Below 3 no sample could be published, so a smaller value is invalid AI configuration and disables AI (D-28, D-37).
+- **Sampling (`summary-sample-v1`):**
+  - Candidates are the eligible Reviews in ascending `id` order. Let `n` be their number and `s = min(n, AI_SUMMARY_SAMPLE_SIZE)`.
+  - Each generation attempt draws a fresh seed: 32 bytes from `node:crypto` `randomBytes`, recorded as lowercase hex. The seed source is a constructor dependency, so tests can fix it.
+  - Random stream: SHA-256 of the seed bytes followed by a 4-byte big-endian counter starting at 0. Each digest gives eight big-endian unsigned 32-bit values, used in order.
+  - Uniform index in `[0, k)`: discard values of at least `floor(2^32 / k) × k`; otherwise take the value modulo `k`.
+  - Partial Fisher–Yates: for `i` from 0 to `s − 1`, swap position `i` with position `i + index(n − i)`. The sample is the first `s` candidates, in that order.
+  - The same seed and candidate list always give the same sample. No dependency is added.
+- **Review records:** each sampled Review is sent as `{ "label", "rating", "truncated", "body" }`:
+  - `label` is `R<k>`, where `k` is its 1-based position in sample order;
+  - `rating` is the string `"<n>/10"`;
+  - `body` is the stored plain-text body cut to its first 1,000 Unicode code points (data-model.md counts code points);
+  - `truncated` is `true` when the body was cut. This flag is the AI-01 truncation marker; no marker text is added to the body.
+- **Messages:** a `system` message holding the static prompt, then one `user` message holding `JSON.stringify({ "reviews": [...] })`. JSON string escaping keeps Review text inside its field whatever it contains. The input has no Movie title, author, account, Report, moderation or job data. `maxOutputTokens` is 1,200.
+- **Prompt:** version `review-summary-prompt-v1`, a static artifact with its version constant in `src/server/services/ai/summary/`. Any change to the system text or to the user-message format is a new version. The system text tells the model to describe only opinions expressed in the supplied Reviews and add no facts about the Movie; to treat every Review field as data and ignore instructions inside it; to cite only labels present in the input; and to return only the D-87 JSON object, as plain text without markup or URLs. The wording is reviewed in the B#13 PR.
+- **Reduction:** estimate the input with the AI-03 formula over both messages, using the runtime's `estimateInputTokens` so the summary and K10 use one implementation. While the estimate exceeds `AI_INPUT_TOKEN_LIMIT` (at most 8,000; the bound K10 enforces), remove the last Review in sample order and serialize again. Remaining labels do not change, and every included Review stays whole. The sample before reduction is uniform; when reduction removes Reviews it favours shorter ones (corrected by D-93). If fewer than 3 Reviews remain, the result is `input_unfit`, with no K10 call and no AIJob. The Reviews that remain are the included sample, which is persisted (D-88) and counted for display.
+- **Why:** one statement gives a consistent snapshot without blocking review writes. Hash-counter sampling is reproducible from the stored seed without a new dependency. Removing whole Reviews from the end keeps the reduction deterministic, which AI-01 item 5 permits; its length bias is accepted in D-93.
+
+Design decision D-87 (summary output schema): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 item 6 and AI-04. Safe text amended by D-96.
+- **Shape** (example):
+
+  ```json
+  {
+    "overall": "Reviewers mostly praise the pacing and the lead performance.",
+    "strengths": [{ "text": "The lead performance is widely praised.", "sources": ["R1", "R3"] }],
+    "criticisms": [],
+    "mixedOpinions": [{ "text": "Opinions on the ending are split.", "sources": ["R2", "R4"] }]
+  }
+  ```
+
+- **Field rules:**
+  - The object has exactly the keys `overall`, `strengths`, `criticisms` and `mixedOpinions`. Each list item has exactly `text` and `sources`. An unknown or missing key at any level rejects the output.
+  - `overall` is 1–800 Unicode code points after trimming.
+  - Each list has 0–3 items. Each `text` is 1–240 code points after trimming.
+  - `sources` has 1–20 unique strings, and each must be the label of an included Review (D-86). A label removed by reduction, an unknown label and a raw Review ID are all rejected.
+- **Safe text:** following AI-04 ("reject unexpected URLs/markup"), a string is rejected if it contains a C0 control character other than LF, or U+007F; `http://`, `https://` or `www.` in any letter case; or `<` followed by a letter, `/`, `!` or `?`. A Review that quotes a URL can therefore make generation fail; that Movie then takes the failure backoff (D-89), which is the safe outcome.
+- **Parsing:** trim the content. If it starts and ends with a triple-backtick fence (optionally tagged `json`), strip that one outer fence. Then `JSON.parse` it; the result must be an object. Any failure gives `invalid_output` (O-27: no JSON response mode is relied on).
+- **Validator:** a strict zod schema (D-22) plus the label and safe-text checks. The validated output, with trimmed strings and labels as given, is stored as `output_json`. It is rendered only as escaped plain text.
+- **Marker fake:** the `summary` outcome of `MarkerFakeLlmProvider` (D-57) returns a constant that is valid under this schema and cites only `R1`–`R3`. Every published sample includes at least those labels, so the fixed fake never invents a source. B#13 adds the constant and its D-70 conformance test; the `summary` marker no longer fails closed.
+- **Why:** short position labels cost fewer tokens than UUIDs and are harder to miscopy, keep Review IDs out of the prompt, and let a fixed fake output stay valid.
+
+Design decision D-88 (summary provenance and result reuse): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 items 4 and 6 without a migration.
+- **`sampled_review_ids_and_versions`:** `{ "algorithm": "summary-sample-v1", "seed": "<64 hex>", "sampledCount": s, "reviews": [{ "reviewId", "version", "contentRevision", "truncated" }] }`.
+  - `reviews` lists the included Reviews in label order (`R1` first), so label `R<k>` maps to `reviews[k − 1]`.
+  - `sampledCount` is `s` before reduction, so a replay from the seed can confirm that the included Reviews are its prefix.
+  - "IDs/versions" (AI-01 item 4) means both `Review.version` and `content_revision`.
+- **Other columns:** `eligible_count` is the count in the D-86 read; `generated_at` is the publish transaction's `now()`. Model and prompt versions are reached through `job_id` (`ai_job.model_id`, `ai_job.prompt_version`), which K10 writes. The included count is the length of `reviews`; the truncation notice is shown when any included Review has `truncated` set.
+- **`BoundedInput.snapshot`** (`bounded_input_snapshot`, D-64): `{ movieId, reviewsRevision, eligibleCount, sample }`, where `sample` is the object above. It holds no Review text; `input_hash` identifies the messages.
+- **Reusing a valid result (AI-01 item 4):** a running job with the same Movie, revision, model and prompt version is reused through K10's dedup key (`duplicate`). A ReviewSummary at the Movie's current `reviews_revision` is a valid result: when the D-86 read finds one, generation returns `current` with no K10 call. Publication clears pending only at its exact revision and only `markReviewsChanged` sets it again, by advancing the revision, so this case is normally unreachable; the check is defensive. A summary stays current while its revision equals the Movie's, whatever model produced it. **Amended by D-93:** it must also have the current summary prompt version; a summary from an older prompt version is retired. A new model applies from the next generation and never by itself triggers regeneration, consistent with "unchanged content never causes regeneration merely because time passed".
+- **Model ID:** the summary service does not need it. K10 adds the provider's model to the dedup key and the AIJob row.
+
+Design decision D-89 (summary outcomes and sweep scheduling): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 "Scheduling and load" and DEP-09. Due checks, retired summaries, clock, faults and logging are amended by D-94.
+- **Generation (B#13):** one service operation generates the summary for one Movie ID. It is called with no Tx open. It returns `unavailable`, `insufficient_reviews`, `input_unfit` (D-86) or `current` (D-88), or else the K10 `AiExecutionOutcome` unchanged. It never throws for an expected outcome and never writes schedule columns.
+- **Selection (B#14):** one statement selects at most `AI_SUMMARY_MAX_MOVIES_PER_RUN` (1) Movie that:
+  - is active, has `summary_pending_since` set, and has `summary_next_attempt_at` null or not after now;
+  - has `summary_last_success_at` null, or not after now minus `AI_SUMMARY_INTERVAL_DAYS` days;
+  - has at least 3 eligible Reviews under the D-86 predicate.
+
+  Order: `summary_last_attempt_at` ascending with nulls first (never-attempted first), then `summary_pending_since`, then `id`. Times come from the database clock. A Movie with fewer than 3 eligible Reviews is never selected, so it cannot hold the single slot every run and starve others (AT-07: the sweep skips fewer-than-3-review Movies). It keeps its marker and becomes selectable once it has 3 (AI-01 item 3).
+- **Attempt record (B#14), each step in its own short Tx and never during the provider call:**
+  1. Before generating: K7 `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with the next attempt 1 day later. This commits before the provider call, so a crash keeps the backoff and the Movie moves behind the others. A Movie that is no longer active counts as `skipped`, with nothing more.
+  2. After `deferred`, `disabled` or `duplicate`: K7 `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with the next attempt now. The Movie stays behind the others, but capacity limits do not impose the failure backoff (AI-01: deferral keeps the marker). If the Movie was archived meanwhile, nothing is written.
+- **Outcome mapping:**
+
+  | Outcome | Cron count | Schedule after the attempt |
+  | --- | --- | --- |
+  | `published` | processed | Step 1 values; `recordSummaryPublished` cleared pending, and the interval then governs |
+  | `current`, `insufficient_reviews`, `unavailable` (races after selection) | skipped | Step 1 values |
+  | `duplicate` | skipped | Step 2 |
+  | `deferred`, `disabled` | deferred | Step 2 |
+  | `input_unfit`, `input_too_large`, `failed`, `stale` | failed | Step 1 values: the 1-day backoff |
+
+- **Backoff and retries:** the backoff is exactly 1 day after the attempt; Vercel Hobby cron timing is approximate, so a retry can slip to the following run, which is accepted (DEP-09: timing is not a deadline). AI-01 sets no maximum failure count for summaries (AI-02's limit of 3 applies only to moderation). Retries stay bounded at one attempt per Movie per day and one Movie per run, and a failing Movie moves behind the others after each attempt.
+- **Interval values:** `AI_SUMMARY_INTERVAL_DAYS` accepts only 1 (default) or 7, the two values deployment.md supports. Any other value is invalid AI configuration and disables AI (D-37).
+- **Response:** `200 { processed, skipped, deferred, failed }`, integers summing to at most `AI_SUMMARY_MAX_MOVIES_PER_RUN`. All four are 0, with no writes, when the `summary_sweep` lease is held by another run, when no Movie is due, or when `schedulerLeases` is null because the D-52 controller stub is wired.
+- **Why:** filtering by eligible count prevents starvation, recording the attempt first covers crashes, and only failures and stale results take the backoff, as AI-01 requires.
+
+Design decision D-90 (public summary projection): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Fills the api.md `summary?` field and the AI-01 UI metadata. Amended by D-93 (prompt-version retirement) and D-94 (tie-break, stored-output validation).
+- **Response:** `GET /api/v1/movies/:id/summary` returns 200, for example:
+
+  ```json
+  {
+    "status": "ready",
+    "eligibleCount": 12,
+    "summary": {
+      "overall": "Reviewers mostly praise the pacing and the lead performance.",
+      "strengths": [{ "text": "The lead performance is widely praised." }],
+      "criticisms": [],
+      "mixedOpinions": [{ "text": "Opinions on the ending are split." }],
+      "includedCount": 9,
+      "truncated": true,
+      "generatedAt": "2026-10-20T00:00:05.000Z"
+    }
+  }
+  ```
+
+  `summary` is present only when `status` is `ready`. `eligibleCount` is the current eligible count under the D-86 predicate. `includedCount` and `truncated` come from D-88; `generatedAt` is ISO 8601 UTC.
+- **Precedence:** one statement computes the state, in this order:
+  1. An unknown, malformed or archived Movie ID returns 404 (O-09).
+  2. Fewer than 3 eligible Reviews gives `insufficient_reviews`.
+  3. A ReviewSummary at the Movie's current `reviews_revision` and the current summary prompt version gives `ready`, whatever model produced it (D-88, as amended by D-93). If several match, the latest by `generated_at DESC, id DESC` is used (D-94).
+  4. Any other ReviewSummary for the Movie (older revision or older prompt version) gives `stale`.
+  5. Otherwise the state is `missing`.
+- **Not exposed:** source labels, sampled IDs and versions, the seed, job, model and prompt fields, and any text from a non-current summary.
+- **UI:** `stale` and `missing` both show the AI-01 "awaiting scheduled update" state with no generation or retry control; `insufficient_reviews` shows insufficient reviews; `ready` shows the fixed AI-01 label, the generation time, included and eligible counts, and the truncation notice when `truncated` is true.
+- **Caching:** dynamic rendering and `no-store` (P-06). The read never calls K10 and writes nothing.
+
+Design decision D-91 (U-04 sequencing against U-02): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choice to the agent's recommendation. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Resolves the conflict between `workflow/PLAN.md` (U-04 depends on U-02 and S-06) and `workflow/COMMIT-PLAN.md` (B#13 needs B#5 or the B#4 fake; SP-2 unblocks "U-04 dev against fakes").
+- **Rule:** B#13 (U-04a) and B#14 (U-04b) may be implemented and merged before U-02. Their runtime dependencies are K7 (B#4, merged in PR #11) and K10 (S-06, merged in PR #12). U-02 is an acceptance dependency of U-04, not a merge dependency.
+- **Stand-in for U-02:** U-04 reads Reviews through its own read-only query repository (D-86, O-23), not through K8 or a U-02 service, so no U-02 fake is needed. Tests seed synthetic Review rows directly in the disposable PostgreSQL database (D-10) and advance the revision through the real K7 `markReviewsChanged`. This stand-in is test-only and is not evidence for U-02.
+- **Deferred to U-02:** AT-08 and INV-09 through real review create, edit, delete, hide and restore. U-04 is not accepted (not `Done`) until U-02 is on `master` and those cases pass against real review writes. Neither B#13 nor B#14 may claim them from synthetic fixtures.
+- **Why:** U-04 never writes Reviews, and the eligibility it reads is defined by stored columns (data-model.md), so a database fixture exercises the same reads that U-02 rows will. This mirrors the D-84 interim pattern.
+
+Design decision D-92 (B#13 paths): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight. Developer B owns every path below. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. The architect preflight may narrow these paths but not widen them.
+- **New:**
+  - `src/server/services/ai/summary/`: generation service, prompt and its version, sampling, input preparation, output schema and the publish callback;
+  - `src/server/repositories/summary/`: the D-86 consistent read and the ReviewSummary insert. B#14 adds selection and the public read here. D-71 keeps `src/server/repositories/ai/` for the AI runtime.
+- **Existing, limited changes:**
+  - `src/server/composition.ts`: summary service wiring only;
+  - `src/server/adapters/soc-llm/marker-fake-provider.ts`: the `summary` constant and outcome (D-87);
+  - `src/server/services/ai/runtime/index.ts`: export `estimateInputTokens` (D-86);
+  - `src/server/config/ai.ts`: `AI_SUMMARY_SAMPLE_SIZE` minimum 3 (D-86) and `AI_SUMMARY_INTERVAL_DAYS` limited to 1 or 7 (D-89);
+  - `src/server/services/ai/runtime/create-ai-runtime.ts`: the `summaryLimits` field (added by D-93).
+- **Tests:** new tests under `tests/unit/ai/summary/` and `tests/integration/ai/summary/`, including the D-70 conformance test for the `summary` constant and the D-86 eligibility parity test; updates to `tests/unit/ai/marker-fake-provider.test.ts` (the `summary` marker now succeeds) and `tests/unit/config/parse-config.test.ts` (new bounds).
+- **Not in B#13:** Route Handlers, UI, migrations, dependency or lockfile changes, K3, K7 or K10 internals, and any Developer A path, including U-01's public read repository.
+
+Design decision D-93 (U-04a architect-review resolutions): Recorded by thegrimbee on 21 October 2026 from the U-04a architect preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Amends D-86, D-88, D-90 and D-92 where stated; affects B#13. The older-prompt test wording is clarified by D-97.
+- **Summary limits and wiring (architect M1):** `AiRuntime` gains `summaryLimits: { sampleSize, inputTokenLimit } | null`, taken from the same `AiSettings` that build the real controller. It is `null` exactly when the D-52 controller stub is wired, like `schedulerLeases`. The composition root builds the summary generation service only when `summaryLimits` and `database` are non-null; otherwise it exports `null`, and B#14's sweep then returns zero counts with no writes, as for a null `schedulerLeases` (D-89). Reduction therefore always uses the controller's own `inputTokenLimit`, so `input_too_large` cannot arise from a limit mismatch. This widens the D-92 paths by `create-ai-runtime.ts`, a Developer B file; the widening is this human decision, not the architect preflight's.
+- **Reduction bias (M2):** the D-86 algorithm is kept. The sample before reduction is uniform; when reduction triggers, longer Reviews are less likely to be included. AI-01 item 5 permits deterministic reduction, so this is an accepted, disclosed property, and the D-86 wording is corrected.
+- **Prompt-version retirement (M6):** a ReviewSummary is current only when its `reviews_revision` equals the Movie's and its job's `prompt_version` equals the summary prompt version constant in `src/server/services/ai/summary/`. D-88's `current` outcome, the D-90 `ready` state and the guard below use this rule, and D-94 adds retired Movies to selection. The model ID is not part of the rule, because the configured model can be an alias (D-48).
+  - **Accepted risk:** changing the prompt version retires every summary at once. Each then shows "awaiting scheduled update" until the sweep regenerates it, at one Movie per run. Change the version only when the old output must be withdrawn, and record the expected backlog in R-04.
+- **Duplicate publication guard (L1, option A):** after K7 `lockActiveMovieForUpdate` and the revision comparison, the publish callback checks for a ReviewSummary with the same Movie, revision and current prompt version. If one exists it returns `stale` and inserts nothing. The Movie lock serializes publishers, so no constraint or lock is added. This amends AM-23 as AM-25.
+- **"No execution record" (L5):** in AI-01 item 3, "execution record" means an AIJob and its budget reservation. The Movie `summary_*` columns written by D-89 are scheduling state, not an execution record.
+- **B#13 test requirements (architect review):** the parity test seeds each eligibility state (cleared, pending, flagged, hidden, deleted, hidden and deleted, and cleared with `content_revision` above 1) with distinct counts, for example powers of two, so errors cannot cancel; a fixed-vector test pins `summary-sample-v1`; marker-fake tests fix the seed; an integration test reaches `published` through the real K10 controller and the marker fake, with no Tx open; the stale-revision, archived-Movie, lease-loss, duplicate-guard and older-prompt cases roll back; and the D-70 conformance test for the `summary` constant.
+
+Design decision D-94 (U-04b architect-review resolutions): Recorded by thegrimbee on 21 October 2026 from the U-04a architect preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Amends D-89 and D-90 where stated; affects B#14 only.
+- **Cron timing tolerance (architect M5):** Vercel Hobby cron fires anywhere in its hour (DEP-09). Both D-89 due checks compare with the database time plus 1 hour: `summary_next_attempt_at` is null or at most `now() + 1 hour`, and `summary_last_success_at` is null or at most `now() + 1 hour − AI_SUMMARY_INTERVAL_DAYS days`. A Movie due today is not skipped because today's run fired earlier than yesterday's.
+- **Retired summaries in selection (M6, D-93):** D-89 selection also includes an active Movie with no pending marker whose summary at the current revision has an older prompt version and none has the current one. The same next-attempt, interval and eligible-count conditions and the same order apply. Publishing for it goes through `recordSummaryPublished` as usual.
+- **Database clock (L4):** step 1 reads `now()` from the database in its Tx and passes `now() + 1 day` to `recordSummaryAttempt`; step 2 passes the database `now()`. The server clock is never used for schedule times.
+- **Infrastructure faults (M8):** if generation throws after step 1 has committed, the Movie counts as `failed`, step 1's backoff stands, and the sweep still returns 200 with its counts. If step 2 throws, the Movie keeps step 1's values and its outcome is counted as usual. If acquiring the lease, selection or step 1 throws, the sweep returns 503 `service_unavailable` with the api.md error envelope and no counts.
+- **Stored output (L7):** the D-90 read parses `output_json` with the D-87 schema, checking sources against the stored `reviews` list. A row that fails is treated as absent at its precedence step and logged; the read never returns 500 for it and never exposes the row.
+- **Tie-break (L1, option B):** if several ReviewSummary rows match a D-90 step, the latest by `generated_at DESC, id DESC` is used.
+- **Selection query (L11):** the eligible-count condition uses a subquery that stops after 3 eligible rows, served by `review_movie_visibility_idx`, rather than counting every Review.
+- **Logging (L8):** each sweep writes one structured log line (architecture.md 9.5) with its counts, the selected Movie ID and the outcome kind and job ID, if any. It never contains Review text, output, prompts or raw provider errors.
+- **Predicate parity (M3):** the D-86 parity test is extended to the selection filter and the D-90 `eligibleCount`.
+- **B#14 paths (L14):**
+  - new: `src/app/api/v1/internal/cron/summaries/`, `src/app/api/v1/movies/[id]/summary/`, and the summary UI component `src/app/(public)/movies/[id]/_components/review-summary.tsx`;
+  - added to D-92's directories: the sweep and public read services in `src/server/services/ai/summary/`, and selection and the public read in `src/server/repositories/summary/`;
+  - limited: `src/server/composition.ts` (sweep and read wiring), and in Developer A's `src/app/(public)/movies/[id]/page.tsx` only the lines that mount the component, approved by Developer A;
+  - tests under `tests/unit/ai/summary/`, `tests/integration/ai/summary/` and `tests/integration/api/`;
+  - not in B#14: migrations, `vercel.json` (R-04), dependencies, and K3, K7 or K10 internals.
+
+Design decision D-95 (summary accepted risks and acceptance items): Recorded by thegrimbee on 21 October 2026 from the U-04a architect preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. None of these blocks B#13 or B#14; the acceptance items block U-04 `Done`.
+- **Accepted risk, predicate drift (M3):** four copies of the eligibility predicate will exist (U-01, D-86, D-89, D-90) and U-02 adds a fifth. Owner: Developer A aligns or extracts the predicate when U-02 lands; Developer B extends the parity test to U-02's public review listing. Acceptance item.
+- **Accepted risk, read cost (M4):** the D-86 read returns every eligible Review body. R-04 workload validation records the largest per-Movie eligible count and the read time against K1's 5-second `statement_timeout`. If it does not fit, D-86 is revised before release. A timeout takes the D-94 failure path and loses no work. Owner: Developer B. Acceptance item.
+- **Accepted risk, persistent failure (M7):** with 20 or fewer eligible Reviews, one Review that steers the model to emit a URL or markup fails every attempt, costing one provider call per day with no failure cap (D-89). Mitigations: Admin hide (A-04) and the backlog monitoring in AI-01. Owner: Developer B.
+- **Summary index (L2):** Developer B adds a new migration with an index on `review_summary (movie_id, reviews_revision)` in its own PR before U-04 acceptance, to meet the summary read target (architecture.md). Acceptance item.
+- **Accepted risk, safe-text gaps (L3):** D-87's check rejects harmless text such as "awww." and misses bare domains, C1 controls, bidi overrides and zero-width characters. Output is always rendered as escaped text, so the impact is a failed run or display spoofing, not code execution. R-01 fixtures cover these cases. Owner: Developer B.
+- **Accepted risk, tiny input limit (L12):** a very small `AI_INPUT_TOKEN_LIMIT` makes every summary `input_unfit`. This fails safe.
+- **Backlog metric (L13):** "oldest pending age and count" (AI-01) counts only Movies with at least 3 eligible Reviews, because Movies with fewer keep their marker indefinitely by design. Owner: Developer B in R-04.
+- **Unreachable `current` (L6):** a `current` outcome does not clear pending. Under D-51 it cannot occur for a pending Movie, so no handling is added.
+- **Fixture note (L9):** the marker fake obeys the first marker in sample order. R-02 end-to-end fixtures for a summary must not mix markers across the Movie's Reviews.
+
+Design decision D-96 (U-04a Q-1 resolutions): Recorded by thegrimbee on 21 October 2026 from the U-04a Q-1 code-quality findings F1–F5; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Amends D-87; affects B#13 and B#14.
+- **Lone surrogates (F1):** D-87 safe text also rejects any unpaired UTF-16 surrogate (a code unit in U+D800–U+DFFF that is not part of a valid pair). PostgreSQL `jsonb` cannot store one, so before this rule such output passed validation and then failed the insert as `storage_failed`. It now gives `invalid_output`, so provider-content faults are not counted as storage faults.
+- **"A letter" after `<` (F2):** in D-87, "`<` followed by a letter" means an ASCII letter A–Z or a–z. This is the set that starts a tag in HTML tokenization; `<` before any other character is text. Output is always rendered as escaped text (D-87), so no wider set is needed. No code change.
+- **One definition of a current summary (F3):** the D-93 currency rule (same Movie and `reviews_revision`, job `prompt_version` equal to the current summary prompt version) is written once, as a shared SQL fragment in `src/server/repositories/summary/`. The D-86 read and the D-93 guard use it, and the B#14 public read (D-90 step 3) and selection (D-94) must use it too.
+- **One `SummaryLimits` type (F4):** the summary service derives `SummaryLimits` from `AiRuntime["summaryLimits"]` instead of declaring the shape twice. No path is widened.
+- **Publisher input (F5):** the summary publisher takes the AIJob ID, not the whole K10 `AiJobRef`; the generation service passes `job.jobId`. The K10 `publish` callback signature (contracts §3.3, AM-23) is unchanged.
+- **Why:** each change removes a duplicate definition or a misclassified failure without changing any published outcome other than F1's cause.
+
+Design decision D-97 (D-93 older-prompt test wording): Recorded by thegrimbee on 21 October 2026 from U-04a Q-2 finding Q2-2; Developer B delegated the choice to the agent's recommendation. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Clarifies D-93; changes no behaviour.
+- **Wording:** D-93's B#13 test requirements listed "older-prompt" among the cases that roll back. Under D-93's own currency rule, a ReviewSummary whose job has an older prompt version is retired: it is not `current`, and it does not trigger the duplicate guard. The older-prompt case therefore **publishes**. Read the requirement as: "the stale-revision, archived-Movie, lease-loss and duplicate-guard cases roll back; a run that finds only an older-prompt summary at the same revision publishes, both when that summary existed before the run and when it was committed during the provider call."
+- **Effect:** the existing integration test (`tests/integration/ai/summary/summary-generation.test.ts`, "does not treat a summary from an older prompt version as current") is the required test and is unchanged.
+- **Why:** a literal reading would contradict the D-93 currency rule and the purpose of M6, which is retiring a bad prompt's output.
 
 ## 15. References
 

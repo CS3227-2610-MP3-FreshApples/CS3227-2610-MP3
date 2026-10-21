@@ -8,7 +8,7 @@ export {
   type AiExecutionControllerDeps,
   type AiExecutionLimits,
 } from "./execution-controller";
-export type { TokenPrices } from "./pricing";
+export { estimateInputTokens, type TokenPrices } from "./pricing";
 export { createSchedulerLeases } from "./scheduler-leases";
 export type {
   AiExecutionController,

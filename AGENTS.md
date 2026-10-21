@@ -145,7 +145,7 @@ Use the recorded SDD workflow:
 
 Each handoff must record task ID, requirement IDs, source revision, permitted paths/actions, changed files, rationale, tests and results, known gaps, and the next action. Keep role definitions, prompts, runners, and grader-facing scripts under `workflow/`, except CI in `.github/workflows/` and specifications in `spec/`.
 
-The proposed ownership split is Developer A for User features and identity/public API/User security testing, Developer B for Admin features, database/migrations, deployment/CI, audit/job infrastructure, and developer guide; both developers cross-review and integrate. This split is adopted: Developer A is Lim-ZY and Developer B is thegrimbee. Tester accounts remain unresolved (`spec/governance.md` OQ-06).
+The proposed ownership split is Developer A for User features and identity/public API/User security testing, Developer B for Admin features, database/migrations, deployment/CI, audit/job infrastructure, and developer guide; both developers cross-review and integrate. This split is adopted: Developer A is Lim-ZY and Developer B is thegrimbee. The one exception is the public review summary (U-04), owned by Developer B (`spec/governance.md` D-85). Tester accounts remain unresolved (`spec/governance.md` OQ-06).
 
 ## Completion Criteria
 

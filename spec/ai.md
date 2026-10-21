@@ -13,11 +13,24 @@ This expands FR-08 and FR-09. Both runtime AI features use SoC LLM; no other run
 7. Recheck active Movie, source revision and execution lease before publication. Publish and clear the pending marker atomically only if all match. Concurrent changes invalidate the result and retain pending work.
 8. Keep unchanged summaries valid without a 24-hour expiry. Review creation/edit/deletion/hide/restore and Movie visibility changes invalidate immediately; never display old text afterward. Archived Movies return public 404. Restored Movies become pending.
 
-The public UI shows generation time, included and eligible counts, truncation notice and the fixed label "AI summary of a sample; may miss opinions or make mistakes". Counts/times come from the server. Missing/stale output shows awaiting scheduled update with no generation/retry control. Zero to two Reviews show insufficient reviews. Reading a summary requires no account or job access.
+Input preparation, sampling, truncation, reduction and the prompt version (`review-summary-prompt-v1`) are in D-86. Reviews are labelled `R1`, `R2`, … in sample order, and the output cites those labels. Expected validated output (field rules D-87):
+
+```json
+{
+  "overall": "Reviewers mostly praise the pacing and the lead performance.",
+  "strengths": [{ "text": "The lead performance is widely praised.", "sources": ["R1", "R3"] }],
+  "criticisms": [],
+  "mixedOpinions": [{ "text": "Opinions on the ending are split.", "sources": ["R2", "R4"] }]
+}
+```
+
+Provenance storage and result reuse are in D-88; prompt-version retirement and the summary wiring are in D-93.
+
+The public UI shows generation time, included and eligible counts, truncation notice and the fixed label "AI summary of a sample; may miss opinions or make mistakes". Counts/times come from the server. Missing/stale output shows awaiting scheduled update with no generation/retry control. Zero to two Reviews show insufficient reviews. Reading a summary requires no account or job access. The public projection and state precedence are in D-90.
 
 ### Scheduling and load
 
-Run one bounded daily sweep, initially attempting at most one Movie per invocation so one 75-second generation fits the 120-second function limit. Acquire a database scheduler lease; overlapping/duplicate invocations cannot dispatch duplicate work. Persist per-Movie next-attempt time and select eligible work with never-attempted Movies first, then oldest last-attempt time, pending time and ID. Capacity/quota exhaustion defers work without losing its change marker. Failed/stale attempts receive at least a one-day backoff and move behind other waiting Movies after each attempt so one failing Movie cannot starve others; new changes do not bypass backoff.
+Run one bounded daily sweep, initially attempting at most one Movie per invocation so one 75-second generation fits the 120-second function limit. Acquire a database scheduler lease; overlapping/duplicate invocations cannot dispatch duplicate work. Persist per-Movie next-attempt time and select eligible work with never-attempted Movies first, then oldest last-attempt time, pending time and ID. Capacity/quota exhaustion defers work without losing its change marker. Failed/stale attempts receive at least a one-day backoff and move behind other waiting Movies after each attempt so one failing Movie cannot starve others; new changes do not bypass backoff. Selection, attempt records, outcome mapping and the 1-day backoff are in D-89.
 
 Measure throughput against the changed-Movie rate; monitor oldest pending age and count. A weekly interval reduces repeated generation for frequently changed Movies but cannot solve an arbitrarily growing backlog of distinct Movies. If the sweep cannot meet the agreed freshness target, revise scheduler capacity/hosting before promising daily summaries. No detached work or self-fan-out after response. Unchanged content never causes regeneration merely because time passed. Retention cleanup must preserve the current valid summary.
 

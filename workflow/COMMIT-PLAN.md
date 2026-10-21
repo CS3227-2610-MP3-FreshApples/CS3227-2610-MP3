@@ -62,8 +62,8 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | A#6 | U-02b | `feat/reviews-transitions` | `feat(reviews): version-guarded clearance, approve, hide, restore interface (FR-09)` · `test(reviews): K8 contract tests and fake` | reviews transitions + fake | A#5 | Analyst/architect: proceed after human implementation gate; not yet human `Ready` (**SP-3**) |
 | A#7 | U-02c | `feat/reviews-moderation-hook` | `feat(reviews): enqueue moderation in-transaction and attempt after commit (AI-02)` · `feat(ui): my reviews with pending/held/published state` | review routes (`maxDuration`), `/me/reviews`, pages | A#6, B#4 | Planned (**SP-4**) |
 | A#8 | U-03 | `feat/moderation-report-submission` | `feat(moderation): submit report with evidence snapshot (FR-04, INV-04, INV-07)` · `feat(moderation): reporter-only report history` · `feat(ui): report user flow` | report-submission service, `/reports`, `/me/reports`, pages | A#7 | Planned (**SP-5**) |
-| A#9 | U-04a | `feat/ai-summary-core` | `feat(ai): summary sampling and input bounding (AI-01)` · `feat(ai): summary output validation and guarded publish` | `src/server/services/ai/summary/`, tests | B#5 (or B#4 fake) | Planned |
-| A#10 | U-04b | `feat/ai-summary-cron-ui` | `feat(ai): secret-authenticated summary sweep (DEP-09)` · `feat(catalogue): read-only summary endpoint and UI (FR-08)` | `/internal/cron/summaries`, `/movies/:id/summary`, UI | A#9 | Planned |
+| A#9 | — | — | Reassigned to Developer B as B#13 (D-85) | — | — | Moved |
+| A#10 | — | — | Reassigned to Developer B as B#14 (D-85) | — | — | Moved |
 | A#11 | R-01/R-02 | `test/user-security-e2e` | `test(ai): summary benign and adversarial fixtures (AT-11)` · `test(e2e): user journey` · `test(api): user access matrix (AT-01, AT-04)` | `tests/` | SP-6 | Planned |
 | A#12 | R-05 | `docs/user-guide-site` | `docs: user guide and product site for release` | `docs/UserGuide.md`, `docs/*.md` (site) | SP-6 | Planned |
 
@@ -84,6 +84,10 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | B#10 | A-06 | `feat/admin-user-status` | `feat(moderation): manual suspend and unsuspend (FR-06)` · `feat(admin-ui): user management screen` | `/admin/users*`, pages | B#9 | Planned |
 | B#11 | R-04 | `chore/deploy-release` | `chore(db): operator migration and backup scripts (DEP-03, DEP-08)` · `chore(db): synthetic seed script (DEP-04)` · `chore: daily cron configuration (DEP-09, DEP-10)` · `docs: backup, restore and rollback procedure (DEP-08)` | `package.json` scripts, `vercel.json`, seed script, `docs/DeveloperGuide.md` | B#2, A#3, B#6 | Planned |
 | B#12 | R-01/R-02 | `test/admin-security-e2e` | `test(ai): moderation benign and adversarial fixtures (AT-11)` · `test(e2e): admin journey` · `test(api): admin access matrix and concurrency (AT-05, AT-25)` | `tests/` | SP-6 | Planned |
+| B#13 | U-04a (was A#9) | `feat/ai-summary-core` | `feat(ai): summary sampling and input bounding (AI-01)` · `feat(ai): summary output validation and guarded publish` | D-92: `src/server/services/ai/summary/`, `src/server/repositories/summary/`, limited `composition.ts`, marker-fake, runtime-index and `config/ai.ts` changes, tests | B#4, B#5 (both merged); not U-02 (D-91) | Spec review |
+| B#14 | U-04b (was A#10) | `feat/ai-summary-cron-ui` | `feat(ai): secret-authenticated summary sweep (DEP-09)` · `feat(catalogue): read-only summary endpoint and UI (FR-08)` | D-94: `/internal/cron/summaries`, `/movies/:id/summary`, the summary UI component, sweep and public read in `services/ai/summary/` and `repositories/summary/`, limited `composition.ts` and the mount lines in Developer A's movie detail page | B#13 | Planned |
+
+U-04 (B#13, B#14) was reassigned from Developer A to Developer B (`spec/governance.md` D-85). Developer A reviews both PRs.
 
 ## 6. Joint PRs (both review, one author each)
 

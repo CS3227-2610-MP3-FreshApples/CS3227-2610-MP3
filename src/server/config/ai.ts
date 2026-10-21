@@ -31,8 +31,12 @@ const aiSchema = z.strictObject({
   AI_ATTEMPT_TIMEOUT_MS: integerString(1, 30000).default(30000),
   AI_MAX_ATTEMPTS: integerString(1, 2).default(2),
   AI_EXECUTION_DEADLINE_MS: integerString(15000, 75000).default(75000),
-  AI_SUMMARY_SAMPLE_SIZE: integerString(1, 20).default(20),
-  AI_SUMMARY_INTERVAL_DAYS: integerString(1).default(1),
+  // D-86: below 3 no sample could be published.
+  AI_SUMMARY_SAMPLE_SIZE: integerString(3, 20).default(20),
+  // D-89: the two intervals deployment.md supports.
+  AI_SUMMARY_INTERVAL_DAYS: integerString(1)
+    .refine((days) => days === 1 || days === 7, "must be 1 or 7")
+    .default(1),
   AI_SUMMARY_MAX_MOVIES_PER_RUN: integerString(1, 1).default(1),
   AI_MODERATION_MAX_EXECUTIONS: integerString(1).default(3),
   AI_MODERATION_RECOVERY_MAX_REVIEWS: integerString(1, 1).default(1),

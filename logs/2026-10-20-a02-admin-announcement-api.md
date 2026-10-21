@@ -17,7 +17,7 @@
 
 - Requested outcome: (1) say whether B#6 commit 2 is ready and resolve its open items as recommended; (2) implement the resulting commit 2 prompt: GET/POST `/api/v1/admin/announcements` and GET/PATCH/DELETE `/api/v1/admin/announcements/:id`, tests first.
 - Applicable recorded requirement IDs: FR-07, AT-06; D-32, D-46, D-79–D-81; contracts §3, K2, K3, K5, O-23.
-- Permitted paths/actions: Announcements application code and tests, the composition root, `workflow/`, `logs/`, and `references/DEV-B-COMMIT-PLAN.md` (git-ignored).
+- Permitted paths/actions: Announcements application code and tests, the composition root, `workflow/`, `logs/`
 - Explicit exclusions: Admin pages (B#6 commit 3), migrations, dependencies, spec edits, git writes.
 - Human approval gates: Developer B delegated the open-item choices; diff review; code-quality and reviewer/tester passes.
 
@@ -68,7 +68,6 @@ A readiness log written in step 1 (`logs/2026-10-20-b6-commit2-readiness.md`) wa
 | `src/app/api/v1/admin/announcements/route.ts`, `http.ts`, `[id]/route.ts` | Route Handlers |
 | `tests/unit/announcements/*`, `tests/integration/api/admin/admin-announcements.test.ts` | Tests |
 | `workflow/PLAN.md`, the handoff, this log | Status, evidence, disclosure |
-| `references/DEV-B-COMMIT-PLAN.md` | Commit 2 readiness line and prompt (git-ignored, local only) |
 
 - Dependencies added or changed: none.
 - Reused ideas: route, repository, input and test structure follow A-01 (`src/app/api/v1/admin/movies/`, `tests/integration/api/admin/admin-movies.test.ts`).
