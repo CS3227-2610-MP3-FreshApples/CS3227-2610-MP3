@@ -141,8 +141,8 @@ const COUNT_PUBLIC = `
   SELECT count(*)::integer AS total FROM app.review r JOIN app.movie m ON m.id = r.movie_id
    WHERE r.movie_id = $1 AND m.archived_at IS NULL AND r.deleted_at IS NULL AND r.hidden_at IS NULL AND r.moderation_state = 'cleared'`;
 const ACTIVE_MOVIE = `SELECT 1 FROM app.movie WHERE id = $1 AND archived_at IS NULL`;
-const LIST_OWN = `${FIND_BY_ID.replace("WHERE r.id = $1", "WHERE r.author_id = $1 ORDER BY r.updated_at DESC, r.id ASC LIMIT $2 OFFSET $3")}`;
-const COUNT_OWN = `SELECT count(*)::integer AS total FROM app.review WHERE author_id = $1`;
+const LIST_OWN = `${FIND_BY_ID.replace("WHERE r.id = $1", "WHERE r.author_id = $1 AND r.deleted_at IS NULL AND r.hidden_at IS NULL ORDER BY r.updated_at DESC, r.id ASC LIMIT $2 OFFSET $3")}`;
+const COUNT_OWN = `SELECT count(*)::integer AS total FROM app.review WHERE author_id = $1 AND deleted_at IS NULL AND hidden_at IS NULL`;
 const LOCK_FOR_TRANSITION = `
   SELECT id, version, content_revision, moderation_state, hidden_at, deleted_at
     FROM app.review
