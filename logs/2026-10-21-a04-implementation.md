@@ -33,3 +33,24 @@ scan could not run because its required `gitleaks` executable is absent from PAT
 
 No dependency, migration, live provider call or deployment was added. The next human action is to verify
 this summary and review the implementation and delegated API details before team integration.
+
+## Follow-up in the same chat — A-04 commit 2, 22 October 2026
+
+The requester next assigned the Admin Review queue and detail UI using K12: filters and an All reviews
+reset, escaped source beside labelled automatic assessments with limitations, reasoned human actions,
+dialogs naming the author and Movie, live announcements and textual statuses, with no AI-generation controls.
+
+The agent added author/Movie display fields to the read-only projection, documented them before coding,
+implemented the browser client and pages, and added focused unit, API and browser coverage. A small K12
+internal change promotes the existing confirmation dialog to a native modal for keyboard focus and Escape
+cancellation while preserving its public interface. The same log is retained for this chat; no duplicate
+interaction summary was created. Final UI validation and gaps are in
+`workflow/handoffs/A-04/2026-10-22-ui.md`.
+
+UI validation passed: 1,699 unit tests with two workers, 26 scoped API integration tests, 12 browser tests,
+lint, type-check and production build. The agent inspected desktop and mobile screenshots; browser tests
+verified inert HTML-like source, no mobile overflow, keyboard cancellation/focus restoration, filters/reset,
+stale-write reason preservation, and a real hide/restore/approve journey. The known Windows browser teardown
+issue was resolved by stopping only the run's test-server processes, after which the runner exited 0.
+The existing missing secret-scanner tooling and human log verification remain outstanding. The agent is
+preparing one local commit for this second increment; no push, PR or deployment is authorized.

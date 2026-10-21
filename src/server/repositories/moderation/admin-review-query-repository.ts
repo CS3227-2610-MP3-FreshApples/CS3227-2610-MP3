@@ -18,6 +18,8 @@ export interface AdminReview {
   readonly id: ReviewId;
   readonly movieId: string;
   readonly authorId: string;
+  readonly authorDisplayName: string;
+  readonly movieTitle: string;
   readonly rating: number;
   readonly body: string;
   readonly version: RowVersion;
@@ -39,6 +41,7 @@ export interface AdminReviewQueryRepository {
 // O-23: cross-module SELECTs belong to the consuming Moderation feature; no writes or lock clauses here.
 const FROM = `
   FROM app.review r JOIN app.movie m ON m.id = r.movie_id
+  JOIN app.account author ON author.id = r.author_id
   LEFT JOIN LATERAL (
     SELECT content_revision, captured_review_version, model_id, prompt_version, policy_version,
            generated_at, output_json
@@ -46,7 +49,8 @@ const FROM = `
     ORDER BY generated_at DESC, id ASC LIMIT 1
   ) assessment ON true`;
 const SELECT = `
-  SELECT r.id, r.movie_id, r.author_id, r.rating, r.body, r.version, r.content_revision,
+  SELECT r.id, r.movie_id, r.author_id, author.display_name AS author_display_name, m.title AS movie_title,
+         r.rating, r.body, r.version, r.content_revision,
          r.moderation_state, r.hidden_at IS NOT NULL AS hidden, r.deleted_at IS NOT NULL AS deleted,
          m.archived_at IS NOT NULL AS movie_archived, r.created_at, r.updated_at,
          assessment.content_revision AS assessed_revision, assessment.captured_review_version,
@@ -82,6 +86,7 @@ function predicate(filters: AdminReviewFilters): { text: string; params: SqlPara
 }
 
 interface ReviewRow {
+  author_display_name: string; movie_title: string;
   id: ReviewId; movie_id: string; author_id: string; rating: number; body: string; version: RowVersion;
   content_revision: number; moderation_state: ModerationState; hidden: boolean; deleted: boolean;
   movie_archived: boolean; created_at: Date; updated_at: Date; assessed_revision: number | null;
@@ -91,6 +96,7 @@ interface ReviewRow {
 function project(row: ReviewRow): AdminReview {
   return {
     id: row.id, movieId: row.movie_id, authorId: row.author_id, rating: row.rating, body: row.body,
+    authorDisplayName: row.author_display_name, movieTitle: row.movie_title,
     version: row.version, contentRevision: row.content_revision, moderationState: row.moderation_state,
     hidden: row.hidden, deleted: row.deleted, movieArchived: row.movie_archived,
     createdAt: row.created_at.toISOString(), updatedAt: row.updated_at.toISOString(),

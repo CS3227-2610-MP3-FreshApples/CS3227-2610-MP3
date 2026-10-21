@@ -207,7 +207,8 @@ describe("A-04 reads and security", () => {
     expect((await (await list(`?movieId=${reviews[2]!.movieId}&assessment=flagged`)).json()).total).toBe(0);
     expect(await (await list("?page=100&pageSize=2")).json()).toMatchObject({ items: [], total: 5 });
     const item = await (await detail(reviews[0]!.reviewId)).json();
-    expect(item).toMatchObject({ version: 1, moderationState: "pending", latestAssessment: null });
+    expect(item).toMatchObject({ version: 1, moderationState: "pending", latestAssessment: null,
+      authorDisplayName: "Synthetic", movieTitle: "Synthetic Movie" });
     expect(item).not.toHaveProperty("password_hash");
   });
   it("rejects USER and anonymous access on every route, and enforces CSRF, reasons and If-Match", async () => {
