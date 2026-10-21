@@ -54,7 +54,7 @@ describe("public sign-in client behavior — increment 2", () => {
   });
 
   it("routes only active server-authoritative roles", () => {
-    expect(resolveAuthDestination({ role: "USER", status: "active" })).toBe("/app");
+    expect(resolveAuthDestination({ role: "USER", status: "active" })).toBe("/");
     expect(resolveAuthDestination({ role: "ADMIN", status: "active" })).toBe("/admin");
     expect(resolveAuthDestination({ role: "USER", status: "suspended" })).toBeNull();
   });

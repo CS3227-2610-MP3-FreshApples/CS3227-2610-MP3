@@ -6,7 +6,7 @@ import { RatingInput, TextField } from "../../../src/components/form-primitives"
 import { Pagination } from "../../../src/components/pagination";
 import { AggregateRating } from "../../../src/components/rating-primitives";
 import { TableState } from "../../../src/components/table-state";
-import { LiveRegion, StatusMessage } from "../../../src/components/status-primitives";
+import { LiveRegion, StatusBadge, StatusMessage } from "../../../src/components/status-primitives";
 
 function html(element: React.ReactElement): string {
   return renderToStaticMarkup(element);
@@ -72,6 +72,16 @@ describe("K12 UI primitives", () => {
     expect(announcement).toContain('aria-live="polite"');
     expect(announcement).toContain('role="status"');
     expect(announcement).toContain("Review submitted");
+  });
+
+  it("gives status treatments visible high-contrast surface hooks", () => {
+    const success = html(createElement(StatusMessage, { status: "success" }, "Saved"));
+    const warning = html(createElement(StatusBadge, { label: "Awaiting review", tone: "warning" }));
+
+    expect(success).toContain("border-green");
+    expect(success).toContain("bg-green");
+    expect(warning).toContain("bg-amber");
+    expect(warning).toContain("text-amber");
   });
 
   it("formats direct and aggregate ratings according to the product examples", () => {

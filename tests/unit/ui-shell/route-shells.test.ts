@@ -2,11 +2,14 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import RootLayout from "../../../src/app/layout";
 import UserLayout from "../../../src/app/app/layout";
 import AdminLayout from "../../../src/app/admin/layout";
+import PublicLayout from "../../../src/app/(public)/layout";
+
+vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
 function markup(layout: (props: { children: React.ReactNode }) => React.ReactNode): string {
   return renderToStaticMarkup(layout({ children: createElement("p", null, "Shell content") }));
@@ -51,6 +54,17 @@ describe("S-07 route shells", () => {
     expect(admin).toContain('href="/admin/reports"');
     expect(admin).toContain('href="/admin/announcements"');
     expect(admin).toContain('href="/admin/users"');
+  });
+
+  it("renders the responsive design shell landmarks and spacing hooks", () => {
+    const root = markup(PublicLayout);
+
+    expect(root).toContain("min-h-screen");
+    expect(root).toContain("bg-slate-50");
+    expect(root).toContain("border-b");
+    expect(root).toContain("max-w-6xl");
+    expect(root).toContain('aria-current="page"');
+    expect(root).toContain("focus-visible:ring-2");
   });
 
   it("keeps layouts as presentation shells without authorization dependencies", () => {

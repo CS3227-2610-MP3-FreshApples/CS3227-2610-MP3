@@ -15,17 +15,17 @@ export function FormField({ children, error, hint, label, name }: FormFieldProps
   const describedBy = [hint ? hintId : "", error ? errorId : ""].filter(Boolean).join(" ");
 
   return (
-    <div>
+    <div className="space-y-2">
       <label htmlFor={name}>{label}</label>
-      {hint ? <p id={hintId}>{hint}</p> : null}
+      {hint ? <p className="text-sm leading-6 text-slate-600" id={hintId}>{hint}</p> : null}
       {cloneElement(control, {
         "aria-describedby": describedBy || undefined,
         "aria-invalid": error ? true : undefined,
-        className: `rounded-md border border-slate-300 bg-white px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700${control.props.className ? ` ${control.props.className}` : ""}`,
+        className: `min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-slate-950 shadow-sm transition-colors placeholder:text-slate-500 focus:border-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2${error ? " border-red-500" : ""}${control.props.className ? ` ${control.props.className}` : ""}`,
         id: name,
         name,
       })}
-      {error ? <p id={errorId} role="alert">{error}</p> : null}
+      {error ? <p className="text-sm font-medium text-red-800" id={errorId} role="alert">{error}</p> : null}
     </div>
   );
 }
