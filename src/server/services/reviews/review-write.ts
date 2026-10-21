@@ -79,9 +79,10 @@ export function createReviewService(deps: ReviewServiceDependencies): ReviewServ
 
       if (!saved.ok) return saved;
       await attemptAfterCommit(deps.moderationDispatcher, saved.value.id, saved.value.contentRevision);
-      return saved;
+      return { ok: true, value: await readCurrentReview(deps, saved.value) };
     },
     async edit(reviewId, authorId, expectedVersion, input) {
+      let bodyWasChanged = false;
       const saved = await deps.database.withTransactionResult<ReviewRecord, ReviewEditRejection>(async (tx) => {
         if ((await deps.accounts.lockActiveUserShared(tx, authorId)) === null) return { ok: false, error: { kind: "not_found" } };
         const current = await deps.reviews.findById(tx, reviewId);
@@ -100,9 +101,10 @@ export function createReviewService(deps: ReviewServiceDependencies): ReviewServ
 
         const wasEligible = isEligible(locked);
         if (bodyChanged) {
+          bodyWasChanged = true;
           const updated = await deps.reviews.updateBody(tx, reviewId, rating, input.body as string);
-          if (wasEligible) await deps.reviewsChangedMarker.markReviewsChanged(tx, movie.value);
           await deps.moderationWorkQueue.enqueue(tx, updated.id, updated.contentRevision);
+          if (wasEligible) await deps.reviewsChangedMarker.markReviewsChanged(tx, movie.value);
           return { ok: true, value: updated };
         }
 
@@ -112,8 +114,9 @@ export function createReviewService(deps: ReviewServiceDependencies): ReviewServ
       });
 
       if (!saved.ok) return saved;
-      if (input.body !== undefined && saved.value.version !== expectedVersion && saved.value.moderationState === "pending") {
+      if (bodyWasChanged && saved.value.version !== expectedVersion && saved.value.moderationState === "pending") {
         await attemptAfterCommit(deps.moderationDispatcher, saved.value.id, saved.value.contentRevision);
+        return { ok: true, value: await readCurrentReview(deps, saved.value) };
       }
       return saved;
     },
@@ -151,5 +154,20 @@ async function attemptAfterCommit(
     await dispatcher.attemptAfterCommit(reviewId, contentRevision);
   } catch {
     // The Review and durable work have already committed; dispatch is recovered by the sweep.
+  }
+}
+
+async function readCurrentReview(
+  deps: ReviewServiceDependencies,
+  fallback: ReviewRecord,
+): Promise<ReviewRecord> {
+  try {
+    const current = await deps.database.withTransactionResult<ReviewRecord | null, never>(async (tx) => ({
+      ok: true,
+      value: await deps.reviews.findById(tx, fallback.id),
+    }));
+    return current.ok && current.value !== null ? current.value : fallback;
+  } catch {
+    return fallback;
   }
 }
