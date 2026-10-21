@@ -30,12 +30,13 @@ describe("private User pages", () => {
     const reports = html(createElement(UserReportsPage));
 
     expect(reviews).toContain("My reviews");
-    expect(reviews).toContain("No published reviews yet");
-    expect(reviews).toContain('href="/movies"');
+    expect(reviews).toContain("Loading reviews…");
+    expect(reviews).toContain('aria-labelledby="user-reviews-title"');
+    expect(reviews).toContain('aria-label="Review status"');
     expect(reports).toContain("My reports");
     expect(reports).toContain("No submitted reports yet");
     expect(reports).toContain("private");
-    for (const rendered of [reviews, reports]) expect(rendered).toContain("border-slate-200");
+    expect(reports).toContain("border-slate-200");
   });
 
   it("keeps the private shell focused on User destinations", () => {
