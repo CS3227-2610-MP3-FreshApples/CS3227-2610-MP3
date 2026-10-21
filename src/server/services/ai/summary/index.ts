@@ -28,6 +28,16 @@ export {
   type SummaryOutputItem,
 } from "./output-schema";
 export { SUMMARY_MAX_OUTPUT_TOKENS, SUMMARY_PROMPT_VERSION, SUMMARY_SYSTEM_PROMPT } from "./prompt";
+export {
+  createConsolePublicSummaryReadLog,
+  createPublicSummaryReadService,
+  projectPublicSummary,
+  type PublicSummary,
+  type PublicSummaryItem,
+  type PublicSummaryReadLog,
+  type PublicSummaryReadService,
+  type PublicSummaryView,
+} from "./public-read";
 export { createSummaryPublisher, type SummaryPublication, type SummaryPublisher } from "./publication";
 export {
   sampleWithoutReplacement,

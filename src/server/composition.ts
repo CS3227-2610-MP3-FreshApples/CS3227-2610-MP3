@@ -20,13 +20,16 @@ import {
   type SchedulerLeases,
 } from "./services/ai/runtime";
 import {
+  createConsolePublicSummaryReadLog,
   createConsoleSummarySweepLog,
   createDisabledSummarySweep,
+  createPublicSummaryReadService,
   createSummaryGeneration,
   createSummaryInputPreparation,
   createSummaryPublisher,
   createSummarySweep,
   systemSeedSource,
+  type PublicSummaryReadService,
   type SummaryGeneration,
   type SummarySweep,
 } from "./services/ai/summary";
@@ -49,6 +52,7 @@ import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimi
 import { createAdminMovieRepository } from "./repositories/catalogue";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
 import {
+  createPublicSummaryReadRepository,
   createReviewSummaryRepository,
   createSummaryInputRepository,
   createSummarySelectionRepository,
@@ -227,6 +231,16 @@ export const summarySweep: SummarySweep | null =
           },
           log: createConsoleSummarySweepLog(),
         });
+
+/** FR-08 public summary read (D-90, D-98); `null` exactly when `database` is. It never calls K10. */
+export const publicSummaryReadService: PublicSummaryReadService | null =
+  database === null
+    ? null
+    : createPublicSummaryReadService({
+        database,
+        summaries: createPublicSummaryReadRepository({ sql: database }),
+        log: createConsolePublicSummaryReadLog(),
+      });
 
 /** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
 export const moderationWorkQueue: ModerationWorkQueue | null =

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicReadUnavailable } from "../../../../components/public-read-unavailable";
 import { publicCatalogueReadService } from "../../../../server/composition";
 import { parseId } from "../../../../server/http";
+import { ReviewSummarySection } from "./_components/review-summary";
 
 type MovieDetailsPageProps = Readonly<{
   params: Promise<{ readonly id: string }>;
@@ -31,6 +32,7 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
         <div><dt>Runtime</dt><dd>{movie.runtimeMinutes === null ? "Unknown" : `${movie.runtimeMinutes} minutes`}</dd></div>
       </dl>
       {movie.reviewCount === 0 ? <p role="status">No community ratings yet.</p> : null}
+      <ReviewSummarySection movieId={movie.id} />
     </article>
   );
 }
