@@ -293,7 +293,7 @@ Design decision D-46 (audit entry validation and request IDs): The audit module 
 - **Forbidden keys:** these key names are rejected, compared case-insensitively with underscores removed: `password`, `passwordhash`, `token`, `sessiontoken`, `csrftoken`, `secret`, `email`, `body`, `explanation`, `snapshot`, `evidencesnapshot`, `prompt`, `response` and `output`. This check is defence in depth. Callers remain responsible for what they place in values, and their tests assert their metadata.
 - **Storage:** `created_at` comes from the database clock.
 - **Request IDs:**
-  - For an HTTP request, including the cron routes, `request_id` is the response's `X-Request-Id`.
+  - For an HTTP request, including the cron routes, `request_id` is the response's `X-Request-Id`, except under D-103: `review.auto_clear` and `review.auto_flag` entries from K9 `attemptAfterCommit` use a random UUID generated per attempt, correlated through `target_id` (the Review) and `jobId` metadata. Recovery-sweep entries still use the cron request's ID.
   - An operator command, such as Admin provisioning, generates one random UUID per run, uses it for every entry of that run and may print it.
 - **No read API:** the audit module offers no read, update or delete operation.
 
@@ -871,7 +871,7 @@ Design decision D-98 (U-04b preflight resolutions): Recorded by thegrimbee on 21
 - **Not changed:** the U-02a tracker rows in `workflow/PLAN.md` and `workflow/COMMIT-PLAN.md` lag `master` (PR #17); updating them is Developer A's.
 - **Why:** each item fills a gap the recorded decisions left open with the closest existing precedent (D-38, D-83, U-01), keeps B#14 inside D-94's paths except for the one K3 check, and fixes a fail-open guard before the first cron route ships.
 
-Design decision D-99 (profanity policy v1 and contested decisions; resolves OQ-04): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Developer A reviews it in the B#7 pull request.
+Design decision D-99 (profanity policy v1 and contested decisions; resolves OQ-04): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.
 - **Policy text:** the reviewed policy is the static text `PROFANITY_POLICY_TEXT` in `src/server/services/ai/moderation/policy/text.ts`, and `PROFANITY_POLICY_VERSION` becomes `profanity-policy-v1` (D-17, D-49). It covers what AI-02 requires:
   - **Profanity:** vulgar or obscene words and phrases, including sexual or excretory terms used as insults or intensifiers; slurs against a person or group because of a characteristic such as race, ethnicity, nationality, religion, sex, gender, sexual orientation or disability; and abusive name-calling aimed at a real person, such as another reviewer or a member of the cast or crew.
   - **Obfuscated spellings** count as the word they spell: symbols, digits or look-alike characters in place of letters, inserted spaces or punctuation, repeated letters and deliberate misspellings.
@@ -882,7 +882,7 @@ Design decision D-99 (profanity policy v1 and contested decisions; resolves OQ-0
 - **Changing the policy:** any change to the text is a new `profanity-policy-v<n+1>` reviewed by Developer B in a pull request reviewed by Developer A, and follows D-49's version-change rule.
 - **Effects:** D-56's stub rule no longer applies to the current version, so with `AI_PROVIDER=soc_llm` the real dispatcher is wired. D-16 is unchanged: production keeps `AI_ENABLED=false` until a human records its end after the D-59 provider validation. Pending work recorded under `profanity-policy-v0` is superseded and screened again at its next dispatch or sweep (D-49).
 
-Design decision D-100 (A-03 screening input and output): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations.
+Design decision D-100 (A-03 screening input and output): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.
 - **Messages:** a `system` message holding the static screening instructions with the D-99 policy text, then one `user` message holding `JSON.stringify({ reviewId, contentRevision, body })` with the complete body. JSON string escaping keeps the body inside its field. No rating, author, Movie, Report, account or history data is sent (AI-02). The instructions tell the model that every field is data and to ignore instructions inside it (AI-04). Changing the instructions or the message format is a new `review-screening-prompt-v<n>` (D-49).
 - **Input bound:** the AI-03 estimate (O-26) of both messages. Above `AI_INPUT_TOKEN_LIMIT`, the work goes to `needs_manual_review` without a K10 call or an AIJob, and the body is never cut (AI-02).
 - **Snapshot:** `bounded_input_snapshot` is `{ reviewId, contentRevision, capturedVersion, promptVersion, policyVersion }`. It holds no Review text, as D-88 keeps text out of summary snapshots.
@@ -896,7 +896,7 @@ Design decision D-100 (A-03 screening input and output): Recorded by thegrimbee 
 - **Shared safe text:** the D-87 safe-text check moves unchanged to `src/server/services/ai/output-text.ts`, used by both output schemas.
 - **Output cap:** 1,000 tokens (AI-03).
 
-Design decision D-101 (A-03 dispatch, retries and recovery of running work; resolves D-77's open point): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations.
+Design decision D-101 (A-03 dispatch, retries and recovery of running work; resolves D-77's open point): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.
 - **Two operations:** K9 `attemptAfterCommit(reviewId, contentRevision)` (trigger `review_write`, requester the Review's author read under the lock) and a B-internal `attemptFromSweep(reviewId, contentRevision, requestId)` (trigger `scheduler`, requester null). Both run the same steps. The K9 signature is unchanged; `attemptAfterCommit` generates its own request ID for the audit entry.
 - **Claim transaction** (D-58; K8 `lockReviewForTransition`, then this Review's ModerationWork rows of the content revision `FOR UPDATE` in ascending ID order):
   1. Review missing: `not_current`, no write. Its content revision differs: this older revision's `pending`, `running` and `needs_manual_review` rows become `superseded` (AI-02: supersede obsolete work), so they never hold the sweep's slot; `not_current`.
@@ -931,7 +931,7 @@ Design decision D-101 (A-03 dispatch, retries and recovery of running work; reso
 - **Containment:** the moderation module imports no report, strike, moderation-decision or account-status module, and a unit test checks this (AI-02).
 - **B#7 paths:** `src/server/services/ai/moderation/`, `src/server/services/ai/output-text.ts` and the import in `src/server/services/ai/summary/output-schema.ts`, new ModerationWork statements and new moderation repositories in `src/server/repositories/ai/`, `src/app/api/v1/internal/cron/review-moderation/`, `src/app/api/v1/ai/jobs/[id]/`, moderation wiring in `src/server/composition.ts`, and `tests/`. Not in B#7: migrations, `vercel.json` (R-04), dependencies, and K3, K8 or K10 internals.
 
-Design decision D-102 (Admin job status read): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Implements api.md `GET /ai/jobs/:id`.
+Design decision D-102 (Admin job status read): Recorded by thegrimbee on 21 October 2026 for A-03 (B#7); Developer B delegated the choices to the agent's recommendations. Implements api.md `GET /ai/jobs/:id`. Approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.
 - **Access:** K3 `requireActiveAdmin`. A malformed ID, an unknown ID and a `summary` job all return 404 `not_found`, so summary jobs stay internal. The read never dispatches work, calls K10 or writes.
 - **Response:** `200 { id, reviewId, state, retryAfterSeconds, result, errorCode, createdAt, updatedAt }`:
   - `state` is the AIJob status (`running`, `succeeded`, `failed` or `stale`);
@@ -940,7 +940,7 @@ Design decision D-102 (Admin job status read): Recorded by thegrimbee on 21 Octo
   - `errorCode` is the D-64 `error_code` (a fixed vocabulary that never holds provider text), or null.
 - **Never returned:** the input snapshot, input hash, dedup key, prompts, model, requester, explanation, matches, limitations, Review text or raw provider errors.
 
-Design decision D-103 (A-03 review resolutions): Recorded by thegrimbee on 21 October 2026 from the B#7 independent review (Q-2 findings M1, L1–L5, I1); Developer B delegated the choices to the agent's recommendations. Amends D-46, D-100, D-101 and D-102 where stated.
+Design decision D-103 (A-03 review resolutions): Recorded by thegrimbee on 21 October 2026 from the B#7 independent review (Q-2 findings M1, L1–L5, I1); Developer B delegated the choices to the agent's recommendations. Amends D-46, D-100, D-101 and D-102 where stated. Approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.
 - **Request ID of automatic audit entries (M1, amends D-46):** the K9 `attemptAfterCommit` signature carries no request ID, so the `review.auto_clear` and `review.auto_flag` entries written during a review request use a random UUID generated for that attempt, not the response's `X-Request-Id`. They are correlated with the request through `target_id` (the Review) and the `jobId` metadata. Entries written by the recovery sweep use the cron request's ID, as D-46 requires. Passing the request ID through K9 would be a contract change in Developer A's review write; it is a possible follow-up, not part of B#7.
 - **Quotes (L1, amends D-100):** a `quote` with an unpaired UTF-16 surrogate is rejected as invalid output, as D-96 does for other text, because `jsonb` cannot store it. Before this, such output passed validation and failed storage as a transient fault.
 - **Stale result on an archived Movie (L2, clarifies D-101):** the work becomes `pending` with `next_attempt_at = now()` and `last_attempt_at = now()`, like any other stale result, and the result is `deferred`.

@@ -85,7 +85,7 @@ Commit 4 (Admin job read):
 
 ## Known gaps and follow-ups
 
-- **Developer A review:** D-99–D-103 and AM-27–AM-29 were recorded under Developer B's delegation; Developer A reviews them in the PR. D-103 amends Developer A-adjacent D-46 (audit request IDs); passing the request ID through K9 is a possible contract follow-up.
+- **Developer A decision approval:** the human confirmed on 21 October 2026 that Lim-ZY approved D-99 through D-103, including the amendment to D-46 (audit request IDs). The underlying decisions for AM-27 through AM-29 are approved; this records decision approval, not merge approval. Passing the request ID through K9 remains a possible contract follow-up. Evidence: `logs/2026-10-21-a03-decision-approvals.md`.
 - **Policy text:** the D-99 text is the agent's recommendation. A human should read `policy/text.ts` before production enablement; D-16 still keeps production `AI_ENABLED=false`.
 - **A-04 obligations:** approve/hide/restore must supersede, cancel or reactivate ModerationWork under the Review lock (D-55, D-58). Until A-04 lands, the dispatcher's claim and stale settlement supersede or cancel work themselves.
 - **`vercel.json`:** the review-moderation cron schedule is R-04's.

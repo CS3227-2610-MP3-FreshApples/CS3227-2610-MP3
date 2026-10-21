@@ -962,7 +962,7 @@ This amendment came from the U-04b preflights. Developer B (thegrimbee) delegate
 
 ## 29. A-03 amendments (21 October 2026)
 
-These amendments came from the A-03 (B#7) decisions D-99–D-102, recorded by Developer B (thegrimbee) under delegated authority. **Status: pending Developer A's review in the B#7 pull request.** No K1–K12 signature changes.
+These amendments came from the A-03 (B#7) decisions D-99–D-102, recorded by Developer B (thegrimbee) under delegated authority. **Status: underlying decisions D-99 through D-103 approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.** D-103 amends D-46: automatic `review.auto_clear` / `review.auto_flag` entries from K9 `attemptAfterCommit` use a random UUID per attempt, correlated through the Review `target_id` and `jobId` metadata; recovery-sweep entries use the cron request's ID. No K1–K12 signature changes.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |
