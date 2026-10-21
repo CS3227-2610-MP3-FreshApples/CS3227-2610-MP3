@@ -257,7 +257,7 @@ minimal `status` bodies. Availability is checked before the secret.
 3. The controller then locks the AIJob and verifies the lease. If the lease is lost, the transaction rolls back.
 4. Afterwards, K10 runs an **own short Tx** to reconcile the budget and release `ai_execution`.
 
-**Summary publication, U-04, A, via K10**
+**Summary publication, U-04, B (reassigned from A, D-85), via K10**
 
 1. Publish Tx: K7 `lockActiveMovieForUpdate` → compare the captured `reviews_revision` → insert ReviewSummary → K7 `recordSummaryPublished`.
 2. The controller then locks the AIJob and verifies the lease, last.
@@ -371,7 +371,7 @@ export interface ActingAccountLocks {
   - Guards run on every request and re-read account status, with no caching (security.md).
 - **Resolved (see §16):**
   - O-13: CSRF header and cookie names, how the client obtains the token (api.md lists no endpoint), and the status for a CSRF or Origin failure.
-  - O-14: the `Authorization: Bearer <CRON_SECRET>` check is needed by both U-04 (A) and A-03 (B), but no contract owns it.
+  - O-14: the `Authorization: Bearer <CRON_SECRET>` check is needed by both U-04 (A at the time; B since D-85) and A-03 (B), but no contract owns it.
   - O-15: the client-IP source header on Vercel (verify before release, per security.md).
 - **Locks / Tx:** guards run outside any Tx and take no locks. `lockActiveUserShared` runs inside the caller's Tx at position 1. **Approved (P-11):** cross-boundary session revocation is exposed only through K4 `suspend`, so B never revokes sessions directly.
 - **Fake:** returns `unauthenticated` unless a test supplies a principal. It is never importable from `src/`.

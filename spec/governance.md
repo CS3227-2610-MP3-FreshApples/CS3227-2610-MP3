@@ -36,11 +36,11 @@ The brief states the submission deadline as 23 October (Friday), 2 pm SGT. In th
 
 | Owner | Role features | Substantial shared responsibilities |
 | --- | --- | --- |
-| Developer A (Lim-ZY) | User UI, discovery, reviews, reporting, summary, optional watchlist | Identity/session implementation, public API contracts, User security tests, user guide |
-| Developer B (thegrimbee) | Admin UI, Movie CRUD, moderation, announcements, review profanity moderation | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
+| Developer A (Lim-ZY) | User UI, discovery, reviews, reporting, optional watchlist (summary moved to Developer B, D-85) | Identity/session implementation, public API contracts, User security tests, user guide |
+| Developer B (thegrimbee) | Admin UI, Movie CRUD, moderation, announcements, review profanity moderation, public review summary (U-04, D-85) | Database/migrations, deployment/CI, audit/job infrastructure, developer guide |
 | Both | Cross-review and end-to-end integration | Architecture, provider adapter contract, threat model, acceptance tests, reflections, logs, product website and release |
 
-The Developer A/Developer B split above is adopted (12 October 2026). Developer A is Lim-ZY and Developer B is thegrimbee (GitHub usernames); tester accounts remain open under OQ-06. Shared foundations must have clear owners without splitting a role's features between developers. D-20 assigns the account-status service to Identity (Developer A); Moderation (Developer B) calls it.
+The Developer A/Developer B split above is adopted (12 October 2026). Developer A is Lim-ZY and Developer B is thegrimbee (GitHub usernames); tester accounts remain open under OQ-06. Shared foundations must have clear owners without splitting a role's features between developers. D-85 is the one recorded exception: the User-facing public review summary (U-04) is owned by Developer B. D-20 assigns the account-status service to Identity (Developer A); Moderation (Developer B) calls it.
 
 ### SDD and specialized-agent workflow
 
@@ -514,7 +514,7 @@ Design decision D-70 (marker fake delivery and output-schema tests): Approved by
   - `timeout` waits for the signal to abort;
   - statelessness;
   - the promise never rejects.
-- **Schema tests move:** the AI-01 and AI-02 output schemas do not exist yet. The task that adds each schema adds the D-57 conformance test for the fake's constants in `tests/`: U-04 (Developer A) for `summary`, and A-03 (Developer B) for `clean` and `flag`. Until then, S-06 writes the constants to match the field rules in ai.md AI-01 and AI-02.
+- **Schema tests move:** the AI-01 and AI-02 output schemas do not exist yet. The task that adds each schema adds the D-57 conformance test for the fake's constants in `tests/`: U-04 (Developer A; Developer B since D-85) for `summary`, and A-03 (Developer B) for `clean` and `flag`. Until then, S-06 writes the constants to match the field rules in ai.md AI-01 and AI-02.
 - **Why:** S-06 must not create or import feature-owned schemas. The conformance test still exists before any journey depends on the fake's outputs (R-02).
 
 Design decision D-71 (S-06 paths and wiring): Recorded by thegrimbee on 18 October 2026 from the S-06 analysis; Developer B delegated the choice to the agent's recommendation. Every path below is owned by Developer B. Resolves the conflict between PLAN.md S-06's allowed paths and D-52, D-56, D-57, D-65 and architecture.md 6.6.
@@ -663,6 +663,12 @@ Design decision D-84 (Interim K8 dependency for Movie archive/restore): Recorded
 - **Until U-02 merges:** the composition root leaves the orchestrator unwired, so DELETE `/admin/movies/:id` and POST `/admin/movies/:id/restore` return 503 `service_unavailable`. Developer B's code does not lock or query Review rows in production.
 - **Tests:** isolated orchestration unit tests use fakes. API integration tests inject the orchestrator with a test-only PostgreSQL stand-in in `tests/support/` that takes the contracted locks (Reviews of the Movie `FOR UPDATE`, ascending id). The stand-in is not production code and is not evidence for U-02's K8.
 - **Exit:** when U-02 is on `master`, wire the orchestrator with the real K8, remove the stand-in and the test injection, rerun the A-01 suites against the real K8, and add the archive-versus-review-submission race test (verification §11.3). A-01 is not complete before this.
+
+Design decision D-85 (U-04 ownership exception): Recorded by thegrimbee on 21 October 2026. Approved by both developers (Lim-ZY and thegrimbee) on 20 October 2026; Lim-ZY's approval is recorded as reported by Developer B. First drafted as D-79 on the unmerged `feat/ai-summary-core` branch, which is being discarded; D-79 on `master` is the U-01 public read decision.
+- U-04 (public review summary: FR-08, AI-01) moves from Developer A to Developer B, as B#13 and B#14 in `workflow/COMMIT-PLAN.md` (formerly A#9 and A#10). Developer A reviews both PRs.
+- This is the only exception to the rule in "Team ownership" that a role's features are not split between developers. All other User features stay with Developer A.
+- Summary paths (`src/server/services/ai/summary/`, `/internal/cron/summaries`, `/movies/:id/summary` and its UI) are owned by Developer B. Shared UI in `src/components/` and layouts remain Developer A's hotspot, and the Review eligibility predicate stays with its current owner.
+- Ownership of the R-01 summary evaluation fixtures is not changed by this decision.
 
 ## 15. References
 
