@@ -39,3 +39,14 @@ export {
   type SummarySeedSource,
   type Uint32Source,
 } from "./sampling";
+export {
+  createConsoleSummarySweepLog,
+  createDisabledSummarySweep,
+  createSummarySweep,
+  type SummarySweep,
+  type SummarySweepCounts,
+  type SummarySweepLog,
+  type SummarySweepLogLine,
+  type SummarySweepPhase,
+  type SummarySweepUnavailable,
+} from "./sweep";
