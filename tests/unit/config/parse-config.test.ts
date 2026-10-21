@@ -95,6 +95,7 @@ describe("parseConfig — valid configuration", () => {
       envWith({
         SESSION_TTL_SECONDS: "3600",
         REPORT_SUSPENSION_THRESHOLD: "5",
+        AI_SUMMARY_SAMPLE_SIZE: "3",
         AI_SUMMARY_INTERVAL_DAYS: "7",
         AI_INPUT_TOKEN_LIMIT: "4000",
       }),
@@ -102,6 +103,7 @@ describe("parseConfig — valid configuration", () => {
 
     expect(config.core.valid && config.core.value.sessionTtlSeconds).toBe(3600);
     expect(config.core.valid && config.core.value.reportSuspensionThreshold).toBe(5);
+    expect(config.ai.enabled && config.ai.value.summaries.sampleSize).toBe(3);
     expect(config.ai.enabled && config.ai.value.summaries.intervalDays).toBe(7);
     expect(config.ai.enabled && config.ai.value.execution.inputTokenLimit).toBe(4000);
   });
@@ -389,6 +391,7 @@ describe("parseConfig — AI configuration (D-16, D-28, D-37)", () => {
     ["AI_MAX_ATTEMPTS", "0"],
     ["AI_EXECUTION_DEADLINE_MS", "-1"],
     ["AI_SUMMARY_SAMPLE_SIZE", "21"],
+    ["AI_SUMMARY_SAMPLE_SIZE", "2"],
     ["AI_SUMMARY_INTERVAL_DAYS", "0"],
     ["AI_SUMMARY_MAX_MOVIES_PER_RUN", "2"],
     ["AI_MODERATION_MAX_EXECUTIONS", "0"],
