@@ -47,6 +47,7 @@ import { createAccountRepository, createSessionRepository } from "./repositories
 import { createReviewSummaryRepository, createSummaryInputRepository } from "./repositories/summary";
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
+import { createReviewRepository } from "./repositories/reviews";
 import {
   createPublicCatalogueReadService,
   type PublicCatalogueReadService,
@@ -68,6 +69,7 @@ import {
   type AccountStatusService,
   type FirstAdminBootstrapService,
 } from "./services/identity";
+import { createReviewReadService, createReviewService, type ReviewReadService, type ReviewService } from "./services/reviews";
 
 // The composition root (D-23): the only module-level instances in src/server, created once per server instance.
 
@@ -197,6 +199,25 @@ export const moderationWorkQueue: ModerationWorkQueue | null =
 
 /** K9 dispatcher stub (D-52): returns `deferred` and writes nothing until B#7 (A-03) wires the real one. */
 export const moderationDispatcher: ModerationDispatcher = createDeferredModerationDispatcher();
+
+/** U-02 review creation/resubmission; `null` exactly when its database dependencies are unavailable. */
+export const reviewService: ReviewService | null =
+  database !== null && rateLimiter !== null && rateLimitKeys !== null && movieLocks !== null && reviewsChangedMarker !== null && moderationWorkQueue !== null
+    ? createReviewService({
+        database,
+        accounts: createAccountRepository({ sql: database }),
+        reviews: createReviewRepository({ sql: database }),
+        movieLocks,
+        reviewsChangedMarker,
+        moderationWorkQueue,
+        moderationDispatcher,
+        rateLimiter,
+        rateLimitKeys,
+      })
+    : null;
+
+export const reviewReadService: ReviewReadService | null =
+  database === null ? null : createReviewReadService({ database, reviews: createReviewRepository({ sql: database }) });
 
 /** D-47 security-event log. It needs no configuration. */
 export const securityLog: SecurityLog = createConsoleSecurityLog();
