@@ -23,6 +23,7 @@ describe("private User pages", () => {
     expect(rendered).toContain("No published reviews yet");
     expect(rendered).toContain("No submitted reports yet");
     expect(rendered).toContain("rounded-xl");
+    expect(rendered).toContain('href="/">← Back to main page</a>');
     expect(rendered).toContain('href="/app/reviews"');
     expect(rendered).toContain('href="/app/reports"');
   });
