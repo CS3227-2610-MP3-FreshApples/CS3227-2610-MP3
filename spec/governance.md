@@ -725,6 +725,62 @@ Design decision D-88 (summary provenance and result reuse): Recorded by thegrimb
 - **Reusing a valid result (AI-01 item 4):** a running job with the same Movie, revision, model and prompt version is reused through K10's dedup key (`duplicate`). A ReviewSummary at the Movie's current `reviews_revision` is a valid result: when the D-86 read finds one, generation returns `current` with no K10 call. Publication clears pending only at its exact revision and only `markReviewsChanged` sets it again, by advancing the revision, so this case is normally unreachable; the check is defensive. A summary stays current while its revision equals the Movie's, whatever model or prompt version produced it. A new model or prompt version applies from the next generation and never by itself triggers regeneration, consistent with "unchanged content never causes regeneration merely because time passed".
 - **Model ID:** the summary service does not need it. K10 adds the provider's model to the dedup key and the AIJob row.
 
+Design decision D-89 (summary outcomes and sweep scheduling): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approval by Developer A (Lim-ZY) is pending. Implements AI-01 "Scheduling and load" and DEP-09.
+- **Generation (B#13):** one service operation generates the summary for one Movie ID. It is called with no Tx open. It returns `unavailable`, `insufficient_reviews`, `input_unfit` (D-86) or `current` (D-88), or else the K10 `AiExecutionOutcome` unchanged. It never throws for an expected outcome and never writes schedule columns.
+- **Selection (B#14):** one statement selects at most `AI_SUMMARY_MAX_MOVIES_PER_RUN` (1) Movie that:
+  - is active, has `summary_pending_since` set, and has `summary_next_attempt_at` null or not after now;
+  - has `summary_last_success_at` null, or not after now minus `AI_SUMMARY_INTERVAL_DAYS` days;
+  - has at least 3 eligible Reviews under the D-86 predicate.
+
+  Order: `summary_last_attempt_at` ascending with nulls first (never-attempted first), then `summary_pending_since`, then `id`. Times come from the database clock. A Movie with fewer than 3 eligible Reviews is never selected, so it cannot hold the single slot every run and starve others (AT-07: the sweep skips fewer-than-3-review Movies). It keeps its marker and becomes selectable once it has 3 (AI-01 item 3).
+- **Attempt record (B#14), each step in its own short Tx and never during the provider call:**
+  1. Before generating: K7 `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with the next attempt 1 day later. This commits before the provider call, so a crash keeps the backoff and the Movie moves behind the others. A Movie that is no longer active counts as `skipped`, with nothing more.
+  2. After `deferred`, `disabled` or `duplicate`: K7 `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with the next attempt now. The Movie stays behind the others, but capacity limits do not impose the failure backoff (AI-01: deferral keeps the marker). If the Movie was archived meanwhile, nothing is written.
+- **Outcome mapping:**
+
+  | Outcome | Cron count | Schedule after the attempt |
+  | --- | --- | --- |
+  | `published` | processed | Step 1 values; `recordSummaryPublished` cleared pending, and the interval then governs |
+  | `current`, `insufficient_reviews`, `unavailable` (races after selection) | skipped | Step 1 values |
+  | `duplicate` | skipped | Step 2 |
+  | `deferred`, `disabled` | deferred | Step 2 |
+  | `input_unfit`, `input_too_large`, `failed`, `stale` | failed | Step 1 values: the 1-day backoff |
+
+- **Backoff and retries:** the backoff is exactly 1 day after the attempt; Vercel Hobby cron timing is approximate, so a retry can slip to the following run, which is accepted (DEP-09: timing is not a deadline). AI-01 sets no maximum failure count for summaries (AI-02's limit of 3 applies only to moderation). Retries stay bounded at one attempt per Movie per day and one Movie per run, and a failing Movie moves behind the others after each attempt.
+- **Interval values:** `AI_SUMMARY_INTERVAL_DAYS` accepts only 1 (default) or 7, the two values deployment.md supports. Any other value is invalid AI configuration and disables AI (D-37).
+- **Response:** `200 { processed, skipped, deferred, failed }`, integers summing to at most `AI_SUMMARY_MAX_MOVIES_PER_RUN`. All four are 0, with no writes, when the `summary_sweep` lease is held by another run, when no Movie is due, or when `schedulerLeases` is null because the D-52 controller stub is wired.
+- **Why:** filtering by eligible count prevents starvation, recording the attempt first covers crashes, and only failures and stale results take the backoff, as AI-01 requires.
+
+Design decision D-90 (public summary projection): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approval by Developer A (Lim-ZY) is pending. Fills the api.md `summary?` field and the AI-01 UI metadata.
+- **Response:** `GET /api/v1/movies/:id/summary` returns 200, for example:
+
+  ```json
+  {
+    "status": "ready",
+    "eligibleCount": 12,
+    "summary": {
+      "overall": "Reviewers mostly praise the pacing and the lead performance.",
+      "strengths": [{ "text": "The lead performance is widely praised." }],
+      "criticisms": [],
+      "mixedOpinions": [{ "text": "Opinions on the ending are split." }],
+      "includedCount": 9,
+      "truncated": true,
+      "generatedAt": "2026-10-20T00:00:05.000Z"
+    }
+  }
+  ```
+
+  `summary` is present only when `status` is `ready`. `eligibleCount` is the current eligible count under the D-86 predicate. `includedCount` and `truncated` come from D-88; `generatedAt` is ISO 8601 UTC.
+- **Precedence:** one statement computes the state, in this order:
+  1. An unknown, malformed or archived Movie ID returns 404 (O-09).
+  2. Fewer than 3 eligible Reviews gives `insufficient_reviews`.
+  3. A ReviewSummary at the Movie's current `reviews_revision` gives `ready`, whatever model or prompt version produced it (D-88).
+  4. Any older ReviewSummary for the Movie gives `stale`.
+  5. Otherwise the state is `missing`.
+- **Not exposed:** source labels, sampled IDs and versions, the seed, job, model and prompt fields, and any text from a non-current summary.
+- **UI:** `stale` and `missing` both show the AI-01 "awaiting scheduled update" state with no generation or retry control; `insufficient_reviews` shows insufficient reviews; `ready` shows the fixed AI-01 label, the generation time, included and eligible counts, and the truncation notice when `truncated` is true.
+- **Caching:** dynamic rendering and `no-store` (P-06). The read never calls K10 and writes nothing.
+
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.
