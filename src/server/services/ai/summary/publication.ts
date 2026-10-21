@@ -1,9 +1,8 @@
 import "server-only";
 
 import type { ReviewSummaryRepository } from "../../../repositories/summary";
-import type { MovieId, Result, ReviewsRevision, Tx } from "../../../shared";
+import type { AiJobId, MovieId, Result, ReviewsRevision, Tx } from "../../../shared";
 import type { MovieLocks, SummarySchedule, SummaryStale } from "../../catalogue";
-import type { AiJobRef } from "../runtime";
 import type { SummarySample } from "./input-preparation";
 import type { SummaryOutput } from "./output-schema";
 import { SUMMARY_PROMPT_VERSION } from "./prompt";
@@ -27,7 +26,8 @@ export interface SummaryPublisher {
     tx: Tx,
     publication: SummaryPublication,
     output: SummaryOutput,
-    job: AiJobRef,
+    /** The running AIJob K10 publishes for (D-96: the ID only, not K10's `AiJobRef`). */
+    jobId: AiJobId,
   ): Promise<Result<void, SummaryStale>>;
 }
 
@@ -39,7 +39,7 @@ export function createSummaryPublisher(deps: {
   readonly summaries: ReviewSummaryRepository;
 }): SummaryPublisher {
   return {
-    async publish(tx, publication, output, job) {
+    async publish(tx, publication, output, jobId) {
       const { movieId, reviewsRevision } = publication;
       const movie = await deps.movieLocks.lockActiveMovieForUpdate(tx, movieId);
       if (!movie.ok || movie.value.reviewsRevision !== reviewsRevision) {
@@ -50,7 +50,7 @@ export function createSummaryPublisher(deps: {
         return STALE;
       }
       await deps.summaries.insert(tx, {
-        jobId: job.jobId,
+        jobId,
         movieId,
         reviewsRevision,
         sampleJson: JSON.stringify(publication.sample),

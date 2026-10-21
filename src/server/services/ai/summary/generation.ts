@@ -40,7 +40,7 @@ export function createSummaryGeneration(deps: {
         input,
         maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
         validate: (content) => parseSummaryOutput(content, labels),
-        publish: (tx, output, job) => deps.publisher.publish(tx, publication, output, job),
+        publish: (tx, output, job) => deps.publisher.publish(tx, publication, output, job.jobId),
       });
     },
   };

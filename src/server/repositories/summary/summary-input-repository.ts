@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Sql } from "../../db";
 import type { ContentRevision, MovieId, ReviewId, ReviewsRevision, RowVersion, Tx } from "../../shared";
+import { currentSummaryExists } from "./current-summary";
 
 /** An eligible Review as the summary reads it: no author, report or moderation fields (D-86). */
 export interface EligibleReviewRecord {
@@ -44,14 +45,8 @@ interface SnapshotRow {
 // The eligibility predicate restates U-01's (data-model.md; D-86); the parity test keeps the copies aligned.
 const READ_SNAPSHOT = `
   SELECT m.reviews_revision,
-         EXISTS (
-           SELECT 1
-           FROM app.review_summary s
-           JOIN app.ai_job j ON j.id = s.job_id
-           WHERE s.movie_id = m.id
-             AND s.reviews_revision = m.reviews_revision
-             AND j.prompt_version = $2
-         ) AS has_current_summary,
+         ${currentSummaryExists({ movieId: "m.id", reviewsRevision: "m.reviews_revision", promptVersion: "$2" })}
+           AS has_current_summary,
          COALESCE((
            SELECT json_agg(
                     json_build_object(

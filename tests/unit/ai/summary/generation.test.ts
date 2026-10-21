@@ -159,7 +159,7 @@ describe("summary generation request (AM-23)", () => {
       TX,
       { movieId: MOVIE_ID, reviewsRevision: REVISION, eligibleCount: 25, sample: prepared.sample },
       OUTPUT,
-      { jobId: JOB_ID },
+      JOB_ID,
     );
   });
 
@@ -258,7 +258,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: REVISION, summaryPendingSince: new Date("2026-01-01T00:00:00Z") });
     const input = publication();
 
-    await expect(h.publisher.publish(TX, input, OUTPUT, { jobId: JOB_ID })).resolves.toEqual({
+    await expect(h.publisher.publish(TX, input, OUTPUT, JOB_ID)).resolves.toEqual({
       ok: true,
       value: undefined,
     });
@@ -282,7 +282,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     const h = harness();
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: REVISION });
 
-    await h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID });
+    await h.publisher.publish(TX, publication(), OUTPUT, JOB_ID);
 
     expect(h.inserted[0]?.sampleJson).not.toContain("Synthetic opinion");
     expect(JSON.parse(h.inserted[0]!.sampleJson)).toMatchObject({ algorithm: "summary-sample-v1", sampledCount: 4 });
@@ -291,7 +291,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
   it("returns stale for a missing Movie and writes nothing", async () => {
     const h = harness();
 
-    await expect(h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).resolves.toEqual(STALE);
+    await expect(h.publisher.publish(TX, publication(), OUTPUT, JOB_ID)).resolves.toEqual(STALE);
     expect(h.calls).toEqual(["lockActiveMovieForUpdate"]);
   });
 
@@ -299,7 +299,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     const h = harness();
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: REVISION, archived: true });
 
-    await expect(h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).resolves.toEqual(STALE);
+    await expect(h.publisher.publish(TX, publication(), OUTPUT, JOB_ID)).resolves.toEqual(STALE);
     expect(h.calls).toEqual(["lockActiveMovieForUpdate"]);
   });
 
@@ -311,7 +311,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     const pendingSince = new Date("2026-01-01T00:00:00Z");
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: revision, summaryPendingSince: pendingSince });
 
-    await expect(h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).resolves.toEqual(STALE);
+    await expect(h.publisher.publish(TX, publication(), OUTPUT, JOB_ID)).resolves.toEqual(STALE);
     expect(h.calls).toEqual(["lockActiveMovieForUpdate"]);
     expect(h.core.stored(MOVIE_ID)).toMatchObject({ summaryPendingSince: pendingSince, summaryLastSuccessAt: null });
   });
@@ -320,7 +320,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     const h = harness({ currentExists: true });
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: REVISION });
 
-    await expect(h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).resolves.toEqual(STALE);
+    await expect(h.publisher.publish(TX, publication(), OUTPUT, JOB_ID)).resolves.toEqual(STALE);
     expect(h.calls).toEqual(["lockActiveMovieForUpdate", "existsCurrent"]);
   });
 
@@ -328,7 +328,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
     const h = harness({ schedule: { recordSummaryPublished: async () => ({ ok: false, error: { kind: "stale" } }) } });
     h.core.seedMovie(MOVIE_ID, { reviewsRevision: REVISION });
 
-    await expect(h.publisher.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).resolves.toEqual(STALE);
+    await expect(h.publisher.publish(TX, publication(), OUTPUT, JOB_ID)).resolves.toEqual(STALE);
     expect(h.calls).toEqual(["lockActiveMovieForUpdate", "existsCurrent", "insert", "recordSummaryPublished"]);
   });
 
@@ -341,7 +341,7 @@ describe("summary publish callback (contracts §3.3, AM-23, AM-25)", () => {
       summaries: { existsCurrent: async () => false, insert: () => Promise.reject(new Error("insert failed")) },
     });
 
-    await expect(failing.publish(TX, publication(), OUTPUT, { jobId: JOB_ID })).rejects.toThrow("insert failed");
+    await expect(failing.publish(TX, publication(), OUTPUT, JOB_ID)).rejects.toThrow("insert failed");
     expect(h.core.stored(MOVIE_ID).summaryLastSuccessAt).toBeNull();
   });
 });

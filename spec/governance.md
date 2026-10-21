@@ -692,7 +692,7 @@ Design decision D-86 (summary input preparation): Recorded by thegrimbee on 21 O
 - **Reduction:** estimate the input with the AI-03 formula over both messages, using the runtime's `estimateInputTokens` so the summary and K10 use one implementation. While the estimate exceeds `AI_INPUT_TOKEN_LIMIT` (at most 8,000; the bound K10 enforces), remove the last Review in sample order and serialize again. Remaining labels do not change, and every included Review stays whole. The sample before reduction is uniform; when reduction removes Reviews it favours shorter ones (corrected by D-93). If fewer than 3 Reviews remain, the result is `input_unfit`, with no K10 call and no AIJob. The Reviews that remain are the included sample, which is persisted (D-88) and counted for display.
 - **Why:** one statement gives a consistent snapshot without blocking review writes. Hash-counter sampling is reproducible from the stored seed without a new dependency. Removing whole Reviews from the end keeps the reduction deterministic, which AI-01 item 5 permits; its length bias is accepted in D-93.
 
-Design decision D-87 (summary output schema): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 item 6 and AI-04.
+Design decision D-87 (summary output schema): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choices to the agent's recommendations. Approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. Implements AI-01 item 6 and AI-04. Safe text amended by D-96.
 - **Shape** (example):
 
   ```json
@@ -836,6 +836,14 @@ Design decision D-95 (summary accepted risks and acceptance items): Recorded by 
 - **Backlog metric (L13):** "oldest pending age and count" (AI-01) counts only Movies with at least 3 eligible Reviews, because Movies with fewer keep their marker indefinitely by design. Owner: Developer B in R-04.
 - **Unreachable `current` (L6):** a `current` outcome does not clear pending. Under D-51 it cannot occur for a pending Movie, so no handling is added.
 - **Fixture note (L9):** the marker fake obeys the first marker in sample order. R-02 end-to-end fixtures for a summary must not mix markers across the Movie's Reviews.
+
+Design decision D-96 (U-04a Q-1 resolutions): Recorded by thegrimbee on 21 October 2026 from the U-04a Q-1 code-quality findings F1–F5; Developer B delegated the choices to the agent's recommendations. **Developer A (Lim-ZY) approval pending.** Amends D-87; affects B#13 and B#14.
+- **Lone surrogates (F1):** D-87 safe text also rejects any unpaired UTF-16 surrogate (a code unit in U+D800–U+DFFF that is not part of a valid pair). PostgreSQL `jsonb` cannot store one, so before this rule such output passed validation and then failed the insert as `storage_failed`. It now gives `invalid_output`, so provider-content faults are not counted as storage faults.
+- **"A letter" after `<` (F2):** in D-87, "`<` followed by a letter" means an ASCII letter A–Z or a–z. This is the set that starts a tag in HTML tokenization; `<` before any other character is text. Output is always rendered as escaped text (D-87), so no wider set is needed. No code change.
+- **One definition of a current summary (F3):** the D-93 currency rule (same Movie and `reviews_revision`, job `prompt_version` equal to the current summary prompt version) is written once, as a shared SQL fragment in `src/server/repositories/summary/`. The D-86 read and the D-93 guard use it, and the B#14 public read (D-90 step 3) and selection (D-94) must use it too.
+- **One `SummaryLimits` type (F4):** the summary service derives `SummaryLimits` from `AiRuntime["summaryLimits"]` instead of declaring the shape twice. No path is widened.
+- **Publisher input (F5):** the summary publisher takes the AIJob ID, not the whole K10 `AiJobRef`; the generation service passes `job.jobId`. The K10 `publish` callback signature (contracts §3.3, AM-23) is unchanged.
+- **Why:** each change removes a duplicate definition or a misclassified failure without changing any published outcome other than F1's cause.
 
 ## 15. References
 

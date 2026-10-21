@@ -28,7 +28,6 @@
 | `spec/governance.md` D-70, D-85–D-95 | Recorded decisions | Schema, provenance, outcomes, paths, guard, test requirements |
 | `workflow/contracts.md` §3.3, K7, K10, AM-21, AM-23, AM-25 | Contracts | Publish order, outcomes, rollback |
 | `workflow/handoffs/U-04a/` | Handoffs | Commit 1 deferrals, acceptance examples |
-| `references/DEV-A-COMMIT-PLAN.md` | Personal plan (not authority) | The prompt for this commit |
 | `src/server/` runtime, K7, marker fake, config, composition, schema | Code on branch | Interfaces and wiring |
 
 ## 4. Interaction Timeline

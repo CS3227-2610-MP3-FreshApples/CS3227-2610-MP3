@@ -1,6 +1,6 @@
 # U-04a commit 2 handoff: summary output validation and guarded publish
 
-- **Task:** U-04a, PR B#13 (formerly A#9, D-85), commit 2 `feat(ai): summary output validation and guarded publish` as listed in `references/DEV-A-COMMIT-PLAN.md`.
+- **Task:** U-04a, PR B#13 (formerly A#9, D-85), commit 2 `feat(ai): summary output validation and guarded publish`
 - **Requirements:** AI-01 items 4, 6 and 7, AI-04 (output containment), AT-07, AT-08 (synthetic only, D-91), INV-09 (synthetic only). Decisions implemented: D-87, D-88 (provenance columns and reuse), D-89 (generation operation only), D-92, D-93 (`summaryLimits`, prompt-version currency, duplicate guard, test requirements), D-70 (summary conformance test). Contract amendments: AM-23, AM-25.
 - **Source revision:** working tree on `feat/ai-summary-core` at `6389fcc` (commit 1), uncommitted.
 - **Authorization:** the human (thegrimbee, Developer B) instructed the implementation agent to implement commit 2. Path and owner approval for the marker fake, composition and `create-ai-runtime.ts` comes from D-92 and D-93, both approved by the two developers. The PLAN and COMMIT-PLAN trackers were not edited.

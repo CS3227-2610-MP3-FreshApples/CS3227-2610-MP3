@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Sql } from "../../db";
 import type { AiJobId, MovieId, ReviewsRevision, Tx } from "../../shared";
+import { currentSummaryExists } from "./current-summary";
 
 /** A validated summary to insert. The JSON values are serialized by the caller (D-88). */
 export interface NewReviewSummary {
@@ -24,14 +25,7 @@ export interface ReviewSummaryRepository {
 }
 
 const EXISTS_CURRENT = `
-  SELECT EXISTS (
-    SELECT 1
-    FROM app.review_summary s
-    JOIN app.ai_job j ON j.id = s.job_id
-    WHERE s.movie_id = $1
-      AND s.reviews_revision = $2
-      AND j.prompt_version = $3
-  ) AS exists`;
+  SELECT ${currentSummaryExists({ movieId: "$1", reviewsRevision: "$2", promptVersion: "$3" })} AS exists`;
 
 const INSERT = `
   INSERT INTO app.review_summary

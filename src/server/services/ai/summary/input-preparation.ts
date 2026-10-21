@@ -3,7 +3,7 @@ import "server-only";
 import type { Database } from "../../../db";
 import type { EligibleReviewRecord, SummaryInputRepository, SummaryInputSnapshot } from "../../../repositories/summary";
 import type { ContentRevision, MovieId, ReviewId, ReviewsRevision, RowVersion } from "../../../shared";
-import { estimateInputTokens, type BoundedInput, type LlmMessage } from "../runtime";
+import { estimateInputTokens, type AiRuntime, type BoundedInput, type LlmMessage } from "../runtime";
 import { SUMMARY_PROMPT_VERSION, SUMMARY_SYSTEM_PROMPT } from "./prompt";
 import {
   sampleWithoutReplacement,
@@ -18,13 +18,12 @@ export const MIN_SUMMARY_REVIEWS = 3;
 /** AI-01 item 5: each body is cut to this many Unicode code points. */
 export const SUMMARY_BODY_MAX_CODE_POINTS = 1_000;
 
-/** From the same `AiSettings` that build the real controller (D-93). */
-export interface SummaryLimits {
-  /** `AI_SUMMARY_SAMPLE_SIZE`, 3–20. */
-  readonly sampleSize: number;
-  /** `AI_INPUT_TOKEN_LIMIT`, the bound K10 enforces. */
-  readonly inputTokenLimit: number;
-}
+/**
+ * `sampleSize` is `AI_SUMMARY_SAMPLE_SIZE` (3–20) and `inputTokenLimit` is `AI_INPUT_TOKEN_LIMIT`, the bound K10
+ * enforces. Derived from `AiRuntime`, which builds them from the real controller's settings, so the shape is
+ * declared once (D-93, D-96).
+ */
+export type SummaryLimits = NonNullable<AiRuntime["summaryLimits"]>;
 
 /** One included Review in `sampled_review_ids_and_versions.reviews`; label `R<k>` is entry k − 1 (D-88). */
 export interface SummarySampleReview {

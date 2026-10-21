@@ -34,7 +34,10 @@ const INVALID: Result<never, InvalidSummaryOutput> = Object.freeze({
 const LINE_FEED = 0x0a;
 const FIRST_PRINTABLE = 0x20;
 const DELETE = 0x7f;
+const FIRST_SURROGATE = 0xd800;
+const LAST_SURROGATE = 0xdfff;
 const URL_TEXT = /https?:\/\/|www\./i;
+// D-96: "a letter" is an ASCII letter, the set that starts a tag in HTML tokenization.
 const MARKUP = /<[A-Za-z/!?]/;
 const FENCE = "```";
 const FENCE_TAG = "json";
@@ -43,11 +46,18 @@ function codePointCount(value: string): number {
   return Array.from(value).length;
 }
 
-/** D-87 safe text: no C0 control other than LF, no DEL, no URL and no markup. */
+/**
+ * D-87 safe text: no C0 control other than LF, no DEL, no unpaired surrogate (D-96: `jsonb` cannot store one), no
+ * URL and no markup. String iteration yields a valid pair as one code point, so a surrogate here is unpaired.
+ */
 function isSafeText(value: string): boolean {
   for (const character of value) {
     const code = character.codePointAt(0) as number;
-    if ((code < FIRST_PRINTABLE && code !== LINE_FEED) || code === DELETE) {
+    if (
+      (code < FIRST_PRINTABLE && code !== LINE_FEED) ||
+      code === DELETE ||
+      (code >= FIRST_SURROGATE && code <= LAST_SURROGATE)
+    ) {
       return false;
     }
   }

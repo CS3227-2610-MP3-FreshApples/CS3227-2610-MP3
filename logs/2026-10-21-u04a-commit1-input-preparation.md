@@ -28,7 +28,6 @@
 | `spec/governance.md` D-85–D-95 | Recorded decisions | Algorithm, prompt version, snapshot, provenance, tests |
 | `workflow/contracts.md` AM-23, AM-25 | Contracts | `estimateInputTokens` export, snapshot shape |
 | `workflow/handoffs/U-04a/` | Handoffs | Acceptance examples and architect test requirements |
-| `references/DEV-A-COMMIT-PLAN.md` | Personal plan (not authority) | The prompt for this commit |
 | `src/server/` runtime, config, U-01 read repository, schema | Code on branch | Interfaces, predicate, grants, pool size |
 
 ## 4. Interaction Timeline
