@@ -17,6 +17,7 @@ import type {
   Result,
   ReviewId,
   ReviewUpdateLock,
+  RowVersion,
   Tx,
 } from "../../../shared";
 import type { AuditLog } from "../../audit";
@@ -55,14 +56,26 @@ export interface ModerationSettings {
   readonly maxExecutions: number;
 }
 
-/** What the claim transaction hands to the K10 call and the transactions after it. */
+/** The claimed row and the captured Review version: all the publish and settlement Txs need. */
+interface ClaimedWork {
+  readonly workId: string;
+  readonly reviewId: ReviewId;
+  readonly contentRevision: ContentRevision;
+  readonly version: RowVersion;
+}
+
+/** What the claim transaction hands to the K10 call. */
 interface Claimed {
   readonly kind: "claimed";
-  readonly workId: string;
-  readonly subject: ScreeningSubject;
+  readonly work: ClaimedWork;
+  /** The screened body, which output quotes must copy (D-100). */
+  readonly body: string;
   readonly input: BoundedInput;
-  readonly authorId: AccountId | null;
+  readonly requesterId: AccountId | null;
 }
+
+/** Reads the AIJob requester in the claim Tx (D-64): the author for a review write, none for the sweep. */
+type RequesterRead = (tx: Tx, reviewId: ReviewId) => Promise<AccountId | null>;
 
 type ClaimResult = Claimed | { readonly kind: "settled"; readonly result: ScreeningAttempt };
 
@@ -74,14 +87,14 @@ const STALE: Result<never, { readonly kind: "stale" }> = Object.freeze({
 });
 const PUBLISHED: Result<void, never> = Object.freeze({ ok: true, value: undefined });
 
-const OUTSTANDING: ReadonlySet<ModerationWorkRow["status"]> = new Set(["pending", "running", "needs_manual_review"]);
+const OUTSTANDING: readonly ModerationWorkRow["status"][] = Object.freeze(["pending", "running", "needs_manual_review"]);
 
 function isCurrentVersion(row: ModerationWorkRow): boolean {
   return row.promptVersion === REVIEW_SCREENING_PROMPT_VERSION && row.policyVersion === PROFANITY_POLICY_VERSION;
 }
 
 function outstandingIds(rows: readonly ModerationWorkRow[]): string[] {
-  return rows.filter((row) => OUTSTANDING.has(row.status)).map((row) => row.id);
+  return rows.filter((row) => OUTSTANDING.includes(row.status)).map((row) => row.id);
 }
 
 /** Other-version work that no execution holds: `pending`, or `running` with an expired claim (D-101, D-103). */
@@ -109,7 +122,7 @@ export function createModerationDispatcher(deps: {
   readonly reviewLocks: Pick<ReviewLocksAndReads, "lockReviewForTransition" | "readReviewForScreening">;
   readonly transitions: Pick<ReviewTransitions, "applyAutomaticClearance" | "applyAutomaticFlag">;
   readonly work: ModerationWorkRepository;
-  readonly reviewReads: ModerationReviewReadRepository;
+  readonly reviewReads: Pick<ModerationReviewReadRepository, "readAuthorId">;
   readonly results: ReviewModerationRepository;
   readonly auditLog: AuditLog;
   readonly controller: AiExecutionController;
@@ -176,7 +189,12 @@ export function createModerationDispatcher(deps: {
   }
 
   /** The claim Tx (D-101 steps 1–10). */
-  async function claim(tx: Tx, reviewId: ReviewId, contentRevision: ContentRevision): Promise<ClaimResult> {
+  async function claim(
+    tx: Tx,
+    reviewId: ReviewId,
+    contentRevision: ContentRevision,
+    readRequester: RequesterRead,
+  ): Promise<ClaimResult> {
     const locked = await deps.reviewLocks.lockReviewForTransition(tx, reviewId);
     if (!locked.ok) {
       return settled("not_current");
@@ -234,19 +252,24 @@ export function createModerationDispatcher(deps: {
       return settled("manual_review");
     }
     await work.claim(tx, current.id, settings.modelId, MODERATION_CLAIM_SECONDS);
-    const authorId = await deps.reviewReads.readAuthorId(tx, reviewId);
-    return { kind: "claimed", workId: current.id, subject, input: prepared.input, authorId };
+    return {
+      kind: "claimed",
+      work: { workId: current.id, reviewId, contentRevision: subject.contentRevision, version: subject.version },
+      body: subject.body,
+      input: prepared.input,
+      requesterId: await readRequester(tx, reviewId),
+    };
   }
 
   /** The K10 publish callback body (contracts §3.3, D-101). Any rejection rolls the publish Tx back. */
   async function publish(
     tx: Tx,
-    claimed: Claimed,
+    claimed: ClaimedWork,
     output: ModerationOutput,
     jobId: AiJobId,
     requestId: RequestId,
   ): Promise<Result<void, { readonly kind: "stale" }>> {
-    const { reviewId, contentRevision, version } = claimed.subject;
+    const { reviewId, contentRevision, version } = claimed;
     const locked = await deps.reviewLocks.lockReviewForTransition(tx, reviewId);
     if (!locked.ok) {
       return STALE;
@@ -287,8 +310,8 @@ export function createModerationDispatcher(deps: {
   }
 
   /** The settlement Tx after any outcome but `published` (D-101 table). Writes only while the claim runs. */
-  function settle(claimed: Claimed, outcome: Exclude<AiExecutionOutcome, { readonly kind: "published" }>) {
-    const { reviewId, contentRevision } = claimed.subject;
+  function settle(claimed: ClaimedWork, outcome: Exclude<AiExecutionOutcome, { readonly kind: "published" }>) {
+    const { reviewId, contentRevision } = claimed;
     return database.withTransaction(async (tx): Promise<ScreeningAttempt> => {
       const locked = await deps.reviewLocks.lockReviewForTransition(tx, reviewId);
       if (!locked.ok) {
@@ -341,14 +364,14 @@ export function createModerationDispatcher(deps: {
     reviewId: ReviewId,
     contentRevision: ContentRevision,
     requestId: RequestId,
-    requesterFor: (claimed: Claimed) => AccountId | null,
+    readRequester: RequesterRead,
   ): Promise<ScreeningAttempt> {
     try {
-      const claimed = await database.withTransaction((tx) => claim(tx, reviewId, contentRevision));
+      const claimed = await database.withTransaction((tx) => claim(tx, reviewId, contentRevision, readRequester));
       if (claimed.kind === "settled") {
         return claimed.result;
       }
-      const { subject } = claimed;
+      const { work: claimedWork } = claimed;
       // Set by a publish callback that succeeded; read only when K10 reports `published`, because the publish Tx
       // can still roll back after the callback returns (P-08).
       const published: { assessment: ModerationAssessment | null } = { assessment: null };
@@ -356,16 +379,16 @@ export function createModerationDispatcher(deps: {
         job: {
           type: "review_moderation",
           reviewId,
-          captured: { contentRevision: subject.contentRevision, version: subject.version },
-          requesterId: requesterFor(claimed),
+          captured: { contentRevision: claimedWork.contentRevision, version: claimedWork.version },
+          requesterId: claimed.requesterId,
           promptVersion: REVIEW_SCREENING_PROMPT_VERSION,
           policyVersion: PROFANITY_POLICY_VERSION,
         },
         input: claimed.input,
         maxOutputTokens: MODERATION_MAX_OUTPUT_TOKENS,
-        validate: (content) => parseModerationOutput(content, subject.body),
+        validate: (content) => parseModerationOutput(content, claimed.body),
         publish: async (tx, output, job) => {
-          const result = await publish(tx, claimed, output, job.jobId, requestId);
+          const result = await publish(tx, claimedWork, output, job.jobId, requestId);
           published.assessment = result.ok ? output.assessment : null;
           return result;
         },
@@ -373,19 +396,22 @@ export function createModerationDispatcher(deps: {
       if (outcome.kind === "published") {
         return published.assessment === null ? "not_current" : attemptFor(published.assessment);
       }
-      return await settle(claimed, outcome);
+      return await settle(claimedWork, outcome);
     } catch {
       // A fault leaves any claim to expire; the sweep recovers it (D-77, D-101).
       return "deferred";
     }
   }
 
+  const noRequester: RequesterRead = () => Promise.resolve(null);
+
   return {
     attemptAfterCommit(reviewId, contentRevision) {
-      return attempt(reviewId, contentRevision, randomUUID() as RequestId, (claimed) => claimed.authorId);
+      // D-103: K9 carries no request ID, so the attempt's audit entries get their own.
+      return attempt(reviewId, contentRevision, randomUUID() as RequestId, deps.reviewReads.readAuthorId);
     },
     attemptFromSweep(reviewId, contentRevision, requestId) {
-      return attempt(reviewId, contentRevision, requestId, () => null);
+      return attempt(reviewId, contentRevision, requestId, noRequester);
     },
   };
 }
