@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 
 import { publicNavigationForAccount, type NavigationLink, type PublicAccountIdentity } from "./navigation-data";
@@ -12,7 +13,15 @@ type RouteNavigationProps = Readonly<{
   label: string;
 }>;
 
-export function RouteNavigation({ authAware = false, links, label }: RouteNavigationProps) {
+export function RouteNavigation(props: RouteNavigationProps) {
+  return (
+    <Suspense fallback={<RouteNavigationFallback label={props.label} links={props.links} />}>
+      <RouteNavigationContent {...props} />
+    </Suspense>
+  );
+}
+
+function RouteNavigationContent({ authAware = false, links, label }: RouteNavigationProps) {
   const pathname = usePathname();
   const [account, setAccount] = useState<PublicAccountIdentity | null>(null);
   useEffect(() => {
@@ -55,6 +64,25 @@ export function RouteNavigation({ authAware = false, links, label }: RouteNaviga
             </li>
           );
         })}
+      </ul>
+    </nav>
+  );
+}
+
+function RouteNavigationFallback({ links, label }: Pick<RouteNavigationProps, "links" | "label">) {
+  return (
+    <nav aria-label={label}>
+      <ul className="flex flex-wrap items-center gap-x-5 gap-y-2" data-navigation="primary">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              className="inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-sm font-medium text-slate-700 underline-offset-4"
+              href={link.href}
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
       </ul>
     </nav>
   );
