@@ -60,14 +60,14 @@ describe("review summary states", () => {
     const rendered = html(READY);
 
     expect(AI_SUMMARY_LABEL).toBe("AI summary of a sample; may miss opinions or make mistakes");
-    expect(rendered).toContain('<h2 id="review-summary-heading">Review summary</h2>');
-    expect(rendered).toContain(`<p>${AI_SUMMARY_LABEL}</p>`);
-    expect(rendered).toContain("<p>Reviewers mostly praise the pacing.</p>");
-    expect(rendered).toContain("<h3>Strengths</h3><ul><li>The lead performance is praised.</li></ul>");
-    expect(rendered).toContain("<h3>Criticisms</h3><p>None noted.</p>");
-    expect(rendered).toContain("<h3>Mixed opinions</h3><ul><li>Opinions on the ending are split.</li></ul>");
-    expect(rendered).toContain("<p>Based on 9 of 12 eligible reviews.</p>");
-    expect(rendered).toContain('<p>Generated <time dateTime="2026-10-20T00:00:05.000Z">2026-10-20 00:00 UTC</time></p>');
+    expect(rendered).toContain('<h2 class="text-xl font-semibold text-slate-950" id="review-summary-heading">Review summary</h2>');
+    expect(rendered).toContain(`<p class="text-sm text-slate-600">${AI_SUMMARY_LABEL}</p>`);
+    expect(rendered).toContain('<p class="text-lg leading-8 text-slate-700">Reviewers mostly praise the pacing.</p>');
+    expect(rendered).toContain('<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-slate-600">Strengths</h3><ul><li>The lead performance is praised.</li></ul>');
+    expect(rendered).toContain('<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-slate-600">Criticisms</h3><p>None noted.</p>');
+    expect(rendered).toContain('<h3 class="text-sm font-semibold uppercase tracking-[0.12em] text-slate-600">Mixed opinions</h3><ul><li>Opinions on the ending are split.</li></ul>');
+    expect(rendered).toContain('<p class="text-sm text-slate-600">Based on 9 of 12 eligible reviews.</p>');
+    expect(rendered).toContain('<p class="text-sm text-slate-600">Generated <time dateTime="2026-10-20T00:00:05.000Z">2026-10-20 00:00 UTC</time></p>');
     expect(rendered).not.toContain("shortened");
   });
 
