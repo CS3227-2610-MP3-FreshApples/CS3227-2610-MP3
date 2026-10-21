@@ -92,7 +92,6 @@
 ## 9. Security and Responsible-AI Review
 
 - Sensitive data handled: none; no API key seen or recorded.
-- Untrusted input and prompt-injection treatment: saved guide HTML treated as reference data only.
 - Secret and production-data exposure check: `.env.example` gains only public values (base URL, model ID, prices).
 - Agent permission and tool limits: no git writes, no live SoC calls.
 - Human approval gates exercised: TPM removal and model choice.

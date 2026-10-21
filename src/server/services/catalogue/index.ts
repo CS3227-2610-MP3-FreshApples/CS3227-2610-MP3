@@ -22,3 +22,14 @@ export type {
   SummarySchedule,
   SummaryStale,
 } from "./types";
+export { createAdminMovieService, toAdminMovie } from "./admin-movies";
+export type {
+  AdminActor,
+  AdminMovie,
+  AdminMovieDependencies,
+  AdminMoviePage,
+  AdminMovieService,
+  MovieWriteRejection,
+} from "./admin-movies";
+export { parseMovieCreateInput, parseMoviePatchInput } from "./movie-input";
+export type { MovieCreateInput, MoviePatchInput } from "./movie-input";

@@ -148,6 +148,8 @@ A valid create becomes visible publicly. Archiving preserves related records but
 
 Archiving while a User submits a Review must serialize so that the invariant holds. Referencing announcements remain stored but public movie links are omitted while archived.
 
+Lifecycle details are D-79–D-81: repeated archive/restore with the current version is an audited no-op, and metadata can be edited while archived without restoring the Movie. No-op requests preserve versions, timestamps and summary markers. Actual archive/restore increments the Movie version and review revision atomically, including when there are no eligible Reviews.
+
 ### 4.6 Admin Moderation (FR-06)
 
 #### Requirements
@@ -179,6 +181,8 @@ Drafts never appear through public APIs. Publishing exposes the approved content
 #### Edge Cases
 
 Archived associated Movies do not break the announcement: the public announcement remains readable and its movie reference is null while the Movie is archived. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
+
+D-79–D-81 define the transitions: only draft-to-published sets a new publication timestamp; edits of published content are immediately public without resetting that timestamp. Unpublish and delete retain it. Deletion is terminal: Admins can read deleted records but cannot PATCH them back to life; repeated deletion with the current version is an audited no-op. Existing archived Movies may be assigned as references. Public ordering is publication time descending, then ID ascending. Every mutation is audited atomically, including combined content/state updates and no-ops.
 
 ### 4.8 Public AI Review Summary (FR-08)
 

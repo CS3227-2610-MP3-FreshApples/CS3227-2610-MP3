@@ -1,4 +1,4 @@
-// Controlled D-51 operator check. Reads migration credentials only from the
+// Controlled D-83 operator check. Reads migration credentials only from the
 // environment and prints an aggregate count, never account or connection data.
 import { pathToFileURL } from "node:url";
 

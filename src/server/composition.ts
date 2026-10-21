@@ -21,15 +21,21 @@ import {
 } from "./services/ai/runtime";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
+  createAdminMovieService,
   createMovieLocks,
   createReviewsChangedMarker,
   createSummarySchedule,
+  type AdminMovieService,
   type MovieLocks,
   type ReviewsChangedMarker,
   type SummarySchedule,
 } from "./services/catalogue";
+import type { MovieArchiveService } from "./services/catalogue-archive";
+import { createAdminAnnouncementService, type AdminAnnouncementService } from "./services/announcements";
+import { createAnnouncementRepository } from "./repositories/announcements";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
+import { createAdminMovieRepository } from "./repositories/catalogue";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
@@ -109,8 +115,31 @@ export const publicAnnouncementReadService: PublicAnnouncementReadService | null
   database === null
     ? null
     : createPublicAnnouncementReadService({
+          database,
+          announcements: createPublicAnnouncementReadRepository({sql: database}),
+      });
+
+/** FR-05 Admin Movie reads and metadata writes; `null` exactly when `database` is. */
+export const adminMovieService: AdminMovieService | null =
+  database === null || auditLog === null
+    ? null
+    : createAdminMovieService({ database, movies: createAdminMovieRepository({ sql: database }), auditLog });
+
+/**
+ * Movie archive/restore orchestrator (P-12, D-84). Unwired until U-02 (Developer A) provides K8
+ * `lockReviewsOfMovie`; the archive and restore routes return 503 until then. Wire it with
+ * `createMovieArchiveService` from ./services/catalogue-archive once K8 is on `master`.
+ */
+export const movieArchiveService: MovieArchiveService | null = null;
+
+/** FR-07 Admin Announcement reads and writes; `null` exactly when `database` is. */
+export const adminAnnouncementService: AdminAnnouncementService | null =
+  database === null || auditLog === null
+    ? null
+    : createAdminAnnouncementService({
         database,
-        announcements: createPublicAnnouncementReadRepository({ sql: database }),
+        announcements: createAnnouncementRepository({ sql: database }),
+        auditLog,
       });
 
 /**

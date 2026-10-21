@@ -27,7 +27,7 @@ Errors have { error: { code, message, fieldErrors?, requestId } }. Use 400 for m
 | 500 | internal_error |
 | 503 | service_unavailable |
 
-Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the new version in the resource and ETag header. ETag and If-Match use the quoted integer version, for example "3"; weak validators, lists and * are malformed (400). This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes.
+Versioned mutations require If-Match containing the current integer version; absent preconditions return 428, mismatches 409. Return the resulting version in the resource and ETag header. A versioned DELETE returns 204 with no body and its resulting version in ETag only (D-81); unversioned logout has no resource version. ETag and If-Match use the quoted integer version, for example "3"; weak validators, lists and * are malformed (400). This applies to review updates/deletes, admin movie and announcement updates/deletes/restores, report decisions, review approval/hiding/restoration and account status changes. A no-op still requires the current If-Match and returns the unchanged version.
 
 | Method and path | Access | Request / result |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /auth/logout | Authenticated | invalidate session and clear cookie |
 | GET /auth/me | Authenticated | id, displayName, role, status |
 | GET /auth/csrf | Anonymous or authenticated | { csrfToken } for the X-CSRF-Token header; sets the pre-session cookie when no session exists (security.md, D-14) |
-| POST /internal/bootstrap/admin | Deployment operator secret only | 200 `{ status: "created" | "already_provisioned" }`; ignores browser identity, cookies, CSRF and Origin (D-51) |
+| POST /internal/bootstrap/admin | Deployment operator secret only | 200 `{ status: "created" | "already_provisioned" }`; ignores browser identity, cookies, CSRF and Origin (D-83) |
 | GET /movies | Public | q ≤200, sort=release_desc/title_asc, page, pageSize → active Movie summaries |
 | GET /movies/:id | Public | active Movie detail and aggregate; synopsis, director, cast, release date, genres, runtime, average rating and review count; visible review listings belong to GET /movies/:id/reviews in U-02 |
 | GET /movies/:id/reviews | Public | page, pageSize; newest first → visible Review projections |
@@ -52,12 +52,12 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /internal/cron/summaries | Scheduler secret only | bounded daily sweep; process pending Movies; no browser/session access |
 | GET /internal/cron/review-moderation | Scheduler secret only | bounded automatic recovery of due review checks |
 | GET /ai/jobs/:id | Admin, review-moderation jobs only | state, retryAfterSeconds, safe result/error |
-| GET /admin/movies | Admin | includes archived; page, pageSize |
+| GET /admin/movies | Admin | includes archived; page, pageSize; updated_at DESC, id ASC |
 | GET /admin/movies/:id | Admin | current metadata, archive state, version |
 | POST /admin/movies | Admin | Movie writable fields → Movie |
 | PATCH /admin/movies/:id | Admin | Movie writable fields → Movie |
-| DELETE /admin/movies/:id | Admin | archive |
-| POST /admin/movies/:id/restore | Admin | restore |
+| DELETE /admin/movies/:id | Admin | archive; 204, no body, resulting ETag; already archived is a no-op |
+| POST /admin/movies/:id/restore | Admin | restore; 200 Movie and ETag; already active is a no-op |
 | GET /admin/reports | Admin | status, category, page, pageSize; default all open |
 | GET /admin/reports/:id | Admin | immutable evidence, live state, private strike count and projected threshold effect |
 | GET /admin/reviews | Admin | movieId?, assessment?, page, pageSize; includes unchecked, failed, hidden and deleted |
@@ -69,11 +69,11 @@ Versioned mutations require If-Match containing the current integer version; abs
 | GET /admin/users | Admin | status?, q (display name, max 200), page, pageSize; USER accounts only; id, displayName, status, version |
 | GET /admin/users/:id | Admin | USER account id, displayName, status, version; no credentials/session secrets |
 | PATCH /admin/users/:id/status | Admin | status active/suspended, reason (10-1,000), If-Match; manual suspend/unsuspend, no Report required; USER targets only |
-| GET /admin/announcements | Admin | drafts/published/deleted, page, pageSize |
+| GET /admin/announcements | Admin | drafts/published/deleted, page, pageSize; updated_at DESC, id ASC |
 | GET /admin/announcements/:id | Admin | full Announcement and version |
 | POST /admin/announcements | Admin | title, body, movieId? → draft |
 | PATCH /admin/announcements/:id | Admin | title?, body?, movieId?, state=draft/published → Announcement |
-| DELETE /admin/announcements/:id | Admin | soft delete |
+| DELETE /admin/announcements/:id | Admin | soft delete; 204, no body, resulting ETag; already deleted is a no-op |
 | GET /me/watchlist | User, optional | own entries, page, pageSize |
 | PUT /me/watchlist/:movieId | User, optional | idempotent add |
 | DELETE /me/watchlist/:movieId | User, optional | idempotent remove |
@@ -82,7 +82,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 
 CSRF wire contract (D-14): `GET /auth/csrf` returns a versioned `csrf_v1.<issuedAt>.<nonce>.<signature>` token and sets or refreshes the signed binding cookie when needed. Tokens use URL-safe Base64 without padding for nonce and signature, are bound to the current session or pre-session, and expire after 8 hours. Anonymous pre-session cookies expire after 30 minutes. Unsafe browser requests send the token in `X-CSRF-Token` and must include an `Origin` exactly matching `PUBLIC_APP_URL`; any missing, malformed, expired, wrongly bound or cross-origin token check returns 403 `csrf_failed`. Hosted HTTPS cookies are `__Host-fa_session`/`__Host-fa_presession` with `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/` and no `Domain`; the anonymous cookie also has `Max-Age=1800`. Login clears the pre-session cookie and rotates the binding to the new session; logout and session revocation invalidate the old binding.
 
-First-Admin bootstrap HTTP contract (D-51): the deployment-only
+First-Admin bootstrap HTTP contract (D-83): the deployment-only
 `POST /internal/bootstrap/admin` reads the Admin email and password only from
 server configuration and authorizes solely through
 `X-Admin-Bootstrap-Secret`. Configuration/service availability is checked
@@ -99,6 +99,10 @@ generated request ID, and ignore inbound request IDs. Browser identity,
 cookies, CSRF tokens and Origin neither authorize nor alter this operation.
 
 Review rating inputs must be integers from 1 to 10 inclusive; reject fractional and out-of-range values with 422. User review and report mutations that target a missing or archived Movie return 404.
+
+Admin Movie/Announcement mutation details are D-79–D-81. PATCH requires at least one writable field (empty object → 422); omitted fields are unchanged and same-value normalized updates are audited no-ops. Deleted Announcements reject PATCH with 409 conflict after the current-version check. Metadata updates of archived Movies are allowed. Publication occurs only on draft-to-published, setting a new published_at; unpublication/deletion retain the prior timestamp, and edits of published content become public immediately without changing published_at. Admin reads include retained records. Public announcements order by published_at DESC, id ASC and include only published rows.
+
+Movie optional-field defaults/clearing: releaseDate and runtimeMinutes use null; genres/cast use []; director uses an empty string, not null. On creation omitted optional fields receive those defaults; on PATCH omission preserves the value. releaseDate must be a valid YYYY-MM-DD calendar date (year 0001–9999). Announcement movieId defaults to null on creation and accepts null to clear on PATCH; malformed or nonexistent references return 422 validation_failed with a movieId field error. Archived references are permitted, with no public Movie link while archived. Text and array elements are trimmed before storage/validation; arrays retain their supplied order. An out-of-range positive list page returns empty items and the actual total.
 
 Public Review projection: id, movieId, author { id, displayName }, rating, body, createdAt, updatedAt. Do not expose email or account history. A report receipt includes id, reviewId, category, status, createdAt and disposition when closed.
 
