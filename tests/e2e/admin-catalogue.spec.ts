@@ -35,9 +35,12 @@ test.describe.serial("Admin movie and announcement screens", () => {
     await page.close();
   });
 
-  test("an anonymous visitor gets an error state, not Admin data", async ({ page }) => {
+  test("an anonymous visitor is redirected to sign-in without Admin data", async ({ page }) => {
     await page.goto("/admin/movies");
-    await expect(page.locator(ERROR_MESSAGE)).toContainText("Sign in again");
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.getByLabel("Email address")).toBeVisible();
+    await expect(page.getByLabel("Password")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
     await expect(page.getByRole("table")).toHaveCount(0);
   });
 

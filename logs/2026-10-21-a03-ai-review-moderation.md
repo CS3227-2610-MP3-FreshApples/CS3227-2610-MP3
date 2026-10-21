@@ -133,12 +133,12 @@ Review bodies and provider output are treated as untrusted data throughout. Suba
 
 ## 12. Human Verification
 
-- [ ] Summary matches the actual interaction and outcomes.
-- [ ] Requirement IDs and decisions are traceable to recorded sources.
-- [ ] Changed files and command results match the working tree and evidence.
-- [ ] Secrets, credentials, personal data, and raw production data are absent.
-- [ ] Agent proposals and unresolved questions are labelled accurately.
+- [x] Summary matches the actual interaction and outcomes.
+- [x] Requirement IDs and decisions are traceable to recorded sources.
+- [x] Changed files and command results match the working tree and evidence.
+- [x] Secrets, credentials, personal data, and raw production data are absent.
+- [x] Agent proposals and unresolved questions are labelled accurately.
 
-Reviewer:
-Verification date:
-Corrections or notes:
+Reviewer: Gabriel
+Verification date: 21 Oct 2026
+Corrections or notes: NIL

@@ -16,6 +16,12 @@ Mock-based tests demonstrate orchestration, not real model quality. Live AI resu
 
 ### 11.2 System acceptance criteria
 
+AT-01 Admin browser access clarification (21 October 2026, human delegated the choice
+to the agent's recommendation in the CI repair session): an anonymous visit to
+`/admin/movies` redirects to `/sign-in` and displays the sign-in form without Admin
+table data. Verify the settled destination rather than a transient resource error.
+Service and handler authorization requirements remain unchanged.
+
 | Test ID | Requirement | Observable pass condition |
 | --- | --- | --- |
 | AT-01 | FR-01, INV-01, SEC-01–04 | Registration creates USER; User cannot call admin APIs; guessed IDs cannot expose another User's report; logout/suspension revoke sessions; forged cross-origin writes fail |
