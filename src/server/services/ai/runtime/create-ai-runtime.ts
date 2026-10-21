@@ -22,6 +22,11 @@ export interface AiRuntime {
   readonly controller: AiExecutionController;
   /** `null` exactly when the D-52 controller stub is wired. */
   readonly schedulerLeases: SchedulerLeases | null;
+  /**
+   * The summary input bounds, from the same settings as the real controller, so summary reduction uses its
+   * `inputTokenLimit` (D-93, AM-25). `null` exactly when the D-52 controller stub is wired.
+   */
+  readonly summaryLimits: { readonly sampleSize: number; readonly inputTokenLimit: number } | null;
 }
 
 function aiExecutionLimits(settings: AiSettings): AiExecutionLimits {
@@ -49,7 +54,11 @@ export function createAiRuntime(deps: {
   readonly platform: AiRuntimePlatform | null;
   readonly fetch: FetchFunction;
 }): AiRuntime {
-  const disabled: AiRuntime = { controller: createDisabledAiExecutionController(), schedulerLeases: null };
+  const disabled: AiRuntime = {
+    controller: createDisabledAiExecutionController(),
+    schedulerLeases: null,
+    summaryLimits: null,
+  };
   const { ai, platform } = deps;
   if (!ai.enabled || platform === null) {
     return disabled;
@@ -72,5 +81,9 @@ export function createAiRuntime(deps: {
       sleep,
     }),
     schedulerLeases: createSchedulerLeases({ database, sql: database }),
+    summaryLimits: {
+      sampleSize: ai.value.summaries.sampleSize,
+      inputTokenLimit: ai.value.execution.inputTokenLimit,
+    },
   };
 }

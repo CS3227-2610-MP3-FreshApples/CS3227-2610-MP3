@@ -19,6 +19,13 @@ import {
   type AiRuntime,
   type SchedulerLeases,
 } from "./services/ai/runtime";
+import {
+  createSummaryGeneration,
+  createSummaryInputPreparation,
+  createSummaryPublisher,
+  systemSeedSource,
+  type SummaryGeneration,
+} from "./services/ai/summary";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
   createAdminMovieService,
@@ -37,6 +44,7 @@ import { assessReadiness, type Readiness, type ReadinessInput } from "./services
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAdminMovieRepository } from "./repositories/catalogue";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
+import { createReviewSummaryRepository, createSummaryInputRepository } from "./repositories/summary";
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
 import {
@@ -160,6 +168,28 @@ export const aiExecutionController: AiExecutionController = aiRuntime.controller
 
 /** K10 sweep leases; `null` exactly when the D-52 controller stub is wired. */
 export const schedulerLeases: SchedulerLeases | null = aiRuntime.schedulerLeases;
+
+/**
+ * U-04 summary generation (D-89, D-93): built only with the real controller's `summaryLimits` and a database;
+ * otherwise `null`, and the sweep does nothing.
+ */
+export const summaryGeneration: SummaryGeneration | null =
+  database === null || movieLocks === null || summarySchedule === null || aiRuntime.summaryLimits === null
+    ? null
+    : createSummaryGeneration({
+        preparation: createSummaryInputPreparation({
+          database,
+          inputs: createSummaryInputRepository({ sql: database }),
+          limits: aiRuntime.summaryLimits,
+          seedSource: systemSeedSource,
+        }),
+        controller: aiRuntime.controller,
+        publisher: createSummaryPublisher({
+          movieLocks,
+          schedule: summarySchedule,
+          summaries: createReviewSummaryRepository({ sql: database }),
+        }),
+      });
 
 /** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
 export const moderationWorkQueue: ModerationWorkQueue | null =

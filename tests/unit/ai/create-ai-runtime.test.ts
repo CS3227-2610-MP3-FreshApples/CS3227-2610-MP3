@@ -77,11 +77,13 @@ function request(maxOutputTokens: number): AiExecutionRequest<string> {
 async function expectStub(runtime: ReturnType<typeof createAiRuntime>): Promise<void> {
   await expect(runtime.controller.run(request(0))).resolves.toEqual({ kind: "disabled" });
   expect(runtime.schedulerLeases).toBeNull();
+  expect(runtime.summaryLimits).toBeNull();
 }
 
 async function expectRealController(runtime: ReturnType<typeof createAiRuntime>): Promise<void> {
   await expect(runtime.controller.run(request(0))).rejects.toThrow();
   expect(runtime.schedulerLeases).not.toBeNull();
+  expect(runtime.summaryLimits).toEqual({ sampleSize: 20, inputTokenLimit: 8_000 });
 }
 
 describe("createAiRuntime — composition-root wiring (D-71, D-78)", () => {
@@ -113,4 +115,22 @@ describe("createAiRuntime — composition-root wiring (D-71, D-78)", () => {
       await expectRealController(createAiRuntime({ ai: enabled("fake"), platform: platform(appEnv), fetch: unusedFetch() }));
     },
   );
+});
+
+describe("createAiRuntime — summary limits (D-93, AM-25)", () => {
+  it("takes the sample size and the controller's own input token limit from the same settings", () => {
+    const value = settings("soc_llm");
+    const ai: AiConfig = {
+      enabled: true,
+      value: {
+        ...value,
+        execution: { ...value.execution, inputTokenLimit: 3_210 },
+        summaries: { ...value.summaries, sampleSize: 7 },
+      },
+    };
+
+    const runtime = createAiRuntime({ ai, platform: platform("production"), fetch: unusedFetch() });
+
+    expect(runtime.summaryLimits).toEqual({ sampleSize: 7, inputTokenLimit: 3_210 });
+  });
 });
