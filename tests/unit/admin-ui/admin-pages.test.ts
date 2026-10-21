@@ -12,6 +12,10 @@ import { CreateMovie } from "../../../src/app/admin/movies/_components/create-mo
 import { EditMovie } from "../../../src/app/admin/movies/_components/edit-movie";
 import { MovieForm } from "../../../src/app/admin/movies/_components/movie-form";
 import { MovieList } from "../../../src/app/admin/movies/_components/movie-list";
+import AdminOverviewPage from "../../../src/app/admin/page";
+import AdminReportsPage from "../../../src/app/admin/reports/page";
+import AdminReviewsPage from "../../../src/app/admin/reviews/page";
+import AdminUsersPage from "../../../src/app/admin/users/page";
 import { EMPTY_MOVIE_FORM } from "../../../src/app/admin/_lib/movie-form";
 
 // B#6 commit 3 (A-01/A-02 UI): structural checks that hold without a browser. Interaction (submit, the
@@ -83,6 +87,26 @@ describe("Admin UI module boundaries", () => {
 });
 
 describe("Admin UI initial render", () => {
+  it("presents unavailable Admin workspaces honestly without fabricated data or actions", () => {
+    for (const Page of [AdminReviewsPage, AdminReportsPage, AdminUsersPage]) {
+      const html = renderToStaticMarkup(createElement(Page));
+      expect(html).toContain('data-admin-state="unavailable"');
+      expect(html).toContain("No admin data is available yet.");
+      expect(html).toContain('href="/admin"');
+      expect(html).not.toContain("Suspend");
+      expect(html).not.toContain("Close report");
+    }
+  });
+
+  it("presents the Admin overview as an actionable operations hub", () => {
+    const html = renderToStaticMarkup(createElement(AdminOverviewPage));
+    expect(html).toContain("Operations at a glance");
+    expect(html).toContain("Manage catalogue");
+    expect(html).toContain('href="/admin/movies"');
+    expect(html).toContain("Moderation workspace");
+    expect(html).toContain('href="/admin/reviews"');
+  });
+
   it("shows the movie list loading state, the create link and no open dialog", () => {
     const html = renderToStaticMarkup(createElement(MovieList, { page: 1 }));
     expect(html).toContain("Loading movies…");

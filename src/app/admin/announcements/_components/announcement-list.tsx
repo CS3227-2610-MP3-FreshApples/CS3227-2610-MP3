@@ -63,10 +63,13 @@ export function AnnouncementList({ page }: AnnouncementListProps) {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Manage announcements</h1>
-        <p>Drafts are visible only to Admins. Publishing makes an announcement public immediately.</p>
-        <Link className={primaryButtonClass} href="/admin/announcements/new">Create announcement</Link>
+      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">Editorial</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Manage announcements</h1>
+          <p className="max-w-2xl text-sm leading-6 text-slate-600">Drafts are visible only to Admins. Publishing makes an announcement public immediately.</p>
+        </div>
+        <Link className={`${primaryButtonClass} inline-flex min-h-11 items-center justify-center whitespace-nowrap`} href="/admin/announcements/new">Create announcement</Link>
       </header>
 
       <LiveRegion message={announcement} />

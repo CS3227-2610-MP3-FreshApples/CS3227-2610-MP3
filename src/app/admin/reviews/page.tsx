@@ -1,5 +1,5 @@
-import { PagePlaceholder } from "../../../components/page-placeholder";
+import { AdminUnavailableState } from "../_components/admin-unavailable-state";
 
 export default function AdminReviewsPage() {
-  return <PagePlaceholder title="Review moderation" description="Inspect and moderate reviews." />;
+  return <AdminUnavailableState description="The moderation workspace is reserved for approved review read models and human-only decisions." title="Review moderation" workspace="Moderation" />;
 }

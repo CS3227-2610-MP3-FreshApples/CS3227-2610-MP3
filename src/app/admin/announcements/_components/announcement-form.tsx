@@ -42,7 +42,7 @@ export function AnnouncementForm({ actions, initialValues }: AnnouncementFormPro
   }
 
   return (
-    <form className="space-y-6" method="post" noValidate onSubmit={handleSubmit}>
+    <form className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8" method="post" noValidate onSubmit={handleSubmit}>
       <FormFailure details={form.unplacedErrors} message={form.failureMessage} />
       <TextField
         error={form.errorFor("title")}
