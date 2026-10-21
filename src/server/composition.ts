@@ -9,10 +9,20 @@ import {
 } from "./http";
 import {
   createDeferredModerationDispatcher,
+  createModerationDispatcher,
   createModerationWorkQueue,
+  logUnreviewedPolicyIssue,
+  PROFANITY_POLICY_VERSION,
+  requiresDispatcherStub,
   type ModerationDispatcher,
+  type ModerationRecovery,
   type ModerationWorkQueue,
 } from "./services/ai/moderation";
+import {
+  createModerationReviewReadRepository,
+  createModerationWorkRepository,
+  createReviewModerationRepository,
+} from "./repositories/ai";
 import {
   createAiRuntime,
   type AiExecutionController,
@@ -275,8 +285,46 @@ export const publicSummaryReadService: PublicSummaryReadService | null =
 export const moderationWorkQueue: ModerationWorkQueue | null =
   database === null ? null : createModerationWorkQueue({ sql: database });
 
-/** K9 dispatcher stub (D-52): returns `deferred` and writes nothing until B#7 (A-03) wires the real one. */
-export const moderationDispatcher: ModerationDispatcher = createDeferredModerationDispatcher();
+/**
+ * The real K9 dispatcher, which also serves the recovery sweep (D-101). `null` without AI, the real K10 controller
+ * (`schedulerLeases` is null exactly when the D-52 controller stub is wired) or the K8 and K5 dependencies, and
+ * under D-56, which also logs its configuration issue once per instance.
+ */
+const moderationRecoveryDispatcher: (ModerationDispatcher & ModerationRecovery) | null = (() => {
+  if (
+    !config.ai.enabled
+    || database === null
+    || schedulerLeases === null
+    || reviewLocks === null
+    || reviewTransitions === null
+    || auditLog === null
+  ) {
+    return null;
+  }
+  if (requiresDispatcherStub(config.ai.value.provider, PROFANITY_POLICY_VERSION)) {
+    logUnreviewedPolicyIssue();
+    return null;
+  }
+  return createModerationDispatcher({
+    database,
+    reviewLocks,
+    transitions: reviewTransitions,
+    work: createModerationWorkRepository({ sql: database }),
+    reviewReads: createModerationReviewReadRepository({ sql: database }),
+    results: createReviewModerationRepository({ sql: database }),
+    auditLog,
+    controller: aiRuntime.controller,
+    settings: {
+      modelId: config.ai.value.soc.model,
+      inputTokenLimit: config.ai.value.execution.inputTokenLimit,
+      maxExecutions: config.ai.value.moderation.maxExecutions,
+    },
+  });
+})();
+
+/** K9 dispatcher: the real one, or the D-52 stub that returns `deferred` and writes nothing (D-56, D-101). */
+export const moderationDispatcher: ModerationDispatcher =
+  moderationRecoveryDispatcher ?? createDeferredModerationDispatcher();
 
 /** U-02 review creation/resubmission; `null` exactly when its database dependencies are unavailable. */
 export const reviewService: ReviewService | null =

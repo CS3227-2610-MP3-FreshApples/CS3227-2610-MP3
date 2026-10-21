@@ -1,6 +1,12 @@
 import "server-only";
 
 export { createDeferredModerationDispatcher } from "./deferred-dispatcher";
+export {
+  createModerationDispatcher,
+  failureBackoffSeconds,
+  MODERATION_CLAIM_SECONDS,
+  type ModerationSettings,
+} from "./dispatcher";
 export { buildModerationInput, type ModerationInput, type ScreeningSubject } from "./input";
 export {
   MODERATION_ASSESSMENTS,
@@ -21,5 +27,6 @@ export { PROFANITY_POLICY_TEXT } from "./policy/text";
 export { PROFANITY_POLICY_VERSION, UNREVIEWED_PROFANITY_POLICY_VERSION } from "./policy/version";
 export { MODERATION_MAX_OUTPUT_TOKENS, REVIEW_SCREENING_SYSTEM_PROMPT } from "./prompt";
 export { REVIEW_SCREENING_PROMPT_VERSION } from "./prompt-version";
-export type { ModerationDispatcher, ModerationWorkQueue, ScreeningAttempt } from "./types";
+export type { ModerationDispatcher, ModerationRecovery, ModerationWorkQueue, ScreeningAttempt } from "./types";
+export { logUnreviewedPolicyIssue, requiresDispatcherStub } from "./wiring";
 export { createModerationWorkQueue } from "./work-queue";
