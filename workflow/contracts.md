@@ -4,7 +4,7 @@ Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by th
 
 A-01/A-02 clarification (19 October 2026): D-79–D-81 are recorded under the current human requester's delegated decision authority. Their edits to §3.3, K2 and K5 change no signatures. **Status: approved by both developers (Lim-ZY and thegrimbee) on 20 October 2026.** The K8 no-op wording and K2 historical notes are corrected to match existing authoritative specifications.
 
-Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers.
+Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers. The U-04a amendments (§26) await Developer A's approval.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -84,7 +84,7 @@ export type DomainError =
 ```
 
 - **Resolved (O-05):** the wire `error.code` strings. api.md defines the envelope but not the code values.
-- **Resolved (O-12):** api.md §8.1 lists 422 for "insufficient reviews", but `GET /movies/:id/summary` returns 200 with `status: insufficient_reviews`. No `DomainError` kind is defined for it until a human resolves this.
+- **Resolved (O-12):** api.md §8.1 lists 422 for "insufficient reviews", but `GET /movies/:id/summary` returns 200 with `status: insufficient_reviews`. Resolved in §16 (O-12): it is a 200 status, so no `DomainError` kind is defined for it.
 
 ### 2.3 Transaction and lock handles
 
@@ -261,6 +261,8 @@ minimal `status` bodies. Availability is checked before the secret.
 
 1. Publish Tx: K7 `lockActiveMovieForUpdate` → compare the captured `reviews_revision` → insert ReviewSummary → K7 `recordSummaryPublished`.
 2. The controller then locks the AIJob and verifies the lease, last.
+
+Input, output, provenance and scheduling for this flow are in D-86–D-89 and §26 (AM-23, AM-24).
 
 ---
 
@@ -932,3 +934,12 @@ These amendments came from the S-06 architect review of D-59–D-71. Developer B
 | --- | --- | --- |
 | AM-21 | K10. The publish Tx's P-08 check is a guarded `UPDATE` that sets the AIJob `succeeded`; the settlement Tx writes `failed` or `stale` only while the job is `running`, and settles a reservation only while it is `reserved`, moving AIBudgetDay only then. Step 1 settles every `reserved` reservation whose job lease has passed, at R × `AI_MAX_ATTEMPTS`. K10 locks AIJob rows only by `UPDATE`, and P-08's "last lock" is the last lock K10 takes. `LlmFailure` gains `misconfigured` (401, 403, 404, 3xx; redirects not followed): not retried, charged 0, outcome `deferred` with null `retryAfterSeconds`, job `failed` with `provider_misconfigured`, no AI-02 execution consumed. `run` never throws except for the output-cap caller bug: a step-1 or quota fault gives `deferred` (null), a publish fault or a throw from `validate` or `publish` gives `failed`/`transient` with `storage_failed`, and a settlement fault leaves the decided outcome unchanged for step 1 to recover | D-73, D-74, D-75 |
 | AM-22 | K10. Usage outside the `integer` range is unknown; `Retry-After` is capped at 86,400 s; 200 bodies are read up to 1 MiB. The deadline covers quota, step 1, attempts and `validate`, and the publish Tx starts before it; the first attempt also needs 5 s before the attempt end point; `AI_EXECUTION_DEADLINE_MS` is at least 15,000. Before the first quota unit, an unlocked read of the `ai_execution` lease defers without consuming when it is held. A budget deferral commits step 1's expiry; only step 1 expires. The budget day is computed in UTC in SQL; the daily budget must fit one maximum reservation; with no database the controller stub stays; A-03 logs the D-56 issue; the adapter takes `fetch` as a dependency; the marker fake lives in `marker-fake-provider.ts` | D-75–D-78 |
+
+## 26. U-04a amendments (21 October 2026)
+
+These amendments came from the U-04a analyst preflight. Developer B (thegrimbee), who owns U-04 since D-85, delegated every choice to the agent's recommendations. **Status: recorded by Developer B; approval by Developer A (Lim-ZY) pending.** No signature in K7 or K10 changes.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-23 | K10 summary consumer. The summary `AiExecutionRequest` has the `summary` descriptor with `promptVersion` `review-summary-prompt-v1`. Its input is a `system` message and one `user` message; `maxOutputTokens` is 1,200. `snapshot` is `{ movieId, reviewsRevision, eligibleCount, sample }`, with no Review text. `validate` applies the D-87 schema against the included labels. `publish` follows §3.3: K7 `lockActiveMovieForUpdate` (unavailable gives `stale`), then the captured-revision comparison (a mismatch gives `stale`), then the ReviewSummary insert, then K7 `recordSummaryPublished` (`stale` passes through). K10's `withTransactionResult` rolls back every write on `stale`. The runtime index also exports the AI-03 `estimateInputTokens`, so summary reduction and the K10 cap use one implementation. `MarkerFakeLlmProvider` gains the `summary` outcome (D-87); it no longer fails closed for that marker, and its conformance test ships with B#13 (D-70) | D-86, D-87, D-88 |
+| AM-24 | K7 and K10 summary-sweep consumer (B#14). The sweep runs inside `withSweepLease("summary_sweep", ...)`. Each K7 write is in its own short Tx: `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with now + 1 day before generation, and with now after `deferred`, `disabled` or `duplicate`. No Tx is open when it calls generation or `run`. With `schedulerLeases` null it does nothing and returns zero counts | D-89 |

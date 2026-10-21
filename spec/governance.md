@@ -781,6 +781,24 @@ Design decision D-90 (public summary projection): Recorded by thegrimbee on 21 O
 - **UI:** `stale` and `missing` both show the AI-01 "awaiting scheduled update" state with no generation or retry control; `insufficient_reviews` shows insufficient reviews; `ready` shows the fixed AI-01 label, the generation time, included and eligible counts, and the truncation notice when `truncated` is true.
 - **Caching:** dynamic rendering and `no-store` (P-06). The read never calls K10 and writes nothing.
 
+Design decision D-91 (U-04 sequencing against U-02): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight; Developer B delegated the choice to the agent's recommendation. Approval by Developer A (Lim-ZY) is pending. Resolves the conflict between `workflow/PLAN.md` (U-04 depends on U-02 and S-06) and `workflow/COMMIT-PLAN.md` (B#13 needs B#5 or the B#4 fake; SP-2 unblocks "U-04 dev against fakes").
+- **Rule:** B#13 (U-04a) and B#14 (U-04b) may be implemented and merged before U-02. Their runtime dependencies are K7 (B#4, merged in PR #11) and K10 (S-06, merged in PR #12). U-02 is an acceptance dependency of U-04, not a merge dependency.
+- **Stand-in for U-02:** U-04 reads Reviews through its own read-only query repository (D-86, O-23), not through K8 or a U-02 service, so no U-02 fake is needed. Tests seed synthetic Review rows directly in the disposable PostgreSQL database (D-10) and advance the revision through the real K7 `markReviewsChanged`. This stand-in is test-only and is not evidence for U-02.
+- **Deferred to U-02:** AT-08 and INV-09 through real review create, edit, delete, hide and restore. U-04 is not accepted (not `Done`) until U-02 is on `master` and those cases pass against real review writes. Neither B#13 nor B#14 may claim them from synthetic fixtures.
+- **Why:** U-04 never writes Reviews, and the eligibility it reads is defined by stored columns (data-model.md), so a database fixture exercises the same reads that U-02 rows will. This mirrors the D-84 interim pattern.
+
+Design decision D-92 (B#13 paths): Recorded by thegrimbee on 21 October 2026 from the U-04a analyst preflight. Developer B owns every path below. Approval by Developer A (Lim-ZY) is pending for the specification and contract text. The architect preflight may narrow these paths but not widen them.
+- **New:**
+  - `src/server/services/ai/summary/`: generation service, prompt and its version, sampling, input preparation, output schema and the publish callback;
+  - `src/server/repositories/summary/`: the D-86 consistent read and the ReviewSummary insert. B#14 adds selection and the public read here. D-71 keeps `src/server/repositories/ai/` for the AI runtime.
+- **Existing, limited changes:**
+  - `src/server/composition.ts`: summary service wiring only;
+  - `src/server/adapters/soc-llm/marker-fake-provider.ts`: the `summary` constant and outcome (D-87);
+  - `src/server/services/ai/runtime/index.ts`: export `estimateInputTokens` (D-86);
+  - `src/server/config/ai.ts`: `AI_SUMMARY_SAMPLE_SIZE` minimum 3 (D-86) and `AI_SUMMARY_INTERVAL_DAYS` limited to 1 or 7 (D-89).
+- **Tests:** new tests under `tests/unit/ai/summary/` and `tests/integration/ai/summary/`, including the D-70 conformance test for the `summary` constant and the D-86 eligibility parity test; updates to `tests/unit/ai/marker-fake-provider.test.ts` (the `summary` marker now succeeds) and `tests/unit/config/parse-config.test.ts` (new bounds).
+- **Not in B#13:** Route Handlers, UI, migrations, dependency or lockfile changes, K3, K7 or K10 internals, and any Developer A path, including U-01's public read repository.
+
 ## 15. References
 
 - [Selected stack assessment and platform references](tech-stack.md), checked 8 October 2026; account allocations and plan limits must be rechecked before deployment.
