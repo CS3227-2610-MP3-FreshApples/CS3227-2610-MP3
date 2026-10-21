@@ -110,7 +110,7 @@ Duplicate titles are allowed; IDs distinguish remakes. Unknown or archived IDs r
 
 #### Requirements
 
-An active User may create, edit and delete their own Review on an active Movie. Require a 1–10 integer rating and trimmed plain-text body of 10–2,000 characters. New Reviews, resubmissions and body edits automatically enter pending moderation before publication. Rating-only edits retain the existing text clearance. Show author display name, rating and edited timestamp. Admin-hidden reviews cannot be restored by their author.
+An active User may create, edit and delete their own Review on an active Movie. Require a 1–10 integer rating and trimmed plain-text body of 10–2,000 characters. New Reviews, resubmissions and body edits automatically enter pending moderation before publication. Rating-only edits retain the existing text clearance. Show author display name, rating and edited timestamp. Admin-hidden reviews cannot be restored by their author. The User's private review list excludes deleted and Admin-hidden Reviews.
 
 #### Acceptance Criteria
 

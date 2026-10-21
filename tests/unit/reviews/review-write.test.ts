@@ -47,6 +47,66 @@ function dependencies(overrides: Partial<ReviewServiceDependencies> = {}): Revie
 }
 
 describe("Review write transaction boundaries", () => {
+  it("returns the Review state re-read after post-commit dispatch", async () => {
+    let dispatched = false;
+    const clearedReview = {
+      ...REVIEW,
+      moderationState: "cleared" as const,
+      clearanceSource: "ai" as const,
+      version: 2 as ReviewRecord["version"],
+    };
+    const dispatcher = vi.fn(async () => {
+      dispatched = true;
+      return "cleared" as const;
+    });
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => dispatched ? clearedReview : null,
+      },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.create(REVIEW.movieId, REVIEW.authorId, { rating: 8, body: REVIEW.body });
+
+    expect(result).toEqual({ ok: true, value: clearedReview });
+    expect(dispatcher).toHaveBeenCalledWith(REVIEW.id, REVIEW.contentRevision);
+  });
+
+  it("enqueues moderation work before advancing the public review revision", async () => {
+    const events: string[] = [];
+    const eligibleReview = {
+      ...REVIEW,
+      moderationState: "cleared" as const,
+      clearanceSource: "ai" as const,
+    };
+    const updatedReview = {
+      ...eligibleReview,
+      body: "Updated review body.",
+      moderationState: "pending" as const,
+      clearanceSource: null,
+      contentRevision: 2 as ReviewRecord["contentRevision"],
+      version: 2 as ReviewRecord["version"],
+    };
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => eligibleReview,
+        findForAuthorWrite: async () => eligibleReview,
+        updateBody: async () => updatedReview,
+      },
+      reviewsChangedMarker: { markReviewsChanged: async () => { events.push("marker"); return 1; } },
+      moderationWorkQueue: {
+        enqueue: async () => { events.push("enqueue"); },
+        cancelForDeletedReview: async () => undefined,
+      },
+    }));
+
+    await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { body: updatedReview.body });
+
+    expect(events).toEqual(["enqueue", "marker"]);
+  });
+
   it("keeps the saved Review when post-commit dispatch fails", async () => {
     const dispatcher = vi.fn().mockRejectedValue(new Error("provider unavailable"));
     const service = createReviewService(dependencies({ moderationDispatcher: { attemptAfterCommit: dispatcher } }));
@@ -80,6 +140,121 @@ describe("Review write transaction boundaries", () => {
     }));
     const result = await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { body: REVIEW.body });
     expect(result).toEqual({ ok: true, value: REVIEW });
+    expect(dispatcher).not.toHaveBeenCalled();
+  });
+
+  it("does not enqueue moderation work for a rating-only edit", async () => {
+    const enqueue = vi.fn();
+    const dispatcher = vi.fn();
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => REVIEW,
+        findForAuthorWrite: async () => REVIEW,
+        updateRatingOnly: async () => ({ ...REVIEW, rating: 9, version: 2 as ReviewRecord["version"] }),
+      },
+      moderationWorkQueue: { enqueue, cancelForDeletedReview: async () => undefined },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { rating: 9 });
+
+    expect(result.ok).toBe(true);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(dispatcher).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch when a rating edit repeats the existing body", async () => {
+    const enqueue = vi.fn();
+    const dispatcher = vi.fn();
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => REVIEW,
+        findForAuthorWrite: async () => REVIEW,
+        updateRatingOnly: async () => ({ ...REVIEW, rating: 9, version: 2 as ReviewRecord["version"] }),
+      },
+      moderationWorkQueue: { enqueue, cancelForDeletedReview: async () => undefined },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { rating: 9, body: REVIEW.body });
+
+    expect(result.ok).toBe(true);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(dispatcher).not.toHaveBeenCalled();
+  });
+
+  it("dispatches a changed body edit with its new content revision", async () => {
+    const dispatcher = vi.fn().mockResolvedValue("deferred" as const);
+    const updatedReview = {
+      ...REVIEW,
+      body: "Updated review body.",
+      contentRevision: 2 as ReviewRecord["contentRevision"],
+      version: 2 as ReviewRecord["version"],
+    };
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => REVIEW,
+        findForAuthorWrite: async () => REVIEW,
+        updateBody: async () => updatedReview,
+      },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { body: updatedReview.body });
+
+    expect(result.ok).toBe(true);
+    expect(dispatcher).toHaveBeenCalledWith(REVIEW.id, updatedReview.contentRevision);
+  });
+
+  it("does not mark the Movie changed or dispatch when body moderation enqueue fails", async () => {
+    const marker = vi.fn();
+    const dispatcher = vi.fn();
+    const service = createReviewService(dependencies({
+      database: {
+        withTransactionResult: async (callback) => {
+          try { return await callback({} as never); } catch { return { ok: false, error: { kind: "conflict" } } as never; }
+        },
+      },
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => REVIEW,
+        findForAuthorWrite: async () => REVIEW,
+        updateBody: async () => ({ ...REVIEW, body: "Updated review body.", contentRevision: 2 as ReviewRecord["contentRevision"], version: 2 as ReviewRecord["version"] }),
+      },
+      reviewsChangedMarker: { markReviewsChanged: marker },
+      moderationWorkQueue: { enqueue: async () => { throw new Error("queue unavailable"); }, cancelForDeletedReview: async () => undefined },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.edit(REVIEW.id, REVIEW.authorId, REVIEW.version, { body: "Updated review body." });
+
+    expect(result).toEqual({ ok: false, error: { kind: "conflict" } });
+    expect(marker).not.toHaveBeenCalled();
+    expect(dispatcher).not.toHaveBeenCalled();
+  });
+
+  it("cancels outstanding moderation work when a review is deleted", async () => {
+    const cancel = vi.fn();
+    const dispatcher = vi.fn();
+    const deletedReview = { ...REVIEW, deletedAt: new Date(), version: 2 as ReviewRecord["version"] };
+    const service = createReviewService(dependencies({
+      reviews: {
+        ...dependencies().reviews,
+        findById: async () => REVIEW,
+        findForAuthorWrite: async () => REVIEW,
+        softDelete: async () => deletedReview,
+      },
+      moderationWorkQueue: { enqueue: async () => undefined, cancelForDeletedReview: cancel },
+      moderationDispatcher: { attemptAfterCommit: dispatcher },
+    }));
+
+    const result = await service.delete(REVIEW.id, REVIEW.authorId, REVIEW.version);
+
+    expect(result).toEqual({ ok: true, value: deletedReview });
+    expect(cancel).toHaveBeenCalledWith(expect.anything(), REVIEW.id);
     expect(dispatcher).not.toHaveBeenCalled();
   });
 });

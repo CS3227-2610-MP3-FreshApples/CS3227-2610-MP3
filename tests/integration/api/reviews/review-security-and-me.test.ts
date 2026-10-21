@@ -59,9 +59,25 @@ describe("Review authorization and private listing", () => {
     expect(anonymous.status).toBe(401);
     const firstReviews = await getOwnReviews(request("/api/v1/me/reviews?page=1&pageSize=10", { headers: { cookie: `fa_session=${first.session}` } }));
     expect(firstReviews.status).toBe(200);
+    expect(firstReviews.headers.get("cache-control")).toBe("no-store");
     expect((await firstReviews.json()).items).toHaveLength(1);
     const secondReviews = await getOwnReviews(request("/api/v1/me/reviews?page=1&pageSize=10", { headers: { cookie: `fa_session=${second.session}` } }));
     expect((await secondReviews.json()).items).toHaveLength(0);
+
+    const author = await owner.query<{ id: string }>("SELECT id FROM app.account WHERE normalized_email = $1", [firstEmail]);
+    const hiddenMovieId = await insertMovie(owner);
+    const deletedMovieId = await insertMovie(owner);
+    await owner.query(
+      `INSERT INTO app.review (movie_id, author_id, rating, body, moderation_state, hidden_at, deleted_at, created_at, updated_at)
+       VALUES ($1, $3, 9, 'Hidden review body.', 'cleared', now(), NULL, now(), now()),
+              ($2, $3, 7, 'Deleted review body.', 'cleared', NULL, now(), now(), now())`,
+      [hiddenMovieId, deletedMovieId, author.rows[0]!.id],
+    );
+    const visibleOwnReviews = await getOwnReviews(request("/api/v1/me/reviews?page=1&pageSize=10", { headers: { cookie: `fa_session=${first.session}` } }));
+    expect(visibleOwnReviews.status).toBe(200);
+    const visibleOwnBody = await visibleOwnReviews.json();
+    expect(visibleOwnBody.items).toHaveLength(1);
+    expect(visibleOwnBody.items[0].id).toBe(review.id);
 
     const wrongOwner = await patchReview(request(`/api/v1/reviews/${review.id}`, { method: "PATCH", headers: { "content-type": "application/json", origin: ORIGIN, cookie: `fa_session=${second.session}`, "x-csrf-token": second.csrfToken, "if-match": '"1"' }, body: JSON.stringify({ rating: 7 }) }), routeContext(review.id));
     expect(wrongOwner.status).toBe(404);
@@ -71,5 +87,27 @@ describe("Review authorization and private listing", () => {
     await owner.query(`UPDATE app.account SET status = 'suspended' WHERE normalized_email = $1`, [firstEmail]);
     const suspended = await getOwnReviews(request("/api/v1/me/reviews", { headers: { cookie: `fa_session=${first.session}` } }));
     expect(suspended.status).toBe(403);
+  });
+
+  it("orders equal updated timestamps by Review ID", async () => {
+    const email = `${randomUUID()}@example.test`;
+    const credentials = await signIn(email);
+    const movieId = await insertMovie(owner);
+    const secondMovieId = await insertMovie(owner);
+    const account = await owner.query<{ id: string }>("SELECT id FROM app.account WHERE normalized_email = $1", [email]);
+    const authorId = account.rows[0]!.id;
+    const earlierId = "00000000-0000-4000-8000-000000000001";
+    const laterId = "00000000-0000-4000-8000-000000000002";
+    await owner.query(
+      `INSERT INTO app.review (id, movie_id, author_id, rating, body, moderation_state, created_at, updated_at)
+       VALUES ($1, $3, $4, 7, 'Tie review one.', 'pending', '2099-01-01T00:00:00Z', '2099-01-01T00:00:00Z'),
+              ($2, $5, $4, 8, 'Tie review two.', 'pending', '2099-01-01T00:00:00Z', '2099-01-01T00:00:00Z')`,
+      [earlierId, laterId, movieId, authorId, secondMovieId],
+    );
+
+    const response = await getOwnReviews(request("/api/v1/me/reviews?page=1&pageSize=10", { headers: { cookie: `fa_session=${credentials.session}` } }));
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).items.map((item: { id: string }) => item.id)).toEqual([earlierId, laterId]);
   });
 });
