@@ -60,6 +60,7 @@ import {
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
 import { createReviewRepository } from "./repositories/reviews";
+import { createReportRepository } from "./repositories/moderation";
 import {
   createPublicCatalogueReadService,
   type PublicCatalogueReadService,
@@ -91,6 +92,7 @@ import {
   type ReviewService,
   type ReviewTransitions,
 } from "./services/reviews";
+import { createReportReadService, createReportService, type ReportReadService, type ReportService } from "./services/moderation";
 
 // The composition root (D-23): the only module-level instances in src/server, created once per server instance.
 
@@ -133,6 +135,7 @@ export const summarySchedule: SummarySchedule | null =
   database === null ? null : createSummarySchedule({ sql: database });
 
 const reviewRepository = database === null ? null : createReviewRepository({ sql: database });
+const reportRepository = database === null ? null : createReportRepository({ sql: database });
 
 /** K8 review locks and screening reads (D-84), shared by review transitions and Movie archive. */
 export const reviewLocks: ReviewLocksAndReads | null =
@@ -293,6 +296,24 @@ export const reviewService: ReviewService | null =
         rateLimitKeys,
       })
     : null;
+
+/** U-03 report submission and reporter history service; Admin decisions remain in A-05. */
+export const reportService: ReportService | null =
+  database !== null && rateLimiter !== null && rateLimitKeys !== null && movieLocks !== null && reportRepository !== null
+    ? createReportService({
+        database,
+        accounts: createAccountRepository({ sql: database }),
+        movieLocks,
+        reviews: reportRepository,
+        reports: reportRepository,
+        rateLimiter,
+        rateLimitKeys,
+      })
+    : null;
+
+/** U-03 reporter-only Report history; the repository applies the reporter filter in SQL. */
+export const reportReadService: ReportReadService | null =
+  database !== null && reportRepository !== null ? createReportReadService({ database, reports: reportRepository }) : null;
 
 export const reviewReadService: ReviewReadService | null =
   database === null || reviewRepository === null ? null : createReviewReadService({ database, reviews: reviewRepository });
