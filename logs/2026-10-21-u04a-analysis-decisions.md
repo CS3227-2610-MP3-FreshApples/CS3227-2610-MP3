@@ -10,7 +10,7 @@
 | Human owner/reviewer | thegrimbee |
 | Branch | `feat/ai-summary-core` |
 | Starting revision | `83cce21` |
-| Participating agent roles | Analyst (subagent, read-only); main assistant |
+| Participating agent roles | Analyst and architect (subagents, read-only); main assistant |
 | Verification status | awaiting human verification |
 
 ## 2. Goal and Approved Scope
@@ -37,25 +37,32 @@
 | 1 | Human | Run the analyst preflight for U-04a | Analyst subagent returned IDs, scope, examples, M1–M12 and C1–C5 | Report relayed in chat |
 | 2 | Human | Resolve all findings as recommended; multiple commits allowed | Recorded D-86–D-92, AM-23–AM-24, the O-12 wording fix and tracker updates in three commits | `076e25d`, `de0d55b`, `f1867c2` |
 | 3 | Human | Developer A approved D-86–D-92 and AM-23–AM-24; record it and draft the architect prompt | Approval recorded in governance, contracts, PLAN and the handoff; architect prompt drafted for the human | Lim-ZY's approval as reported by Developer B |
+| 4 | Human | Run the architect preflight with the drafted prompt | Architect subagent returned M1–M8 and L1–L14; one B#13 blocker (M1) | Report relayed in chat |
+| 5 | Human | Resolve all blockers as recommended; multiple commits allowed | Recorded D-93–D-95 and AM-25, amended D-86, D-88, D-89, D-90 and D-92 in place, fixed B#14 paths, updated PLAN and the handoff | `d72e8bb`, `1786886` and the plan/log commit |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
 | Item | Source/decision-maker | Status | Rationale | Affected artifacts |
 | --- | --- | --- | --- | --- |
-| D-86 input preparation | thegrimbee (delegated to agent) | recorded; Developer A pending | One-statement snapshot, seeded hash sampling, whole-Review reduction | `spec/governance.md`, `spec/ai.md`, `spec/deployment.md` |
-| D-87 output schema | same | recorded; Developer A pending | Position labels keep IDs out of the prompt and allow a fixed fake | `spec/governance.md`, `spec/ai.md` |
-| D-88 provenance and reuse | same | recorded; Developer A pending | No migration needed | `spec/governance.md`, `spec/data-model.md` |
-| D-89 scheduling | same | recorded; Developer A pending | Prevents starvation; crash-safe attempt record | `spec/governance.md`, `spec/api.md`, `spec/deployment.md`, `spec/ai.md` |
-| D-90 public projection | same | recorded; Developer A pending | Fills the `summary?` field and precedence | `spec/governance.md`, `spec/api.md`, `spec/ai.md` |
-| D-91 sequencing | same | recorded; Developer A pending | U-02 is an acceptance dependency only | `spec/governance.md`, `workflow/PLAN.md`, `workflow/COMMIT-PLAN.md` |
-| D-92 B#13 paths | same | recorded; Developer A pending | Explicit permitted paths | `spec/governance.md`, `workflow/COMMIT-PLAN.md` |
+| D-86 input preparation | thegrimbee (delegated to agent) | approved 21 Oct (as reported) | One-statement snapshot, seeded hash sampling, whole-Review reduction | `spec/governance.md`, `spec/ai.md`, `spec/deployment.md` |
+| D-87 output schema | same | approved 21 Oct (as reported) | Position labels keep IDs out of the prompt and allow a fixed fake | `spec/governance.md`, `spec/ai.md` |
+| D-88 provenance and reuse | same | approved 21 Oct (as reported) | No migration needed | `spec/governance.md`, `spec/data-model.md` |
+| D-89 scheduling | same | approved 21 Oct (as reported) | Prevents starvation; crash-safe attempt record | `spec/governance.md`, `spec/api.md`, `spec/deployment.md`, `spec/ai.md` |
+| D-90 public projection | same | approved 21 Oct (as reported) | Fills the `summary?` field and precedence | `spec/governance.md`, `spec/api.md`, `spec/ai.md` |
+| D-91 sequencing | same | approved 21 Oct (as reported) | U-02 is an acceptance dependency only | `spec/governance.md`, `workflow/PLAN.md`, `workflow/COMMIT-PLAN.md` |
+| D-92 B#13 paths | same | approved 21 Oct (as reported) | Explicit permitted paths | `spec/governance.md`, `workflow/COMMIT-PLAN.md` |
 | Eligibility predicate (M8) | agent recommendation | recorded in D-86 | Restated with a parity test rather than creating a file in Developer A's paths, respecting D-85 | — |
+| D-93 B#13 architect resolutions (M1 `summaryLimits`, M2 wording, M6 prompt-version retirement, L1 guard, L5 reading) | thegrimbee (delegated to agent) | recorded; Developer A pending | Reduction uses the controller's own limit; bad prompt output can be withdrawn | `spec/governance.md`, `spec/ai.md`, `workflow/contracts.md` |
+| D-94 B#14 architect resolutions (M5, M8, L1, L4, L7, L8, L11, L14) | same | recorded; Developer A pending | Closes the sweep and read gaps before B#14 | `spec/governance.md`, `spec/api.md`, `workflow/COMMIT-PLAN.md` |
+| D-95 accepted risks and acceptance items (M3, M4, M7, L2, L3, L6, L9, L12, L13) | same | recorded; Developer A pending | Risks recorded with owners | `spec/governance.md` |
+| Widening D-92 paths by `create-ai-runtime.ts` | thegrimbee (delegated) | recorded in D-93 | D-92 forbids the architect preflight from widening paths, so the widening is recorded as a human decision | `spec/governance.md` |
 
 ## 6. Agent Assignments and Handoffs
 
 | Agent | Assignment | Output |
 | --- | --- | --- |
 | Analyst (read-only) | U-04a preflight | Findings summarized in `workflow/handoffs/U-04a/2026-10-21-decisions.md`; one factual error (M8) corrected there |
+| Architect (read-only) | U-04a preflight on D-86–D-92 at `c7f29ed` | Findings and resolutions in `workflow/handoffs/U-04a/2026-10-21-architect-review.md` |
 
 ## 7. Changes and Reuse
 
@@ -63,15 +70,16 @@
 
 | Path | Change and rationale |
 | --- | --- |
-| `spec/governance.md` | D-86–D-92 |
+| `spec/governance.md` | D-86–D-95; in-place amendment notes on D-86, D-88, D-89, D-90 and D-92 |
 | `spec/ai.md` | Output example and decision references |
 | `spec/api.md` | Summary DTO and cron mapping references |
 | `spec/data-model.md` | ReviewSummary provenance content |
 | `spec/deployment.md` | Sample size minimum 3; interval 1 or 7 |
-| `workflow/contracts.md` | §26 AM-23, AM-24; O-12 wording; summary publication references; header status |
+| `workflow/contracts.md` | §26 AM-23, AM-24; §27 AM-25; O-12 wording; summary publication references; header status |
 | `workflow/PLAN.md` | S-06 merged; U-04 dependency, state, decisions and an acceptance item |
-| `workflow/COMMIT-PLAN.md` | B#13 paths, needs and state |
+| `workflow/COMMIT-PLAN.md` | B#13 paths, needs and state; B#14 paths (D-94) |
 | `workflow/handoffs/U-04a/2026-10-21-decisions.md` | Handoff with the finding-to-decision map and acceptance examples |
+| `workflow/handoffs/U-04a/2026-10-21-architect-review.md` | Architect findings, resolutions and B#13 test requirements |
 | `logs/2026-10-21-u04a-analysis-decisions.md` | This summary |
 
 - Dependencies added or changed: none.
@@ -82,7 +90,7 @@
 
 | Command/check | Environment | Result | Evidence/path |
 | --- | --- | --- | --- |
-| `git diff --check` before each commit | Local | PASS | Commits `076e25d`, `de0d55b`, `f1867c2` |
+| `git diff --check` before each commit | Local | PASS | Commits `076e25d`, `de0d55b`, `f1867c2`, `d72e8bb`, `1786886` |
 | CRLF consistency of edited spec files | Local | PASS | Line counts equal CR counts |
 | Lint, type-check, tests | — | SKIPPED (documentation only) | — |
 
@@ -98,7 +106,8 @@
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
 | Lim-ZY's approval of D-86–D-92 and AM-23–AM-24 recorded as reported, not seen directly | Approval rests on Developer B's report | thegrimbee | Confirm with Lim-ZY in the PR review |
-| Architect preflight not run | Boundaries and threats not independently reviewed | thegrimbee | Run the architect agent on these decisions |
+| Developer A approval of D-93–D-95 and AM-25 | U-04a cannot be set to Ready until approved | thegrimbee | Ask Lim-ZY to review |
+| Mounting the summary UI in Developer A's movie detail page (D-94) | Needs Developer A's approval in B#14 | Lim-ZY | Review in B#14 |
 | Prompt wording only outlined | Exact text decided in the PR | thegrimbee | Review in B#13 |
 | U-01 tracker row still says Ready although PR #16 is merged | Tracker drift (Developer A's row) | Lim-ZY | Update in a Developer A change |
 

@@ -27,7 +27,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Ready |
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Ready |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
-| U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect preflight pending) |
+| U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect findings resolved in D-93–D-95, awaiting Developer A's approval) |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
@@ -360,12 +360,14 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 ### Task U-04: Scheduled public review summary
 
 **Owner:** B (reassigned from A by D-85; A reviews). **Depends on:** S-06. U-02 is needed only for acceptance through real review mutations (D-91). **Reqs:** FR-08, AI-01, AI-04, INV-09, DEP-09, AT-07, AT-08, AT-20.
-**Decisions:** input preparation D-86, output schema D-87, provenance and reuse D-88, scheduling D-89, public projection D-90, sequencing D-91, B#13 paths D-92.
+**Decisions:** input preparation D-86, output schema D-87, provenance and reuse D-88, scheduling D-89, public projection D-90, sequencing D-91, B#13 paths D-92, architect-review resolutions D-93 (B#13) and D-94 (B#14), accepted risks and acceptance items D-95.
 **Description:** Changed-Movie selection order and backoff; fewer than 3 eligible → `insufficient_reviews` with no execution; seeded uniform sampling without replacement (≤ 20) with persisted IDs/versions; 1,000-character truncation markers and 8,000-token cap; JSON schema validation (lengths, allowed source IDs); publication guarded by revision and lease. `GET /internal/cron/summaries` (Bearer `CRON_SECRET`, aggregate counts only, scheduler lease, one Movie per run). `GET /movies/:id/summary` (read-only states). Summary UI with the fixed disclaimer and no generate/retry control.
 **Acceptance Criteria:**
 - [ ] AT-07/08/20 subcases with the fake: unchanged Movie → no provider call; review edit during generation → no stale publish; missing/invalid secret, including an Admin cookie alone → 401; missed run recovered; fair ordering under a failing Movie.
 - [ ] Fabricated source IDs or oversize fields in output → rejected, nothing published.
 - [ ] AT-08 and INV-09 pass against real U-02 review create, edit, delete, hide and restore, not synthetic fixtures (D-91).
+- [ ] B#13 tests listed in D-93 (parity with distinct counts, sampling vector, fixed seeds, real-controller publish, rollback cases, D-70 conformance).
+- [ ] D-95 acceptance items: summary index migration, R-04 read-cost and backlog measurements, parity extended to U-02.
 
 ### Task A-01: Admin movie management
 
