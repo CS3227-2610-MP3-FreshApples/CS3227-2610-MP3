@@ -36,6 +36,7 @@
 | ---: | --- | --- | --- | --- |
 | 1 | Human | Run the analyst preflight for U-04a | Analyst subagent returned IDs, scope, examples, M1–M12 and C1–C5 | Report relayed in chat |
 | 2 | Human | Resolve all findings as recommended; multiple commits allowed | Recorded D-86–D-92, AM-23–AM-24, the O-12 wording fix and tracker updates in three commits | `076e25d`, `de0d55b`, `f1867c2` |
+| 3 | Human | Developer A approved D-86–D-92 and AM-23–AM-24; record it and draft the architect prompt | Approval recorded in governance, contracts, PLAN and the handoff; architect prompt drafted for the human | Lim-ZY's approval as reported by Developer B |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
@@ -96,7 +97,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| Developer A approval of D-86–D-92 and AM-23–AM-24 | B#13 cannot start until approved | thegrimbee | Ask Lim-ZY to review |
+| Lim-ZY's approval of D-86–D-92 and AM-23–AM-24 recorded as reported, not seen directly | Approval rests on Developer B's report | thegrimbee | Confirm with Lim-ZY in the PR review |
 | Architect preflight not run | Boundaries and threats not independently reviewed | thegrimbee | Run the architect agent on these decisions |
 | Prompt wording only outlined | Exact text decided in the PR | thegrimbee | Review in B#13 |
 | U-01 tracker row still says Ready although PR #16 is merged | Tracker drift (Developer A's row) | Lim-ZY | Update in a Developer A change |

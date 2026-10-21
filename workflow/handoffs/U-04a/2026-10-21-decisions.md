@@ -5,7 +5,7 @@
 - **Requirements:** FR-08, INV-09, AI-01, AI-04, DEP-09, AT-07, AT-08, AT-20; AT-11/SEC-08 in part. AI-03 is used through K10, not implemented. New records D-86–D-92 and AM-23–AM-24 are decision and amendment IDs, not requirement IDs.
 - **Authorization:** the human (thegrimbee, Developer B) requested a read-only analyst preflight, then instructed the agent to resolve every reported conflict and missing decision as the agent recommended, and allowed multiple commits. The scope is specification, contract and plan text plus local commits: no code, tests, migrations, push or PR.
 - **Permitted paths used:** `spec/`, `workflow/`, `logs/`.
-- **Approval state:** recorded by Developer B under delegation. Developer A (Lim-ZY) approval is pending for all spec and contract text (`COMMIT-PLAN.md` §2). No both-developer approval is claimed.
+- **Approval state:** recorded by Developer B under delegation, then approved by both developers on 21 October 2026. Lim-ZY's approval is recorded as reported by Developer B (`COMMIT-PLAN.md` §2).
 
 ## Findings and their resolutions
 
@@ -46,11 +46,10 @@ Correction to the analyst report: M8 said U-01's predicate has no deleted or hid
 
 ## Known gaps
 
-- Developer A approval of D-86–D-92 and AM-23–AM-24.
 - An architect preflight has not reviewed these decisions yet. The next action is to run it.
 - Acceptance through real U-02 review writes (D-91), U-04b (cron route, public read and UI), deployed cron (R-04), live SoC smoke and R-01 fixtures remain outstanding.
 - The prompt wording is decided only in outline; the B#13 PR review decides the exact text.
 
 ## Next action
 
-The human verifies the session log, asks Developer A to approve the decisions, and runs the architect preflight before setting U-04a to `Ready`.
+Run the architect preflight on D-86–D-92 and AM-23–AM-24 before setting U-04a to `Ready`.
