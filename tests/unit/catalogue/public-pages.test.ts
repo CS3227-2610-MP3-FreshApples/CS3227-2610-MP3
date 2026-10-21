@@ -21,6 +21,7 @@ import {
   publicAnnouncementReadService,
   publicCatalogueReadService,
 } from "../../../src/server/composition";
+import Home from "../../../src/app/page";
 
 const catalogue = vi.mocked(publicCatalogueReadService as NonNullable<typeof publicCatalogueReadService>);
 const announcements = vi.mocked(
@@ -37,6 +38,16 @@ beforeEach(() => {
 });
 
 describe("U-01 public catalogue pages", () => {
+  it("renders a focused home hierarchy with discovery actions", () => {
+    const rendered = renderToStaticMarkup(createElement(Home));
+
+    expect(rendered).toContain("Find your next movie through community reviews.");
+    expect(rendered).toContain('href="/movies"');
+    expect(rendered).toContain('href="/announcements"');
+    expect(rendered).toContain("Moderated before publication");
+    expect(rendered).not.toContain("Browse movies and community reviews.");
+  });
+
   it("renders an accessible empty movie result with the direct service query", async () => {
     catalogue.listMovies.mockResolvedValue({ items: [], total: 0 });
 
@@ -54,8 +65,32 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain('name="q"');
     expect(rendered).toContain('name="sort"');
     expect(rendered).toContain('role="status"');
-    expect(rendered).toContain("No movies match your search.");
+    expect(rendered).toContain('No movies match “space”.');
     expect(rendered).not.toContain("<img");
+  });
+
+  it("renders a responsive movie result card and a clear-search action", async () => {
+    catalogue.listMovies.mockResolvedValue({
+      items: [{
+        id: MOVIE_ID as never,
+        title: "Fresh Apples",
+        releaseYear: 2026,
+        genres: ["Drama"],
+        averageRating: 8.5,
+        reviewCount: 2,
+      }],
+      total: 1,
+    });
+
+    const rendered = await html(MoviesPage({
+      searchParams: Promise.resolve({ q: "apple", sort: "release_desc", page: "1" }),
+    }));
+
+    expect(rendered).toContain("border-slate-200");
+    expect(rendered).toContain("grid-cols-1");
+    expect(rendered).toContain('href="/movies"');
+    expect(rendered).toContain("Clear search");
+    expect(rendered).toContain("8.5/10 from 2 reviews");
   });
 
   it("renders public movie metadata and aggregates without a review listing", async () => {
@@ -80,7 +115,10 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain("A plain synopsis.");
     expect(rendered).toContain("Director");
     expect(rendered).toContain("8.5/10 from 2 reviews");
-    expect(rendered).not.toContain("Community reviews");
+    expect(rendered).toContain('href="/movies"');
+    expect(rendered).toContain("grid-cols-1");
+    expect(rendered).toContain("Movie details");
+    expect(rendered).toContain("Community reviews");
     expect(rendered).not.toContain("<img");
   });
 
@@ -105,6 +143,8 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain("Plain text announcement.");
     expect(rendered).toContain(`href="/movies/${MOVIE_ID}"`);
     expect(rendered).toContain("Fresh Apples");
+    expect(rendered).toContain("max-w-3xl");
+    expect(rendered).toContain("border-slate-200");
     expect(rendered).not.toContain("<img");
   });
 

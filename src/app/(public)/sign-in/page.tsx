@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import { resolveAuthDestination, submitLogin } from "../../../components/auth-client";
 import { TextField } from "../../../components/form-primitives";
-import { LiveRegion } from "../../../components/status-primitives";
+import { LiveRegion, StatusMessage } from "../../../components/status-primitives";
 
 export default function SignInPage() {
   const [message, setMessage] = useState("");
@@ -44,7 +44,7 @@ export default function SignInPage() {
   }
 
   return (
-    <section className="mx-auto max-w-md px-6 py-12">
+    <section className="mx-auto max-w-md py-8 sm:py-12">
       <div className="space-y-8">
         <header className="space-y-3">
           <p className="text-sm font-medium text-blue-700">FreshApples Movie Reviews</p>
@@ -52,32 +52,22 @@ export default function SignInPage() {
           <p>Use your account to write reviews and manage your activity.</p>
         </header>
 
-        <LiveRegion message={message} />
-
-        <form className="space-y-6" method="post" onSubmit={handleSubmit}>
-          <TextField
-            autoComplete="email"
-            id="email"
-            label="Email address"
-            required
-            type="email"
-          />
-          <TextField
-            autoComplete="current-password"
-            id="password"
-            label="Password"
-            required
-            type="password"
-          />
-          <button
-            aria-busy={submitting}
-            className="rounded-md bg-blue-700 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-            disabled={submitting}
-            type="submit"
-          >
-            {submitting ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <LiveRegion message={message} />
+          {message && !message.endsWith("…") ? <StatusMessage status="error">{message}</StatusMessage> : null}
+          <form className="mt-6 space-y-6" method="post" onSubmit={handleSubmit}>
+            <TextField autoComplete="email" id="email" label="Email address" required type="email" />
+            <TextField autoComplete="current-password" id="password" label="Password" required type="password" />
+            <button
+              aria-busy={submitting}
+              className="min-h-11 rounded-lg bg-blue-700 px-4 py-2 font-medium text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={submitting}
+              type="submit"
+            >
+              {submitting ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+        </div>
 
         <p>
           New to FreshApples? <Link href="/register">Create an account</Link>.

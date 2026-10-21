@@ -52,7 +52,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <section className="mx-auto max-w-md px-6 py-12">
+    <section className="mx-auto max-w-md py-8 sm:py-12">
       <div className="space-y-8">
         <header className="space-y-3">
           <p className="text-sm font-medium text-blue-700">FreshApples Movie Reviews</p>
@@ -60,14 +60,14 @@ export default function RegisterPage() {
           <p>Join the community to share thoughtful movie reviews.</p>
         </header>
 
-        <LiveRegion message={message} />
-
-        {created ? (
-          <StatusMessage status="success">
-            Account created. <Link href="/sign-in">Sign in</Link> to continue.
-          </StatusMessage>
-        ) : (
-          <form className="space-y-6" method="post" onSubmit={handleSubmit}>
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+          <LiveRegion message={message} />
+          {created ? (
+            <StatusMessage status="success">
+              Account created. <Link href="/sign-in">Sign in</Link> to continue.
+            </StatusMessage>
+          ) : (
+            <form className="space-y-6" method="post" onSubmit={handleSubmit}>
             {message && !message.endsWith("…") ? <StatusMessage status="error">{message}</StatusMessage> : null}
             <TextField
               autoComplete="name"
@@ -112,14 +112,15 @@ export default function RegisterPage() {
             />
             <button
               aria-busy={submitting}
-              className="rounded-md bg-blue-700 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              className="min-h-11 rounded-lg bg-blue-700 px-4 py-2 font-medium text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={submitting}
               type="submit"
             >
               {submitting ? "Creating account…" : "Create account"}
             </button>
-          </form>
-        )}
+            </form>
+          )}
+        </div>
 
         <p>
           Already have an account? <Link href="/sign-in">Sign in</Link>.
