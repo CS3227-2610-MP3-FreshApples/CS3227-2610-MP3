@@ -41,8 +41,8 @@ async function readSummary(movieId: MovieId): Promise<ReviewSummaryState | null>
 /** Renders one summary state. All text is rendered by React as escaped plain text (AI-04). */
 export function ReviewSummaryView({ state }: Readonly<{ state: ReviewSummaryState }>) {
   return (
-    <section aria-labelledby="review-summary-heading">
-      <h2 id="review-summary-heading">Review summary</h2>
+    <section aria-labelledby="review-summary-heading" className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 sm:p-8">
+      <h2 className="text-xl font-semibold text-slate-950" id="review-summary-heading">Review summary</h2>
       <ReviewSummaryBody state={state} />
     </section>
   );
@@ -61,13 +61,13 @@ function ReviewSummaryBody({ state }: Readonly<{ state: ReviewSummaryState }>) {
       const { summary, eligibleCount } = state;
       return (
         <>
-          <p>{AI_SUMMARY_LABEL}</p>
-          <p>{summary.overall}</p>
+          <p className="text-sm text-slate-600">{AI_SUMMARY_LABEL}</p>
+          <p className="text-lg leading-8 text-slate-700">{summary.overall}</p>
           <SummaryList heading="Strengths" items={summary.strengths} />
           <SummaryList heading="Criticisms" items={summary.criticisms} />
           <SummaryList heading="Mixed opinions" items={summary.mixedOpinions} />
-          <p>{`Based on ${summary.includedCount} of ${eligibleCount} eligible reviews.`}</p>
-          <p>
+          <p className="text-sm text-slate-600">{`Based on ${summary.includedCount} of ${eligibleCount} eligible reviews.`}</p>
+          <p className="text-sm text-slate-600">
             Generated <time dateTime={summary.generatedAt}>{utcMinute(summary.generatedAt)}</time>
           </p>
           {summary.truncated ? (
@@ -82,7 +82,7 @@ function ReviewSummaryBody({ state }: Readonly<{ state: ReviewSummaryState }>) {
 function SummaryList({ heading, items }: Readonly<{ heading: string; items: readonly PublicSummaryItem[] }>) {
   return (
     <>
-      <h3>{heading}</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-600">{heading}</h3>
       {items.length === 0 ? (
         <p>None noted.</p>
       ) : (

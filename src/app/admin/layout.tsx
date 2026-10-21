@@ -1,4 +1,5 @@
 import { RouteShell, adminNavigation } from "../../components/route-shell";
+import { AdminAccountControl } from "./_components/admin-account-control";
 
 type AdminLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -6,7 +7,7 @@ type AdminLayoutProps = Readonly<{
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <RouteShell links={adminNavigation} title="Admin dashboard">
+    <RouteShell headerAction={<AdminAccountControl />} links={adminNavigation} title="Admin dashboard">
       {children}
     </RouteShell>
   );
