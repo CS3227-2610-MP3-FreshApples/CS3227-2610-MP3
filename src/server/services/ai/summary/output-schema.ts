@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import type { Result } from "../../../shared";
+import { codePointCount, isSafeText, parseJsonContent } from "../output-text";
 
 /** D-87 bounds, in Unicode code points after trimming. */
 export const SUMMARY_OVERALL_MAX_CODE_POINTS = 800;
@@ -30,39 +31,6 @@ const INVALID: Result<never, InvalidSummaryOutput> = Object.freeze({
   ok: false,
   error: Object.freeze({ kind: "invalid_output" }),
 });
-
-const LINE_FEED = 0x0a;
-const FIRST_PRINTABLE = 0x20;
-const DELETE = 0x7f;
-const FIRST_SURROGATE = 0xd800;
-const LAST_SURROGATE = 0xdfff;
-const URL_TEXT = /https?:\/\/|www\./i;
-// D-96: "a letter" is an ASCII letter, the set that starts a tag in HTML tokenization.
-const MARKUP = /<[A-Za-z/!?]/;
-const FENCE = "```";
-const FENCE_TAG = "json";
-
-function codePointCount(value: string): number {
-  return Array.from(value).length;
-}
-
-/**
- * D-87 safe text: no C0 control other than LF, no DEL, no unpaired surrogate (D-96: `jsonb` cannot store one), no
- * URL and no markup. String iteration yields a valid pair as one code point, so a surrogate here is unpaired.
- */
-function isSafeText(value: string): boolean {
-  for (const character of value) {
-    const code = character.codePointAt(0) as number;
-    if (
-      (code < FIRST_PRINTABLE && code !== LINE_FEED) ||
-      code === DELETE ||
-      (code >= FIRST_SURROGATE && code <= LAST_SURROGATE)
-    ) {
-      return false;
-    }
-  }
-  return !URL_TEXT.test(value) && !MARKUP.test(value);
-}
 
 // zod runs `trim` before the refinements, so lengths and safe text are checked on the stored value.
 function boundedText(maxCodePoints: number) {
@@ -95,15 +63,6 @@ const summaryOutputSchema = z.strictObject({
   mixedOpinions: listSchema,
 });
 
-/** Strips one outer triple-backtick fence, optionally tagged `json` (D-87). */
-function stripOuterFence(text: string): string {
-  if (text.length < 2 * FENCE.length || !text.startsWith(FENCE) || !text.endsWith(FENCE)) {
-    return text;
-  }
-  const inner = text.slice(FENCE.length, -FENCE.length);
-  return inner.startsWith(FENCE_TAG) ? inner.slice(FENCE_TAG.length) : inner;
-}
-
 /**
  * Checks an already-parsed value against the D-87 schema, and every cited source against `labels`, the labels of
  * the included Reviews. A label removed by reduction, an unknown label and a raw Review ID are all rejected.
@@ -130,11 +89,5 @@ export function parseSummaryOutput(
   content: string,
   labels: readonly string[],
 ): Result<SummaryOutput, InvalidSummaryOutput> {
-  let value: unknown;
-  try {
-    value = JSON.parse(stripOuterFence(content.trim()));
-  } catch {
-    return INVALID;
-  }
-  return validateSummaryOutput(value, labels);
+  return validateSummaryOutput(parseJsonContent(content), labels);
 }

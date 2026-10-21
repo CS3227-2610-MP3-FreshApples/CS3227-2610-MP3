@@ -8,11 +8,28 @@ import {
   type ClientIpResolver,
 } from "./http";
 import {
+  createConsoleModerationSweepLog,
   createDeferredModerationDispatcher,
+  createDisabledModerationSweep,
+  createModerationDispatcher,
+  createModerationJobReadService,
+  createModerationSweep,
   createModerationWorkQueue,
+  logUnreviewedPolicyIssue,
+  PROFANITY_POLICY_VERSION,
+  requiresDispatcherStub,
   type ModerationDispatcher,
+  type ModerationJobReadService,
+  type ModerationRecovery,
+  type ModerationSweep,
   type ModerationWorkQueue,
 } from "./services/ai/moderation";
+import {
+  createModerationJobReadRepository,
+  createModerationReviewReadRepository,
+  createModerationWorkRepository,
+  createReviewModerationRepository,
+} from "./repositories/ai";
 import {
   createAiRuntime,
   type AiExecutionController,
@@ -278,8 +295,70 @@ export const publicSummaryReadService: PublicSummaryReadService | null =
 export const moderationWorkQueue: ModerationWorkQueue | null =
   database === null ? null : createModerationWorkQueue({ sql: database });
 
-/** K9 dispatcher stub (D-52): returns `deferred` and writes nothing until B#7 (A-03) wires the real one. */
-export const moderationDispatcher: ModerationDispatcher = createDeferredModerationDispatcher();
+/**
+ * The real K9 dispatcher, which also serves the recovery sweep (D-101). `null` without AI, the real K10 controller
+ * (`schedulerLeases` is null exactly when the D-52 controller stub is wired) or the K8 and K5 dependencies, and
+ * under D-56, which also logs its configuration issue once per instance.
+ */
+const moderationRecoveryDispatcher: (ModerationDispatcher & ModerationRecovery) | null = (() => {
+  if (
+    !config.ai.enabled
+    || database === null
+    || schedulerLeases === null
+    || reviewLocks === null
+    || reviewTransitions === null
+    || auditLog === null
+  ) {
+    return null;
+  }
+  if (requiresDispatcherStub(config.ai.value.provider, PROFANITY_POLICY_VERSION)) {
+    logUnreviewedPolicyIssue();
+    return null;
+  }
+  return createModerationDispatcher({
+    database,
+    reviewLocks,
+    transitions: reviewTransitions,
+    work: createModerationWorkRepository({ sql: database }),
+    reviewReads: createModerationReviewReadRepository({ sql: database }),
+    results: createReviewModerationRepository({ sql: database }),
+    auditLog,
+    controller: aiRuntime.controller,
+    settings: {
+      modelId: config.ai.value.soc.model,
+      inputTokenLimit: config.ai.value.execution.inputTokenLimit,
+      maxExecutions: config.ai.value.moderation.maxExecutions,
+    },
+  });
+})();
+
+/** K9 dispatcher: the real one, or the D-52 stub that returns `deferred` and writes nothing (D-56, D-101). */
+export const moderationDispatcher: ModerationDispatcher =
+  moderationRecoveryDispatcher ?? createDeferredModerationDispatcher();
+
+/** Admin review-moderation job status read (D-102); `null` exactly when `database` is. It never calls K10. */
+export const moderationJobReadService: ModerationJobReadService | null =
+  database === null
+    ? null
+    : createModerationJobReadService({ database, jobs: createModerationJobReadRepository({ sql: database }) });
+
+/**
+ * DEP-10 review-moderation recovery sweep (D-101): `null` exactly when `database` is. The real sweep runs with the
+ * real dispatcher and K10 sweep leases; otherwise the disabled sweep returns zero counts with no writes.
+ */
+export const moderationSweep: ModerationSweep | null =
+  database === null
+    ? null
+    : moderationRecoveryDispatcher === null || schedulerLeases === null || !config.ai.enabled
+      ? createDisabledModerationSweep({ log: createConsoleModerationSweepLog() })
+      : createModerationSweep({
+          database,
+          leases: schedulerLeases,
+          selection: createModerationReviewReadRepository({ sql: database }),
+          recovery: moderationRecoveryDispatcher,
+          limits: { maxReviews: config.ai.value.moderation.recoveryMaxReviews },
+          log: createConsoleModerationSweepLog(),
+        });
 
 /** U-02 review creation/resubmission; `null` exactly when its database dependencies are unavailable. */
 export const reviewService: ReviewService | null =
