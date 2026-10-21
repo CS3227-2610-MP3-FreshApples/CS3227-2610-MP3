@@ -60,7 +60,7 @@ describe("identity account registration", () => {
     expect(created).toHaveLength(0);
   });
 
-  it("normalizes D-50 email boundaries without provider-specific rewrites", () => {
+  it("normalizes D-82 email boundaries without provider-specific rewrites", () => {
     expect(normalizeEmail("\t USER+tag@Exämple.com \r\n")).toBe("user+tag@xn--exmple-cua.com");
     expect(normalizeEmail("U\u0308SER@XN--EXMPLE-CUA.COM")).toBe("üser@xn--exmple-cua.com");
     expect(normalizeEmail("user.name@gmail.com")).toBe("user.name@gmail.com");

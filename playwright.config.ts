@@ -44,8 +44,17 @@ export default defineConfig({
     baseURL: BASE_URL,
   },
   projects: [
+    // The health spec provisions the synthetic Admin (D-83) and asserts it is the first to do so, so it
+    // runs before every journey spec that signs in as that Admin.
+    {
+      name: "provisioning",
+      testMatch: /health\.spec\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+    },
     {
       name: "chromium",
+      testIgnore: /health\.spec\.ts$/,
+      dependencies: ["provisioning"],
       use: { ...devices["Desktop Chrome"] },
     },
   ],

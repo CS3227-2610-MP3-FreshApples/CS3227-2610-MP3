@@ -28,8 +28,8 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
 | U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
-| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | Blocked |
-| A-02 | B | Admin announcements | A-01 | 16 Oct | Blocked |
+| A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
+| A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
 | A-03 | B | Automatic profanity moderation and recovery sweep (AI-02) | S-06, U-02 (transition interface), OQ-04 | 17 Oct | Blocked |
 | A-04 | B | Admin review queue: approve, hide, restore | A-03, U-02 | 18 Oct | Blocked |
 | A-05 | B | Report decisions, strikes, threshold suspension | U-03, S-04 | 19 Oct | Blocked |
@@ -270,7 +270,7 @@ Fakes must **fail closed**. A fake cannot grant authorization or clear a review 
 
 **Owner:** A. **Depends on:** S-01, S-02 (S-05 limiter interface for throttling). **Reqs:** FR-01, INV-01, SEC-01–04, SEC-06, DEP-04, AT-01.
 **Allowed paths:** `src/server/{services,repositories}/identity/`, `src/app/api/v1/auth/`, admin provisioning and verification scripts, matching tests. Public auth pages are deferred to the immediate follow-up below.
-**Description:** Registration always creates USER (rejects injected role/status with error 422). Argon2id hashing with passwords of 12–128 characters, at least one number and one special character, and no truncation. Opaque random session tokens stored hashed; cookie HttpOnly/Secure/SameSite=Lax with 8 h absolute expiry. Logout. `GET /auth/me`. CSRF token plus same-origin check on unsafe browser methods. Login throttle of 5 failures per 15 min per normalized email and per IP, with generic errors (including for suspended accounts). Guards K3 recheck status on every request. Session revocation in the caller's `Tx`. First-Admin provisioning uses a dedicated Vercel server function invoked with the deployment-only `ADMIN_BOOTSTRAP_SECRET` and sensitive bootstrap variables; it must not run during build or ordinary function startup. That operator POST is the sole D-14/SEC-04 exception, ignores browser cookies/identity/Origin/CSRF and relies only on the constant-time-compared deployment secret. It reuses private registration primitives through a separate named Identity operation and serializes on the Account table as recorded in D-51.
+**Description:** Registration always creates USER (rejects injected role/status with error 422). Argon2id hashing with passwords of 12–128 characters, at least one number and one special character, and no truncation. Opaque random session tokens stored hashed; cookie HttpOnly/Secure/SameSite=Lax with 8 h absolute expiry. Logout. `GET /auth/me`. CSRF token plus same-origin check on unsafe browser methods. Login throttle of 5 failures per 15 min per normalized email and per IP, with generic errors (including for suspended accounts). Guards K3 recheck status on every request. Session revocation in the caller's `Tx`. First-Admin provisioning uses a dedicated Vercel server function invoked with the deployment-only `ADMIN_BOOTSTRAP_SECRET` and sensitive bootstrap variables; it must not run during build or ordinary function startup. That operator POST is the sole D-14/SEC-04 exception, ignores browser cookies/identity/Origin/CSRF and relies only on the constant-time-compared deployment secret. It reuses private registration primitives through a separate named Identity operation and serializes on the Account table as recorded in D-83.
 **Acceptance Criteria:**
 - [ ] AT-01 cases: supplied `role` or `status` registration fields → 422 `validation_failed` with no account created; registration without those fields persists USER/active; USER calls to an admin endpoint stub → 403 with no mutation; logout invalidates; suspended accounts cannot log in and get a generic error; forged cross-origin POST fails.
 - [x] Duplicate normalized email → safe 409. Throttling and enumeration tests pass.
@@ -328,7 +328,7 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Description:** Root layout and separate `/app` and `/admin` navigation shells. K12 primitives with labelled inputs, field-associated errors, visible focus, status not shown by colour alone, a polite live region, and a confirmation dialog that names its target. Rating display `8/10` and aggregate `8.3/10`.
 **Acceptance Criteria:**
 - [ ] Components are keyboard-operable (manual checklist recorded) and do not import `src/server`.
-- [ ] B has reviewed the component API before A-01 starts.
+- [x] B has reviewed the component API before A-01 starts.
 
 ### Task U-01: Public catalogue, details, announcements (read)
 
@@ -369,15 +369,30 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 
 **Owner:** B. **Depends on:** S-04 (guards), S-05, S-07. **Reqs:** FR-05, INV-05, INV-09, AT-02.
 **Description:** `/admin/movies` CRUD, archive (soft, with a confirmation naming the Movie) and restore. Writable fields only, with If-Match. Archive/restore bump `reviews_revision` (restored → summary pending). Audited. Admin pages.
+**Decision resolution (19 Oct):** D-79–D-81 define repeated actions, no-op/version behavior, input defaults/clearing, ordering and bodyless DELETE ETags. Actual archive/restore alone advances `reviews_revision`; no-ops preserve markers and timestamps. Shared-contract cross-review is complete: Lim-ZY approved D-79–D-81 on 20 Oct. The archive/restore implementation also requires the real K8 `lockReviewsOfMovie` from U-02 (a fake suffices only for isolated orchestration tests). **Interim (D-84, 20 Oct):** the orchestrator depends on a B-side structural `ReviewsOfMovieLock` type; archive/restore stay unwired (503) until U-02 merges, and API tests use a test-only PostgreSQL stand-in.
+**Readiness evidence (20 Oct):** S-04 is merged (PR #13). The K3 Admin guards and CSRF that A-01 consumes pass S04-AC-01 (`tests/integration/api/auth/admin-guard-consumer.test.ts`, recorded in `workflow/handoffs/s04-release-evidence.md`). S-04's open AT-01 E2E and Vercel operator evidence do not affect A-01; they stay tracked under S-04, R-02 and R-04. S-07 is merged (PR #10) and B reviewed the K12 component API on 20 Oct (S-07 acceptance). S-05 is merged (PR #9).
 **Acceptance Criteria:**
 - [ ] AT-02 round trip with U-01 public views. Derived/actor fields rejected. Stale write → 409 with no change. USER → 403.
+- [ ] D-79–D-81 acceptance examples in spec/verification.md: repeated actions, normalized no-ops, clearing, stable list ordering, DELETE ETag, restore response and atomic audit/revision behavior.
+
+**Progress (20 Oct):** B#6 commit 1 (Admin Movie API) is in `740533a`. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a01-admin-movie-api.md`. Both criteria above stay open until these items land:
+- **Admin UI:** B#6 commit 3 is implemented in the working tree and awaits review (`workflow/handoffs/A-01-A-02/2026-10-20-a01-a02-admin-ui.md`). Its e2e asserts archive's interim 503; restore is not exercised until K8 is wired.
+- **AT-02 public round trip:** blocked on U-01 (Developer A). When U-01 merges, replace the `archived_at` column assertion in `tests/integration/api/admin/admin-movies.test.ts` with a public GET /movies check, and cover the UI round trip in commit 3.
+- **Archive vs review-submission race (verification §11.3) and archive/restore in deployed builds:** blocked on U-02. These currently return 503 (D-84). Wire the real K8 and add the race test together, at the D-84 exit.
 
 ### Task A-02: Admin announcements
 
 **Owner:** B. **Depends on:** A-01. **Reqs:** FR-07, AT-06.
 **Description:** `/admin/announcements` create (draft), edit, publish/unpublish (republish sets a new `published_at`), soft delete, audited. Archived Movie reference keeps the announcement but omits the public link.
+**Decision resolution (19 Oct):** D-79–D-81 make deletion terminal, allow current archived Movie references, define immediate publication of edits, timestamp transitions, PATCH/default/clearing rules, ordering and one-entry audit selection. Shared-contract cross-review is complete (Lim-ZY approved D-79–D-81 on 20 Oct). A-01 was set Ready on 20 Oct. Only a human sets A-02 Ready; this entry does not.
+**Readiness (20 Oct):** Developer B set A-02 Ready. A-02 needs only A-01's Admin guards and Movie rows; both are on `feat/admin-catalogue` (`740533a`). A-01's open items (UI, U-01 round trip, K8 wiring) do not affect A-02. The API is B#6 commit 2 on the same branch. Developer B's choices, as for A-01: the Admin Announcement projection is `id, title, body, movieId, state, publishedAt, authorId, version, createdAt, updatedAt`; GET /admin/announcements returns every state with no filter parameter; an empty or non-object PATCH body reports under the key `request`. U-01 is not merged, so the "drafts never appear through U-01 endpoints" criterion and AT-06's public half stay open until it merges; until then the tests assert the stored state.
 **Acceptance Criteria:**
 - [ ] AT-06; empty/oversize content rejected; drafts never appear through U-01 endpoints.
+- [ ] D-79–D-81 acceptance examples in spec/verification.md: terminal deletion, repeated DELETE, publication timestamps, mixed PATCH audit selection, references and field errors.
+
+**Progress (20 Oct):** B#6 commit 2 (Admin Announcement API) is implemented in the working tree and awaits review. Evidence: `workflow/handoffs/A-01-A-02/2026-10-20-a02-admin-announcement-api.md`. Both criteria above stay open until these items land:
+- **Admin UI:** B#6 commit 3 is implemented in the working tree and awaits review (`workflow/handoffs/A-01-A-02/2026-10-20-a01-a02-admin-ui.md`). It covers create (draft), edit, publish and unpublish. Its prompt did not name delete, so there is no Admin UI delete control yet; Developer B decides whether to add one.
+- **AT-06 public half:** blocked on U-01 (Developer A). When U-01 merges, add public GET /announcements checks to `tests/integration/api/admin/admin-announcements.test.ts`: drafts and deleted rows never appear, publish/unpublish/delete change the public list, ordering is published_at DESC, id ASC, and an archived Movie reference has no link.
 
 ### Task A-03: Automatic profanity moderation
 

@@ -144,7 +144,7 @@ describe("SEC-06 login throttling — real Route Handler and PostgreSQL", () => 
     ]);
   });
 
-  it("shares the email counter across D-50 normalization variants", async () => {
+  it("shares the email counter across D-82 normalization variants", async () => {
     const variants = [" \tU\u0308ser@EXÄMPLE.com\r\n", "üSER@xn--exmple-cua.com"];
     for (let attempt = 0; attempt < 5; attempt += 1) {
       await expectGenericCredentialFailure(

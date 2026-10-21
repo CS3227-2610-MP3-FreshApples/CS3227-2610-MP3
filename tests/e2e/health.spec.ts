@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// Health/bootstrap smoke spec (D-42, D-51, AT-26): liveness is available before provisioning; the real
+// Health/bootstrap smoke spec (D-42, D-83, AT-26): liveness is available before provisioning; the real
 // bootstrap endpoint creates the disposable synthetic Admin; readiness then proves the app reaches the
 // database as the per-run login role. This is local test evidence, not a live Vercel operator action.
 
