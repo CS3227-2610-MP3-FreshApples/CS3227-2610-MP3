@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { AdminFailure, AdminResult } from "./admin-http";
+import { failure, type AdminFailure, type AdminResult } from "./admin-http";
 
 export type ResourceState<T> =
   | Readonly<{ status: "loading" }>
@@ -20,10 +20,14 @@ export function useAdminResource<T>(load: () => Promise<AdminResult<T>>) {
 
   useEffect(() => {
     let current = true;
-    load().then((result) => {
-      if (!current) return;
-      setState(result.ok ? { status: "ready", value: result.value } : { status: "error", failure: result });
-    });
+    void load()
+      .then((result) => {
+        if (!current) return;
+        setState(result.ok ? { status: "ready", value: result.value } : { status: "error", failure: result });
+      })
+      .catch(() => {
+        if (current) setState({ status: "error", failure: failure("unavailable") });
+      });
     return () => {
       current = false;
     };

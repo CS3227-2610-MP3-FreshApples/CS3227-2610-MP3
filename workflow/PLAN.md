@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **approved; S-01–S-07 and U-01 are merged to `master`; U-02a/A#5 is merged in PR #17 (`998dd90`); U-02b/A#6 is merged in PR #19 (`bdb86f5`); U-02c/A#7 has passed analyst and architect readiness review and may proceed after the human implementation gate**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`; S-05 merged in PR #9 (`56314c3`), B#4 contract stubs in PR #11 (`7f76f0b`), S-06 merged in PR #12 (`47751ab`), S-07 merged in PR #10 (`54e5883`), and S-04 backend/auth UI in PRs #13 and #14. U-01 merged in PR #16 (`6269f63`); U-02a merged in PR #17 (`998dd90`); U-02b merged in PR #19 (`bdb86f5`).
+Status: **approved; S-01–S-07 and U-01 are merged to `master`; U-02a/A#5 is merged in PR #17 (`998dd90`); U-02b/A#6 is merged in PR #19 (`bdb86f5`); U-02c/A#7 is merged in PR #22 (`368282c`); U-03/A#8 passed analyst and architect readiness review, received explicit human implementation approval in this task, and is now in implementation/review on `feat/moderation-report-submission`**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`; S-05 merged in PR #9 (`56314c3`), B#4 contract stubs in PR #11 (`7f76f0b`), S-06 merged in PR #12 (`47751ab`), S-07 merged in PR #10 (`54e5883`), and S-04 backend/auth UI in PRs #13 and #14. U-01 merged in PR #16 (`6269f63`); U-02a merged in PR #17 (`998dd90`); U-02b merged in PR #19 (`bdb86f5`); U-02c merged in PR #22 (`368282c`).
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -25,8 +25,8 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Merged (PR #12, `47751ab`) |
 | S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Merged (PR #10, `54e5883`) |
 | U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Merged (PR #16, `6269f63`) |
-| U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | U-02a merged in PR #17; U-02b/K8 merged in PR #19; U-02c Increments 1–3 implemented and post-review remediation complete; browser E2E remains unverified because the production build is environment-blocked |
-| U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
+| U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Merged (PR #22, `368282c`; browser E2E remains unverified because the production build is environment-blocked) |
+| U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | In progress/review (analyst and architect readiness approved; human implementation gate approved in this task) |
 | U-04 | B (reassigned from A, D-85) | Scheduled public review summary (AI-01) | S-06; U-02 for acceptance only (D-91) | 19 Oct | Spec review (D-86–D-92 approved 21 Oct; architect findings resolved in D-93–D-95, approved 21 Oct) |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |
 | A-02 | B | Admin announcements | A-01 | 16 Oct | In progress: API (B#6 commit 2) implemented, awaiting review; UI (commit 3) pending; public checks wait on U-01 |
@@ -356,6 +356,10 @@ but AT-01 remains partial until both U-03 and R-02 pass.
 **Acceptance Criteria:**
 - [ ] Self-report and duplicate open report rejected. Deleted review before submission → 409. Later edits/deletion do not change the snapshot.
 - [ ] Guessed report ID of another reporter → 404, including when the caller is the target. No received-report data appears in any target-facing projection.
+
+**Readiness assessment (21 Oct 2026):** U-02 is now merged in PR #22 (`368282c`). The analyst and architect found no authoritative specification conflict or missing U-03 decision. The approved K3/K6/K7/K11 contracts, Report schema and constraints, Review visibility/ownership/locking behavior, and report rate-limit policy are sufficient for the bounded A#8 implementation. The human implementation gate was explicitly approved in this task; U-03 is in implementation/review and is not marked `Ready` by the agent.
+
+**Required implementation evidence:** preserve the approved Account → Movie → Review lock order; derive the target from the locked Review; write the immutable K11 evidence snapshot in the submission transaction; filter report history by `reporter_id` in SQL; return indistinguishable 404s for guessed IDs; keep private responses `no-store`; and cover self-report, duplicate/concurrent open reports, deleted/hidden/archived Reviews, snapshot immutability, rate limiting, CSRF/status failures, pagination, and target privacy. AT-04 and AT-01 remain incomplete until the later R-02 two-user/two-role evidence is also complete. Handoffs: `workflow/handoffs/u03/2026-10-21-analyst-readiness.md` and `workflow/handoffs/u03/2026-10-21-architect-readiness.md`.
 
 ### Task U-04: Scheduled public review summary
 
