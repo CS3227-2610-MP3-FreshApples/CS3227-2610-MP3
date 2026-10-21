@@ -8,14 +8,18 @@ import {
   type ClientIpResolver,
 } from "./http";
 import {
+  createConsoleModerationSweepLog,
   createDeferredModerationDispatcher,
+  createDisabledModerationSweep,
   createModerationDispatcher,
+  createModerationSweep,
   createModerationWorkQueue,
   logUnreviewedPolicyIssue,
   PROFANITY_POLICY_VERSION,
   requiresDispatcherStub,
   type ModerationDispatcher,
   type ModerationRecovery,
+  type ModerationSweep,
   type ModerationWorkQueue,
 } from "./services/ai/moderation";
 import {
@@ -325,6 +329,24 @@ const moderationRecoveryDispatcher: (ModerationDispatcher & ModerationRecovery) 
 /** K9 dispatcher: the real one, or the D-52 stub that returns `deferred` and writes nothing (D-56, D-101). */
 export const moderationDispatcher: ModerationDispatcher =
   moderationRecoveryDispatcher ?? createDeferredModerationDispatcher();
+
+/**
+ * DEP-10 review-moderation recovery sweep (D-101): `null` exactly when `database` is. The real sweep runs with the
+ * real dispatcher and K10 sweep leases; otherwise the disabled sweep returns zero counts with no writes.
+ */
+export const moderationSweep: ModerationSweep | null =
+  database === null
+    ? null
+    : moderationRecoveryDispatcher === null || schedulerLeases === null || !config.ai.enabled
+      ? createDisabledModerationSweep({ log: createConsoleModerationSweepLog() })
+      : createModerationSweep({
+          database,
+          leases: schedulerLeases,
+          selection: createModerationReviewReadRepository({ sql: database }),
+          recovery: moderationRecoveryDispatcher,
+          limits: { maxReviews: config.ai.value.moderation.recoveryMaxReviews },
+          log: createConsoleModerationSweepLog(),
+        });
 
 /** U-02 review creation/resubmission; `null` exactly when its database dependencies are unavailable. */
 export const reviewService: ReviewService | null =

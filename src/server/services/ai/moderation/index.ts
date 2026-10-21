@@ -27,6 +27,17 @@ export { PROFANITY_POLICY_TEXT } from "./policy/text";
 export { PROFANITY_POLICY_VERSION, UNREVIEWED_PROFANITY_POLICY_VERSION } from "./policy/version";
 export { MODERATION_MAX_OUTPUT_TOKENS, REVIEW_SCREENING_SYSTEM_PROMPT } from "./prompt";
 export { REVIEW_SCREENING_PROMPT_VERSION } from "./prompt-version";
+export {
+  createConsoleModerationSweepLog,
+  createDisabledModerationSweep,
+  createModerationSweep,
+  type ModerationSweep,
+  type ModerationSweepCounts,
+  type ModerationSweepLog,
+  type ModerationSweepLogLine,
+  type ModerationSweepPhase,
+  type ModerationSweepUnavailable,
+} from "./sweep";
 export type { ModerationDispatcher, ModerationRecovery, ModerationWorkQueue, ScreeningAttempt } from "./types";
 export { logUnreviewedPolicyIssue, requiresDispatcherStub } from "./wiring";
 export { createModerationWorkQueue } from "./work-queue";

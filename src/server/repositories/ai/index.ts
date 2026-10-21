@@ -5,7 +5,7 @@ export type { AiBudgetRepository, BudgetDay, ReservationSettlement } from "./ai-
 export { createAiJobRepository } from "./ai-job-repository";
 export type { AiJobRepository, FinalJobStatus, InsertedAiJob, NewAiJob } from "./ai-job-repository";
 export { createModerationReviewReadRepository } from "./moderation-review-read-repository";
-export type { ModerationReviewReadRepository } from "./moderation-review-read-repository";
+export type { DueModerationWork, ModerationReviewReadRepository } from "./moderation-review-read-repository";
 export { createModerationWorkRepository } from "./moderation-work-repository";
 export type { ModerationWorkKey, ModerationWorkRepository, ModerationWorkRow } from "./moderation-work-repository";
 export { createReviewModerationRepository } from "./review-moderation-repository";
