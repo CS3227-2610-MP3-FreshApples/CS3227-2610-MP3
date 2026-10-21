@@ -8,8 +8,10 @@ vi.mock("server-only", () => ({}));
 
 import {
   createDeferredModerationDispatcher,
+  PROFANITY_POLICY_TEXT,
   PROFANITY_POLICY_VERSION,
   REVIEW_SCREENING_PROMPT_VERSION,
+  UNREVIEWED_PROFANITY_POLICY_VERSION,
 } from "../../../src/server/services/ai/moderation";
 import type { ContentRevision, ReviewId } from "../../../src/server/shared";
 
@@ -46,16 +48,24 @@ describe("deferred moderation dispatcher stub (D-52, AM-15)", () => {
 describe("moderation versions (D-49)", () => {
   it("are the recorded initial values in <name>-v<integer> form", () => {
     expect(REVIEW_SCREENING_PROMPT_VERSION).toBe("review-screening-prompt-v1");
-    expect(PROFANITY_POLICY_VERSION).toBe("profanity-policy-v0");
+    expect(PROFANITY_POLICY_VERSION).toBe("profanity-policy-v1");
+    expect(UNREVIEWED_PROFANITY_POLICY_VERSION).toBe("profanity-policy-v0");
     for (const version of [REVIEW_SCREENING_PROMPT_VERSION, PROFANITY_POLICY_VERSION]) {
       expect(version).toMatch(/^[a-z]+(?:-[a-z]+)*-v(?:0|[1-9][0-9]*)$/);
     }
   });
 
-  it("keeps the policy directory free of policy text while the version is v0", () => {
-    if (PROFANITY_POLICY_VERSION === "profanity-policy-v0") {
-      expect(readdirSync(join(MODERATION_DIR, "policy"))).toEqual(["version.ts"]);
-    }
+  it("ships the reviewed policy text beside its version, naming that version (D-17, D-99)", () => {
+    expect(readdirSync(join(MODERATION_DIR, "policy")).sort()).toEqual(["text.ts", "version.ts"]);
+    expect(PROFANITY_POLICY_TEXT).toContain(PROFANITY_POLICY_VERSION);
+    expect(PROFANITY_POLICY_TEXT).toMatch(/English/);
+  });
+
+  it("defines everything AI-02 requires of the policy", () => {
+    expect(PROFANITY_POLICY_TEXT).toMatch(/Obfuscated spellings/);
+    expect(PROFANITY_POLICY_TEXT).toMatch(/Contextual quotations/);
+    expect(PROFANITY_POLICY_TEXT).toMatch(/negative opinions of the film/);
+    expect(PROFANITY_POLICY_TEXT).toMatch(/Languages/);
   });
 });
 
