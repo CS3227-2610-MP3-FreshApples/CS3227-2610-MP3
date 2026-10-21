@@ -67,6 +67,10 @@ export function createAuthGuards(deps: {
     requireActiveUserMutation: (request) => authenticate(request, "USER", true),
     requireActiveAdminMutation: (request) => authenticate(request, "ADMIN", true),
     requireCronCaller(request) {
+      // D-28, D-98: an empty secret means CRON_SECRET is missing or invalid, so every caller is rejected.
+      if (deps.cronSecret.length === 0) {
+        return { ok: false, error: { kind: "unauthenticated" } };
+      }
       const authorization = request.headers.get("authorization");
       const prefix = "Bearer ";
       const credential = authorization !== null && authorization.startsWith(prefix) ? authorization.slice(prefix.length) : null;

@@ -951,3 +951,11 @@ These amendments came from the U-04a architect preflight. Developer B (thegrimbe
 | ID | Change | Spec basis |
 | --- | --- | --- |
 | AM-25 | K10 summary consumer, amending AM-23. After K7 `lockActiveMovieForUpdate` and the captured-revision comparison, `publish` returns `stale` when a ReviewSummary already exists for the same Movie, revision and current summary prompt version. A summary is current only at the Movie's revision and the current prompt version. `AiRuntime` (composition-internal, not part of K10) gains `summaryLimits: { sampleSize, inputTokenLimit } \| null`, null exactly when the D-52 stub is wired; the summary service is built only when it is non-null | D-93 |
+
+## 28. U-04b preflight amendment (21 October 2026)
+
+This amendment came from the U-04b preflights. Developer B (thegrimbee) delegated the choice to the agent's recommendation. **Status: approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026, including Developer A as K3 provider; Lim-ZY's approval is recorded as reported by Developer B.** No signature changes.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-26 | K3 `requireCronCaller` returns `unauthenticated` for every request when its configured secret is empty, which the composition root passes exactly when `CRON_SECRET` is missing or invalid. It previously accepted a request with no credential in that case | D-28, D-98 |
