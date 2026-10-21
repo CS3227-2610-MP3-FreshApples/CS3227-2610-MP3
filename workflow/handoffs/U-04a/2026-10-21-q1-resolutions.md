@@ -1,7 +1,7 @@
 # U-04a Q-1 resolutions handoff (D-96)
 
 - **Task:** U-04a, PR B#13. This handoff resolves Q-1 findings F1–F5 from `2026-10-21-q1-code-quality-tests.md`.
-- **Decision:** D-96 in `spec/governance.md`, recorded by thegrimbee (Developer B) after the agent's recommendations were delegated to him. **Developer A (Lim-ZY) approval is pending.** D-96 amends D-87.
+- **Decision:** D-96 in `spec/governance.md`, recorded by thegrimbee (Developer B) after the agent's recommendations were delegated to him. Approved by both developers on 21 October 2026; Lim-ZY's approval is recorded as reported by Developer B. D-96 amends D-87.
 - **Source revision:** `92ee236` on `feat/ai-summary-core`, plus the uncommitted Q-1 tests.
 - **Authorization:** the human instructed "resolve F1–F5 as you recommend, then run Q2". The spec was changed before the code. No commit, push or tracker edit was made.
 - **Paths:** `spec/governance.md`; `src/server/services/ai/summary/` and `src/server/repositories/summary/` (D-92 paths); tests under `tests/unit/ai/summary/` and `tests/integration/ai/summary/`. No path was widened. `create-ai-runtime.ts` was not touched.
@@ -28,4 +28,4 @@
 
 ## Next action
 
-Q-2 review results are recorded in `2026-10-21-q2-review.md`. Developer A approves or amends D-96. The human reviews the diff and decides whether to commit.
+Q-2 review results are recorded in `2026-10-21-q2-review.md`. D-96 is approved. The human reviews the diff and decides whether to commit.

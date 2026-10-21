@@ -41,13 +41,14 @@
 | 4 | Agent | Ran checks | All passed. The new integration file passed 10 consecutive runs. | Handoff "Commands and results" |
 | 5 | Human | "Resolve F1–F5 as you recommend, then run Q2" | Recorded D-96 in `spec/governance.md` (Developer A approval pending), then implemented F1, F3, F4 and F5 in the summary service and repository paths. F2 is recorded with no code change. Tests were updated. All checks passed (unit 1,421; integration 584; summary directory 10/10; build). | `workflow/handoffs/U-04a/2026-10-21-q1-resolutions.md` |
 | 6 | Agent → Reviewer/Tester subagent | Q-2 at base `6269f63`, head `92ee236` plus the working tree | Verdict: approve with follow-ups. No Blocker, High or Medium findings; 3 Low and 7 Info. | `workflow/handoffs/U-04a/2026-10-21-q2-review.md` |
+| 7 | Human | "Lim-ZY has approved D-96; decide Q2-2" | Recorded D-96 as approved (Lim-ZY's approval as reported by Developer B). Decided Q2-2 as D-97: the older-prompt case publishes; wording clarified, no code or test change. | `spec/governance.md` D-96, D-97 |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
 | Item | Source/decision-maker | Status | Rationale | Affected artifacts |
 | --- | --- | --- | --- | --- |
-| F1–F5 resolutions | D-96, recorded by thegrimbee under delegation | Developer A approval pending | Agent recommendations from Q-1 | `spec/governance.md`, summary service and repositories, tests |
-| Q2-2: "older-prompt cases roll back" wording in D-93 | Needs human decision | Open | Conflicts with the D-93 currency rule; the test expects `published` | D-93 or the test |
+| F1–F5 resolutions | D-96, recorded by thegrimbee under delegation | Approved by both developers (Lim-ZY as reported by Developer B) | Agent recommendations from Q-1 | `spec/governance.md`, summary service and repositories, tests |
+| Q2-2: "older-prompt cases roll back" wording in D-93 | D-97, recorded by thegrimbee under delegation | Developer A approval pending | The older-prompt case publishes, under the D-93 currency rule; no behaviour change | `spec/governance.md`; test unchanged |
 
 ## 6. Agent Assignments and Handoffs
 
@@ -65,7 +66,7 @@
 | `tests/unit/ai/summary/input-preparation-invariants.test.ts` | Mixed-length reduction cases and invariants over fixed seeds, sizes and limits |
 | `tests/unit/ai/summary/output-schema-edge.test.ts` | Duplicate keys; hostile structure |
 | `tests/integration/ai/summary/summary-publication-concurrency.test.ts` | Lock waits, concurrent generation, read fidelity, unstorable output |
-| `spec/governance.md` | D-96; D-87 marked amended |
+| `spec/governance.md` | D-96 (now approved); D-97; D-87 and D-93 annotated |
 | `src/server/services/ai/summary/output-schema.ts`, `input-preparation.ts`, `publication.ts`, `generation.ts` | F1, F2 comment, F4, F5 |
 | `src/server/repositories/summary/current-summary.ts` (new), `summary-input-repository.ts`, `review-summary-repository.ts` | F3 |
 | `tests/unit/ai/summary/generation.test.ts` | Publisher call sites (F5) |
@@ -97,8 +98,7 @@
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| D-96 approval | Merge gate | Lim-ZY | Approve or amend |
-| Q2-2 D-93 wording | Spec accuracy | thegrimbee, Lim-ZY | Reword D-93 or confirm the test |
+| D-97 approval (Q2-2) | Spec accuracy | Lim-ZY | Approve or amend |
 | Q2-1 composition wiring untested; Q2-3 guard rarely reached by the two-instance test | Coverage | thegrimbee | Optional follow-up |
 | Q2-4 static-SQL convention | B#14 | thegrimbee | Keep in B#14 |
 
