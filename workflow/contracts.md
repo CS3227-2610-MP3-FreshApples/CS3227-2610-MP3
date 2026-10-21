@@ -954,7 +954,7 @@ These amendments came from the U-04a architect preflight. Developer B (thegrimbe
 
 ## 28. U-04b preflight amendment (21 October 2026)
 
-This amendment came from the U-04b preflights. Developer B (thegrimbee) delegated the choice to the agent's recommendation. **Status: recorded by Developer B; approval by Developer A (K3 provider) is pending.** No signature changes.
+This amendment came from the U-04b preflights. Developer B (thegrimbee) delegated the choice to the agent's recommendation. **Status: approved by both developers (Lim-ZY and thegrimbee) on 21 October 2026, including Developer A as K3 provider; Lim-ZY's approval is recorded as reported by Developer B.** No signature changes.
 
 | ID | Change | Spec basis |
 | --- | --- | --- |

@@ -4,7 +4,7 @@
 - **Reviewed revision:** `2629bcc` on `feat/ai-summary-cron-ui`, with the analyst preflight (`2026-10-21-analyst-preflight.md`).
 - **Resolution:** D-98 in `spec/governance.md` and AM-26 in `workflow/contracts.md` §28, recorded in the working tree.
 - **Authorization:** the human (thegrimbee, Developer B) instructed the agent to resolve every blocker and missing decision as the agent recommends, then implement both B#14 commits. The architect was read-only and approved nothing.
-- **Approval state:** recorded by Developer B. **Developer A's approval is pending** for AM-26 (K3), the public API items and the `page.tsx` mount lines.
+- **Approval state:** D-98 and AM-26 were recorded by Developer B and approved by both developers on 21 October 2026, including AM-26 (K3), the public API items and the `page.tsx` mount lines. Lim-ZY's approval is recorded as reported by Developer B.
 
 ## Verified boundary findings
 

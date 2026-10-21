@@ -19,7 +19,7 @@
 - Applicable recorded requirement IDs: FR-08, AI-01, AI-04, DEP-09, AT-07, AT-08 (synthetic only), AT-20 (in part), INV-09 (synthetic only); decisions D-28, D-85–D-97 and the new D-98; amendments AM-24 and the new AM-26.
 - Permitted paths/actions: D-94 paths widened by D-98; local disposable PostgreSQL 17; local commits on the feature branch.
 - Explicit exclusions: migrations, `vercel.json`, dependencies, K7 and K10 internals, push and PR.
-- Human approval gates: Developer A's approval of D-98/AM-26, the K3 change and the `page.tsx` mount lines; merge review.
+- Human approval gates: Developer A's approval of D-98/AM-26, the K3 change and the `page.tsx` mount lines (given, as reported by Developer B); merge review.
 
 ## 3. Sources Consulted
 
@@ -45,13 +45,14 @@ Agent reports were treated as proposals and checked against the code before use.
 | 5 | Main session | Implement | K3 check (red then green), commit 1, commit 2, tests | `workflow/handoffs/U-04b/2026-10-21-implementation.md` |
 | 6 | Main session | Checks | One new integration test asserted a fixed order for two near-equal pending times and failed once; fixed to compare as a set, then all checks passed | Handoff "Checks" |
 | 7 | Human | Reminder that the work may be split into several commits | Committed as four commits: decisions, K3 check, commit 1, commit 2 | Git history |
+| 8 | Human | Reported that Lim-ZY (Developer A) approved the decisions | Approval recorded in D-98, contracts §28, COMMIT-PLAN, the U-04b handoffs and this summary | `spec/governance.md` D-98 |
 
 ## 5. Decisions, Assumptions, and Conflicts
 
 | Item | Source/decision-maker | Status | Rationale | Affected artifacts |
 | --- | --- | --- | --- | --- |
-| D-98 (all items) | Recorded by thegrimbee under delegation to the agent's recommendations | Recorded; Developer A approval pending | Fills gaps left by D-89/D-90/D-94 using D-38, D-83 and U-01 precedents | `spec/governance.md` |
-| AM-26: K3 cron guard fails closed on an empty secret | Same | Recorded; Developer A approval pending | D-28 requires 401 for every request when `CRON_SECRET` is missing | `guards.ts`, `contracts.md` §28 |
+| D-98 (all items) | Recorded by thegrimbee under delegation to the agent's recommendations | Approved by both developers (Lim-ZY's approval as reported by Developer B) | Fills gaps left by D-89/D-90/D-94 using D-38, D-83 and U-01 precedents | `spec/governance.md` |
+| AM-26: K3 cron guard fails closed on an empty secret | Same | Approved by both developers (Lim-ZY's approval as reported by Developer B) | D-28 requires 401 for every request when `CRON_SECRET` is missing | `guards.ts`, `contracts.md` §28 |
 | C-2 tracker rows | — | Unresolved, not changed | Developer A's rows; does not block B#14 | — |
 | Generation fault logs `outcomeKind: null`; label is not `role="status"`; null read hides the whole section | Agent interpretation | For review | Not stated by D-98 | `sweep.ts`, `review-summary.tsx` |
 
@@ -82,7 +83,7 @@ Agent reports were treated as proposals and checked against the code before use.
 
 - Dependencies added or changed: none.
 - Reused ideas, code, or documentation and attribution: test harness patterns from the B#13 and health integration tests.
-- Unrelated files changed: no. Two Developer A files are changed under D-98 (`guards.ts` with its test, and `page.tsx`), pending Developer A's approval.
+- Unrelated files changed: no. Two Developer A files are changed under D-98 (`guards.ts` with its test, and `page.tsx`), approved by Developer A under D-98 and AM-26.
 
 ## 8. Verification Evidence
 
@@ -104,15 +105,14 @@ Agent reports were treated as proposals and checked against the code before use.
 - Untrusted input and prompt-injection treatment: stored model output is revalidated against D-87 and the stored sample at read time and rendered as React-escaped text; logs carry IDs, counts and outcome kinds only.
 - Secret and production-data exposure check: no secrets in code, tests or logs; gitleaks not run.
 - Agent permission and tool limits: analyst and architect were read-only; no push or PR.
-- Human approval gates exercised: the human authorized delegated decisions and commits; Developer A approval remains pending.
+- Human approval gates exercised: the human authorized delegated decisions and commits; Developer A then approved D-98 and AM-26, as reported by Developer B.
 - SoC LLM quota/resource considerations: no live provider calls; marker fake only.
-- Security findings and disposition: C-1 (cron guard accepted unauthenticated calls when `CRON_SECRET` was unset) fixed under AM-26, pending Developer A's approval.
+- Security findings and disposition: C-1 (cron guard accepted unauthenticated calls when `CRON_SECRET` was unset) fixed under AM-26, approved by both developers.
 
 ## 10. Gaps, Failures, and Next Actions
 
 | Gap/failure/unverified claim | Impact | Owner | Next action or approval required |
 | --- | --- | --- | --- |
-| D-98, AM-26, `guards.ts` and `page.tsx` changes not approved by Developer A | Blocks merge | Lim-ZY | Review and approve or amend |
 | AT-08/INV-09 through real review writes, real clearance and archive/restore | Blocks U-04 `Done` | Both | After U-02b, A-03/A-04 and D-84 exit |
 | D-95 index migration and R-04 deployment checks | Blocks U-04 `Done` | thegrimbee | Separate PR / release work |
 | No Playwright or manual accessibility check of the summary UI | Unverified UI behaviour in a browser | thegrimbee | Add with R-02 or a scoped decision |
