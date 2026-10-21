@@ -1,6 +1,6 @@
 # FreshApples Implementation Plan
 
-Status: **approved; S-02 is merged to `master`; S-07/A#2 is implemented on `feat/ui-shell` and awaiting human review**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`.
+Status: **approved; S-02, S-04 and S-07 are merged to `master`; U-01 is Ready**. Planning date: 12 October 2026 (SGT). S-01 merged to `master` in PR #5 (`9f77b53`, 15 Oct); S-03 merged to `master` in PR #6 (`ee62bd1`, 16 Oct); S-02 merged to `master` in PR #8 (`315ef06`, 17 Oct) from `feat/http-api-kernel` through `c51c92e`; S-07 merged in PR #10 (`54e5883`), and S-04 backend/auth UI in PRs #13 and #14.
 
 This is the L7 "Plan" artifact: it breaks the approved specifications in `spec/` into tasks, each with dependencies, scope, acceptance criteria and progress tracking. It adds no product behaviour. If this plan and `spec/` disagree, `spec/` wins and the conflict goes to a human (see `AGENTS.md`).
 
@@ -20,12 +20,12 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | S-01 | B | Config, database access, migrations, initial schema, Vitest harness | S-00 | 13 Oct | Merged (PR #5, `9f77b53`) |
 | S-02 | A | HTTP/API kernel (errors, validation, pagination, If-Match, no-store) | S-00 | 13 Oct | Merged (PR #8, `315ef06`) |
 | S-03 | B | Playwright, CI checks, health endpoints | S-01 | 14 Oct | Merged (PR #6, `ee62bd1`) |
-| S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Backend handoff ready; FR-01/AT-01 and operator evidence pending |
+| S-04 | A | Identity: accounts, sessions, CSRF, guards, login throttling, admin provisioning | S-01, S-02 | 14 Oct | Merged (PRs #13 and #14; backend and auth UI) |
 | S-05 | B | Audit and shared rate-limit primitives (decisions D-43–D-47 recorded 16 Oct) | S-01 | 14 Oct | Merged (PR #9, `56314c3`) |
 | S-06 | B | AI runtime: SoC adapter, deterministic fake, execution controller, quotas, leases | S-01, S-05 | 15 Oct | Ready |
-| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Human review (implemented on `feat/ui-shell`) |
-| U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Blocked |
-| U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Blocked |
+| S-07 | A | Shared UI shell and components (`/app`, `/admin` navigation split) | S-00 | 14 Oct | Merged (PR #10, `54e5883`) |
+| U-01 | A | Public catalogue, search, details, public announcements | S-02, S-07 | 15 Oct | Ready |
+| U-02 | A | Review lifecycle, visibility transitions, aggregates, moderation hook | S-04, S-05, S-06 (interface) | 17 Oct | Ready |
 | U-03 | A | Report submission and reporter-only history | U-02 | 18 Oct | Blocked |
 | U-04 | A | Scheduled public review summary (AI-01) | U-02, S-06 | 19 Oct | Blocked |
 | A-01 | B | Admin movie CRUD, archive and restore | S-04, S-05, S-07 | 15 Oct | In progress: API (B#6 commit 1, `740533a`) done; UI (commit 3) pending; archive/restore wiring waits on U-02 (D-84) |

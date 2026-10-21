@@ -578,6 +578,13 @@ Design decision D-78 (S-06 wiring, configuration and test details): Recorded by 
 - **Adapter testing:** the SoC adapter takes `fetch` as a constructor dependency, and the composition root passes the global `fetch`. One `LlmProvider` contract suite runs against `FakeLlmProvider` and against the adapter with a stub `fetch` (contracts §1 rule 7). Tests make no network call.
 - **Marker fake file:** `marker-fake-provider.ts` in `src/server/adapters/soc-llm/`, so the D-71 boundary check does not match it.
 
+Design decision D-79 (U-01 public read boundaries and query semantics): Recorded by Lim-ZY on 20 October 2026 after the U-01 analyst and architect review; approved by the human developer before implementation.
+- U-02 owns the visible public review listing and `GET /movies/:id/reviews`. U-01 owns movie metadata, public aggregates, movie listing/search, and published announcement reads.
+- The public Announcement DTO contains `id`, `publishedAt`, `title`, `body`, and `movie`. `movie` is `{ id, title }` only for an active referenced Movie; it is `null` for no reference or an archived referenced Movie. The announcement itself remains public when its associated Movie is archived.
+- `release_desc` places null release dates last and uses ascending Movie ID as its tie-breaker. `title_asc` uses case-insensitive title ordering and ascending Movie ID as its tie-breaker.
+- `q` is trimmed before validation and matching. Omitted, empty and whitespace-only values mean no title filter. Non-empty values are limited to 200 Unicode code points.
+- Public pages are Server Components that call read services directly; public Route Handlers remain the versioned HTTP contract for browser/API consumers. Both paths use the same public DTOs and projection rules.
+
 Suggested enhancements, in priority order: private watchlist; spoiler controls; genre filters; admin report-age/AI-failure statistics. Each requires its own requirement and acceptance update before implementation.
 
 Design decision D-72 (Frontend route/layout structure): Recorded by Lim-ZY on 17 October 2026. Renumbered from a duplicate D-49 on 18 October 2026; D-49 is the moderation prompt and policy versions decision. S-07 logs and `tests/unit/ui-shell/route-shells.test.ts` cite this decision as D-49

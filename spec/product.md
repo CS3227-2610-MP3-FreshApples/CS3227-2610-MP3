@@ -96,7 +96,7 @@ Duplicate normalized email, invalid credentials, expired session and suspended a
 
 #### Requirements
 
-Show paginated text listings with title, release year, genres, average rating and review count. Support case-insensitive title search and newest-release/title sorting. Detail pages include synopsis, director, cast, release date, genres, runtime and visible reviews.
+Show paginated text listings with title, release year, genres, average rating and review count. Support case-insensitive title search and newest-release/title sorting. Detail pages include synopsis, director, cast, release date, genres, runtime and visible reviews. U-01 owns the public movie metadata and aggregate read; U-02 owns the visible review listing and its public endpoint.
 
 #### Acceptance Criteria
 
@@ -180,7 +180,7 @@ Drafts never appear through public APIs. Publishing exposes the approved content
 
 #### Edge Cases
 
-Archived associated Movies do not break the announcement. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
+Archived associated Movies do not break the announcement: the public announcement remains readable and its movie reference is null while the Movie is archived. Empty or oversized content is rejected. Publishing again uses a new publication timestamp.
 
 D-79–D-81 define the transitions: only draft-to-published sets a new publication timestamp; edits of published content are immediately public without resetting that timestamp. Unpublish and delete retain it. Deletion is terminal: Admins can read deleted records but cannot PATCH them back to life; repeated deletion with the current version is an audited no-op. Existing archived Movies may be assigned as references. Public ordering is publication time descending, then ID ascending. Every mutation is audited atomically, including combined content/state updates and no-ops.
 
