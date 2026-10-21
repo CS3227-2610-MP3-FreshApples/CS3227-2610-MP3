@@ -87,6 +87,18 @@ describe("authorization guards", () => {
     if (label === "admin session is irrelevant") expect(result).toEqual({ ok: true, value: undefined });
     else expect(result).toEqual({ ok: false, error: { kind: "unauthenticated" } });
   });
+
+  it.each([
+    [undefined, "no header"],
+    ["Bearer ", "empty bearer"],
+    ["Bearer", "bare scheme"],
+    ["Basic ", "empty basic"],
+    ["Bearer x", "any credential"],
+  ])("rejects every cron caller when CRON_SECRET is not configured (%s, D-98)", (authorization, label) => {
+    const guards = createAuthGuards({ authService: { resolveSession: vi.fn() }, csrfService: { verifyOrigin: vi.fn(), verifyToken: vi.fn() }, securityLog: createRecordingSecurityLog(), cronSecret: "", publicAppUrl: "https://app.example.test", hosted: true });
+    const headers: Record<string, string> = authorization === undefined ? {} : { authorization };
+    expect(guards.requireCronCaller(new Request("https://app.example.test/internal/cron", { headers })), label).toEqual({ ok: false, error: { kind: "unauthenticated" } });
+  });
 });
 
 describe("Identity account status", () => {
