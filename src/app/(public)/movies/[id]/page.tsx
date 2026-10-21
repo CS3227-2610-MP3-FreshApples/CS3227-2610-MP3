@@ -5,6 +5,7 @@ import { PublicReadUnavailable } from "../../../../components/public-read-unavai
 import { publicCatalogueReadService } from "../../../../server/composition";
 import { parseId } from "../../../../server/http";
 import { ReviewSummarySection } from "./_components/review-summary";
+import { PublicReviewList } from "./_components/public-review-list";
 
 type MovieDetailsPageProps = Readonly<{
   params: Promise<{ readonly id: string }>;
@@ -41,8 +42,9 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
       </section>
       <section className="rounded-xl border border-slate-200 bg-white p-6" aria-labelledby="community-reviews-title">
         <h2 className="text-xl font-semibold text-slate-950" id="community-reviews-title">Community reviews</h2>
-        {movie.reviewCount === 0 ? <p className="mt-3 text-slate-600" role="status">No community ratings yet.</p> : <p className="mt-3 text-slate-600">Reviews will appear here once the public review listing is available.</p>}
+        {movie.reviewCount === 0 ? <p className="mt-3 text-slate-600" role="status">No community ratings yet.</p> : null}
       </section>
+      <PublicReviewList movieId={movie.id} />
       <ReviewSummarySection movieId={movie.id} />
     </article>
   );
