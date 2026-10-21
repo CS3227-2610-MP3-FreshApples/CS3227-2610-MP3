@@ -4,7 +4,7 @@ Status: **approved by both developers on 12 October 2026 (S-00).** Drafted by th
 
 A-01/A-02 clarification (19 October 2026): D-79–D-81 are recorded under the current human requester's delegated decision authority. Their edits to §3.3, K2 and K5 change no signatures. **Status: approved by both developers (Lim-ZY and thegrimbee) on 20 October 2026.** The K8 no-op wording and K2 historical notes are corrected to match existing authoritative specifications.
 
-Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers. The U-04a amendments (§26) are approved by both developers.
+Source revision: `f1266e6` on `feat/ai-catalogue-contracts`. The S-00, S-01, S-03 and S-05 amendments, the D-48 amendment, the S-02 clarification AM-12, the B#4 amendments and the B#4 architect-review amendments (§17–§23) are approved by both developers. The U-04a amendments (§26) are approved by both developers. The U-04a architect-review amendments (§27) await Developer A's approval.
 
 - `spec/` is authoritative. If this file and `spec/` disagree, `spec/` wins and the conflict goes to a human (`AGENTS.md`).
 - Owners and purposes come from [PLAN.md §5](PLAN.md). This file adds signatures, outcomes, locks, transaction rules and fakes.
@@ -943,3 +943,11 @@ These amendments came from the U-04a analyst preflight. Developer B (thegrimbee)
 | --- | --- | --- |
 | AM-23 | K10 summary consumer. The summary `AiExecutionRequest` has the `summary` descriptor with `promptVersion` `review-summary-prompt-v1`. Its input is a `system` message and one `user` message; `maxOutputTokens` is 1,200. `snapshot` is `{ movieId, reviewsRevision, eligibleCount, sample }`, with no Review text. `validate` applies the D-87 schema against the included labels. `publish` follows §3.3: K7 `lockActiveMovieForUpdate` (unavailable gives `stale`), then the captured-revision comparison (a mismatch gives `stale`), then the ReviewSummary insert, then K7 `recordSummaryPublished` (`stale` passes through). K10's `withTransactionResult` rolls back every write on `stale`. The runtime index also exports the AI-03 `estimateInputTokens`, so summary reduction and the K10 cap use one implementation. `MarkerFakeLlmProvider` gains the `summary` outcome (D-87); it no longer fails closed for that marker, and its conformance test ships with B#13 (D-70) | D-86, D-87, D-88 |
 | AM-24 | K7 and K10 summary-sweep consumer (B#14). The sweep runs inside `withSweepLease("summary_sweep", ...)`. Each K7 write is in its own short Tx: `lockActiveMovieForUpdate`, then `recordSummaryAttempt` with now + 1 day before generation, and with now after `deferred`, `disabled` or `duplicate`. No Tx is open when it calls generation or `run`. With `schedulerLeases` null it does nothing and returns zero counts | D-89 |
+
+## 27. U-04a architect-review amendments (21 October 2026)
+
+These amendments came from the U-04a architect preflight. Developer B (thegrimbee) delegated every choice to the agent's recommendations. **Status: recorded by Developer B; approval by Developer A (Lim-ZY) pending.** No signature in K7 or K10 changes.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-25 | K10 summary consumer, amending AM-23. After K7 `lockActiveMovieForUpdate` and the captured-revision comparison, `publish` returns `stale` when a ReviewSummary already exists for the same Movie, revision and current summary prompt version. A summary is current only at the Movie's revision and the current prompt version. `AiRuntime` (composition-internal, not part of K10) gains `summaryLimits: { sampleSize, inputTokenLimit } \| null`, null exactly when the D-52 stub is wired; the summary service is built only when it is non-null | D-93 |

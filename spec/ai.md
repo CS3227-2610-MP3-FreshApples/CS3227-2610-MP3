@@ -24,7 +24,7 @@ Input preparation, sampling, truncation, reduction and the prompt version (`revi
 }
 ```
 
-Provenance storage and result reuse are in D-88.
+Provenance storage and result reuse are in D-88; prompt-version retirement and the summary wiring are in D-93.
 
 The public UI shows generation time, included and eligible counts, truncation notice and the fixed label "AI summary of a sample; may miss opinions or make mistakes". Counts/times come from the server. Missing/stale output shows awaiting scheduled update with no generation/retry control. Zero to two Reviews show insufficient reviews. Reading a summary requires no account or job access. The public projection and state precedence are in D-90.
 
