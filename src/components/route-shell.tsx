@@ -11,11 +11,12 @@ type ShellLink = {
 type RouteShellProps = Readonly<{
   authAware?: boolean;
   children: React.ReactNode;
+  headerAction?: React.ReactNode;
   links: readonly ShellLink[];
   title: string;
 }>;
 
-export function RouteShell({ authAware = false, children, links, title }: RouteShellProps) {
+export function RouteShell({ authAware = false, children, headerAction, links, title }: RouteShellProps) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <a
@@ -32,7 +33,10 @@ export function RouteShell({ authAware = false, children, links, title }: RouteS
           >
             {title}
           </Link>
-          <RouteNavigation authAware={authAware} label={`${title} navigation`} links={links} />
+          <div className="flex flex-wrap items-center justify-end gap-4">
+            <RouteNavigation authAware={authAware} label={`${title} navigation`} links={links} />
+            {headerAction}
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8" id="main-content">{children}</main>
