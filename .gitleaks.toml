@@ -4,6 +4,17 @@ title = "CS3227-2610-MP3"
 [extend]
 useDefault = true
 
-# The allowlist is empty. A false positive may be allowed only through a reviewed [[allowlists]] entry
+# A false positive may be allowed only through a reviewed [[allowlists]] entry
 # that carries a justification comment (security.md "Development-process security"). Never allowlist a
 # real secret; rotate it instead.
+
+# D-29 / D-41: the cron integration test declares this synthetic placeholder and injects it with
+# vi.stubEnv; it is not a deployment credential. Match only this exact value in this exact test file.
+# AND is required: neither the path nor the value alone is an exception.
+[[allowlists]]
+description = "Synthetic cron authentication fixture (DEP-09 integration test)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/api/cron/summary-cron\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^synthetic-cron-secret-0123456789abcdef0123$''']

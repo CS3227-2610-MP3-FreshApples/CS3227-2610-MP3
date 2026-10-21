@@ -20,11 +20,18 @@ import {
   type SchedulerLeases,
 } from "./services/ai/runtime";
 import {
+  createConsolePublicSummaryReadLog,
+  createConsoleSummarySweepLog,
+  createDisabledSummarySweep,
+  createPublicSummaryReadService,
   createSummaryGeneration,
   createSummaryInputPreparation,
   createSummaryPublisher,
+  createSummarySweep,
   systemSeedSource,
+  type PublicSummaryReadService,
   type SummaryGeneration,
+  type SummarySweep,
 } from "./services/ai/summary";
 import { createAuditLog, createConsoleSecurityLog, type AuditLog, type SecurityLog } from "./services/audit";
 import {
@@ -44,7 +51,12 @@ import { assessReadiness, type Readiness, type ReadinessInput } from "./services
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAdminMovieRepository } from "./repositories/catalogue";
 import { createAccountRepository, createSessionRepository } from "./repositories/identity";
-import { createReviewSummaryRepository, createSummaryInputRepository } from "./repositories/summary";
+import {
+  createPublicSummaryReadRepository,
+  createReviewSummaryRepository,
+  createSummaryInputRepository,
+  createSummarySelectionRepository,
+} from "./repositories/summary";
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
 import { createReviewRepository } from "./repositories/reviews";
@@ -220,6 +232,43 @@ export const summaryGeneration: SummaryGeneration | null =
           schedule: summarySchedule,
           summaries: createReviewSummaryRepository({ sql: database }),
         }),
+      });
+
+/**
+ * U-04 summary sweep (D-89, D-98): `null` exactly when `database` is. The real sweep needs summary generation,
+ * the K10 sweep leases, K7 and AI configuration; otherwise the disabled sweep returns zero counts.
+ */
+export const summarySweep: SummarySweep | null =
+  database === null
+    ? null
+    : summaryGeneration === null
+        || schedulerLeases === null
+        || movieLocks === null
+        || summarySchedule === null
+        || !config.ai.enabled
+      ? createDisabledSummarySweep({ log: createConsoleSummarySweepLog() })
+      : createSummarySweep({
+          database,
+          leases: schedulerLeases,
+          selection: createSummarySelectionRepository({ sql: database }),
+          movieLocks,
+          schedule: summarySchedule,
+          generation: summaryGeneration,
+          limits: {
+            intervalDays: config.ai.value.summaries.intervalDays,
+            maxMoviesPerRun: config.ai.value.summaries.maxMoviesPerRun,
+          },
+          log: createConsoleSummarySweepLog(),
+        });
+
+/** FR-08 public summary read (D-90, D-98); `null` exactly when `database` is. It never calls K10. */
+export const publicSummaryReadService: PublicSummaryReadService | null =
+  database === null
+    ? null
+    : createPublicSummaryReadService({
+        database,
+        summaries: createPublicSummaryReadRepository({ sql: database }),
+        log: createConsolePublicSummaryReadLog(),
       });
 
 /** K9 ModerationWork queue (D-50); `null` exactly when `database` is. */
