@@ -86,13 +86,12 @@ describe("Admin UI module boundaries", () => {
 });
 
 describe("Admin UI initial render", () => {
-  it("presents unavailable Admin workspaces honestly without fabricated data or actions", () => {
+  it("presents the Admin users workspace with guarded loading state and no private fields", () => {
     for (const Page of [AdminUsersPage]) {
       const html = renderToStaticMarkup(createElement(Page));
-      expect(html).toContain('data-admin-state="unavailable"');
-      expect(html).toContain("No admin data is available yet.");
-      expect(html).toContain('href="/admin"');
-      expect(html).not.toContain("Suspend");
+      expect(html).toContain("Loading users…");
+      expect(html).not.toContain("email");
+      expect(html).not.toContain("strike");
       expect(html).not.toContain("Close report");
     }
   });
