@@ -34,6 +34,10 @@ import { createAuditLog } from "../../../../src/server/services/audit";
 import { createMovieLocks, createReviewsChangedMarker } from "../../../../src/server/services/catalogue";
 import { createRateLimiter, createRateLimitKeys } from "../../../../src/server/services/rate-limit";
 import { createReviewLocksAndReads, createReviewTransitions } from "../../../../src/server/services/reviews";
+import { createAdminReviewService } from "../../../../src/server/services/moderation/admin-reviews";
+import { createAdminReviewQueryRepository } from "../../../../src/server/repositories/moderation/admin-review-query-repository";
+import { createAdminReviewWorkRepository } from "../../../../src/server/repositories/moderation/admin-review-work-repository";
+import type { Principal } from "../../../../src/server/services/identity";
 import type { ContentRevision, RequestId, ReviewId } from "../../../../src/server/shared";
 import { createLoginRole, dropLoginRole } from "../../../setup/test-database.mjs";
 import { createManualTime } from "../../../support/fakes/manual-time";
@@ -547,11 +551,20 @@ describe("races during the provider call (AI-02: late output never overrides)", 
     const h = harness({
       script: [success(SUSPECTED)],
       duringCall: async () => {
-        // A-04 stand-in: approval with a reason, committed by another instance.
-        await owner.query(
-          "UPDATE app.review SET moderation_state = 'cleared', clearance_source = 'admin', version = version + 1 WHERE id = $1",
-          [seeded.reviewId],
-        );
+        // Real A-04 approval through K8 and K5, on another connection while the provider is in flight.
+        const admin = (await owner.query("INSERT INTO app.account (normalized_email, password_hash, display_name, role, status) VALUES ('race-admin@example.test', 'synthetic', 'Admin', 'ADMIN', 'active') RETURNING id")).rows[0];
+        const reviews = createReviewRepository({ sql: other });
+        const service = createAdminReviewService({
+          database: other,
+          queries: createAdminReviewQueryRepository({ sql: other }),
+          reviewLocks: createReviewLocksAndReads({ reviews, movieLocks: createMovieLocks({ sql: other }) }),
+          transitions: createReviewTransitions({ reviews, reviewsChangedMarker: createReviewsChangedMarker({ sql: other }) }),
+          work: createAdminReviewWorkRepository({ sql: other }),
+          auditLog: createAuditLog({ sql: other }),
+        });
+        const principal = { accountId: admin.id, role: "ADMIN", sessionId: "synthetic-session" } as Principal;
+        const result = await service.approve(principal, seeded.reviewId, 1 as import("../../../../src/server/shared").RowVersion, { reason: "Human reviewed the current text." }, REQUEST_ID);
+        expect(result).toMatchObject({ ok: true, value: { moderationState: "cleared", version: 2 } });
       },
     });
 
@@ -559,7 +572,8 @@ describe("races during the provider call (AI-02: late output never overrides)", 
 
     expect(await review(seeded.reviewId)).toMatchObject({ moderation_state: "cleared", clearance_source: "admin", version: 2 });
     expect(await count("review_moderation")).toBe(0);
-    expect(await count("audit_entry")).toBe(0);
+    expect(await count("audit_entry")).toBe(1);
+    expect((await owner.query("SELECT action, result FROM app.audit_entry")).rows).toEqual([{ action: "review.approve", result: "applied" }]);
     expect(await onlyWork(seeded.reviewId)).toMatchObject({ status: "superseded", execution_count: 0 });
     expect(await jobs()).toEqual([expect.objectContaining({ status: "stale", error_code: "publish_stale" })]);
   });
