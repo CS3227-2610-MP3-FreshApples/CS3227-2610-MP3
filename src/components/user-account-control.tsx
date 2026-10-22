@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { submitLogout } from "./auth-client";
+import { AdminHeaderAccountControl } from "./admin-header-account-control";
 
 type AccountProjection = Readonly<{
   displayName: string;
@@ -47,6 +48,8 @@ export function UserAccountControl() {
     setBusy(false);
     setMessage(result.message);
   }
+
+  if (account?.role === "ADMIN") return <AdminHeaderAccountControl displayName={account.displayName} />;
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-3" data-account-control="user">

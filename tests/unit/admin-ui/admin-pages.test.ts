@@ -22,6 +22,7 @@ import { EMPTY_MOVIE_FORM } from "../../../src/app/admin/_lib/movie-form";
 
 const ADMIN_DIR = resolve(process.cwd(), "src/app/admin");
 const K12_MODULES = new Set([
+  "admin-header-account-control",
   "confirmation-dialog",
   "form-primitives",
   "page-placeholder",
