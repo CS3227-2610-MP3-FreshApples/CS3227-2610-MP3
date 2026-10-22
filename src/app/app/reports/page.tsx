@@ -1,14 +1,16 @@
 import { Suspense } from "react";
 
 import { StatusMessage } from "../../../components/status-primitives";
+import { UserBackLink } from "../_components/user-ui";
 import { pageFromSearchParam } from "./_lib/report-client";
 import { ReportList } from "./_components/report-list";
 
-type UserReportsPageProps = Readonly<{ searchParams: Promise<Record<string, string | string[] | undefined>> }>;
+type UserReportsPageProps = Readonly<{ searchParams?: Promise<Record<string, string | string[] | undefined>> }>;
 
-export default function UserReportsPage({ searchParams = Promise.resolve({}) }: Partial<UserReportsPageProps> = {}) {
+export default function UserReportsPage({ searchParams = Promise.resolve({}) }: UserReportsPageProps) {
   return (
     <section className="space-y-8" aria-labelledby="user-reports-title">
+      <UserBackLink href="/app" label="Go back to overview" />
       <header className="max-w-3xl space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Your account</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl" id="user-reports-title">My reports</h1>

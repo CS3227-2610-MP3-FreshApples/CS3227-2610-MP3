@@ -1,10 +1,12 @@
 import Link from "next/link";
 
 import { RouteShell, publicNavigation } from "../components/route-shell";
+import { publicNavigationBase } from "../components/navigation-data";
+import { PublicUserAccountControl } from "../components/user-account-control";
 
 export default function Home() {
   return (
-    <RouteShell authAware links={publicNavigation} title="Movie Reviews">
+    <RouteShell authAware authLoadingLinks={publicNavigationBase} headerAction={<PublicUserAccountControl />} links={publicNavigation} title="FreshApples">
       <section className="grid gap-8 py-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:items-center lg:py-16" aria-labelledby="home-title">
         <div className="space-y-6">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">FreshApples Movie Reviews</p>

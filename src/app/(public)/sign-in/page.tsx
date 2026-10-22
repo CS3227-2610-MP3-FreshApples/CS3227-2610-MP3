@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import { resolveAuthDestination, submitLogin } from "../../../components/auth-client";
 import { TextField } from "../../../components/form-primitives";
-import { LiveRegion, StatusMessage } from "../../../components/status-primitives";
+import { StatusMessage } from "../../../components/status-primitives";
 
 export default function SignInPage() {
   const [message, setMessage] = useState("");
@@ -23,7 +23,7 @@ export default function SignInPage() {
 
     submissionInFlight.current = true;
     setSubmitting(true);
-    setMessage("Signing in…");
+    setMessage("");
     try {
       const result = await submitLogin({ email, password });
       if (!result.ok) {
@@ -53,8 +53,7 @@ export default function SignInPage() {
         </header>
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <LiveRegion message={message} />
-          {message && !message.endsWith("…") ? <StatusMessage status="error">{message}</StatusMessage> : null}
+          {message ? <StatusMessage status="error">{message}</StatusMessage> : null}
           <form className="mt-6 space-y-6" method="post" onSubmit={handleSubmit}>
             <TextField autoComplete="email" id="email" label="Email address" required type="email" />
             <TextField autoComplete="current-password" id="password" label="Password" required type="password" />

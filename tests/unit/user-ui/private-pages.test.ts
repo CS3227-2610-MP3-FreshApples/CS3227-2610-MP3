@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app", useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 import UserOverviewPage from "../../../src/app/app/page";
 import UserReviewsPage from "../../../src/app/app/reviews/page";
@@ -23,9 +23,13 @@ describe("private User pages", () => {
     expect(rendered).toContain("No published reviews yet");
     expect(rendered).toContain("No submitted reports yet");
     expect(rendered).toContain("rounded-xl");
-    expect(rendered).toContain('href="/">← Back to main page</a>');
+    expect(rendered).toContain('href="/movies">← Go back to movies</a>');
     expect(rendered).toContain('href="/app/reviews"');
+    expect(rendered).toContain('aria-labelledby="user-reviews-card-title"');
     expect(rendered).toContain('href="/app/reports"');
+    expect(rendered).toContain('aria-labelledby="user-reports-card-title"');
+    expect(rendered).not.toContain("View your reviews");
+    expect(rendered).not.toContain("View your reports");
   });
 
   it("renders private reviews and reports with safe available-state messaging", () => {
@@ -36,10 +40,12 @@ describe("private User pages", () => {
     expect(reviews).toContain("Loading reviews…");
     expect(reviews).toContain('aria-labelledby="user-reviews-title"');
     expect(reviews).toContain('aria-label="Review status"');
+    expect(reviews).toContain('href="/app">← Go back to overview</a>');
     expect(reports).toContain("My reports");
     expect(reports).toContain("No submitted reports yet");
     expect(reports).toContain("private");
     expect(reports).toContain("border-slate-200");
+    expect(reports).toContain('href="/app">← Go back to overview</a>');
   });
 
   it("keeps the private shell focused on User destinations", () => {
