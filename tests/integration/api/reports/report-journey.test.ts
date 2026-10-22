@@ -21,6 +21,7 @@ const { POST: submitReport } = await import("../../../../src/app/api/v1/reports/
 const { GET: listReports } = await import("../../../../src/app/api/v1/me/reports/route");
 const { GET: getReport } = await import("../../../../src/app/api/v1/me/reports/[id]/route");
 const { connectAsOwner, insertAccount, insertMovie, insertReview } = await import("../../database/schema-fixtures");
+import { MALICIOUS_REPORT_EXPLANATION } from "../../../ai-evaluation/containment-v1";
 
 const ORIGIN = "http://localhost:3000";
 
@@ -61,11 +62,11 @@ async function registerAndSignIn(email: string): Promise<Credentials> {
   return { session, csrfToken: (await boundCsrf.json()).csrfToken as string };
 }
 
-function reportRequest(credentials: Credentials, reviewId: string): Request {
+function reportRequest(credentials: Credentials, reviewId: string, explanation = "A valid report explanation."): Request {
   return request("/api/v1/reports", {
     method: "POST",
     headers: { "content-type": "application/json", origin: ORIGIN, cookie: `fa_session=${credentials.session}`, "x-csrf-token": credentials.csrfToken },
-    body: JSON.stringify({ reviewId, category: "spam", explanation: "A valid report explanation." }),
+    body: JSON.stringify({ reviewId, category: "spam", explanation }),
   });
 }
 
@@ -87,7 +88,7 @@ describe("U-03 report API — PostgreSQL journey", () => {
     const reviewId = await insertReview(owner, movieId, authorId);
     await owner.query("UPDATE app.review SET moderation_state = 'cleared' WHERE id = $1", [reviewId]);
 
-    const submitted = await submitReport(reportRequest(credentials, reviewId));
+    const submitted = await submitReport(reportRequest(credentials, reviewId, MALICIOUS_REPORT_EXPLANATION));
     expect(submitted.status).toBe(201);
     expect(submitted.headers.get("cache-control")).toBe("no-store");
     const receipt = await submitted.json();
@@ -113,6 +114,7 @@ describe("U-03 report API — PostgreSQL journey", () => {
     const stored = await owner.query<{ evidence_snapshot: unknown; reporter_id: string }>("SELECT evidence_snapshot, reporter_id FROM app.report WHERE id = $1", [receipt.id]);
     expect(stored.rows[0]?.reporter_id).toBe(reporterId);
     expect(stored.rows[0]?.evidence_snapshot).toBeTruthy();
+    expect(JSON.stringify(receipt)).not.toContain(MALICIOUS_REPORT_EXPLANATION);
 
     const duplicate = await submitReport(reportRequest(credentials, reviewId));
     expect(duplicate.status).toBe(409);
