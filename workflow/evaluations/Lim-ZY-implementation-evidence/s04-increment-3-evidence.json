@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-increment-3-remediation",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 — Authentication services and HTTP handlers",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "S-04 implementation plan and prior human approval for Increment 3 continuation."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "User explicitly requested continuation of Increment 3 remediation and prohibited Increment 4."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s04-increment-3-baseline.86UBdF at commit 606ca6bbcb5b038e8887a6cfddd6cd11c59e8a23; reused as explicitly authorized."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused remediation tests initially failed: register invoked authService before CSRF; logout/CSRF cookie assertions exposed mock/header issues."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Production edits to registration validation ordering and response Set-Cookie handling, plus test fixture corrections."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "npm run test:unit -- --run tests/unit/auth tests/unit/identity/auth-service.test.ts — 3 files, 11 tests passed."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Full unit, type-check, lint, and a subsequent authorized loopback integration run passed; the production build still failed with the recorded Turbopack process-binding error."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/visual-diff.html generated against baseline 606ca6bbcb5b038e8887a6cfddd6cd11c59e8a23; 15 changed files, 222 unchanged."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Manifest complete; deterministic grader invoked after this file was written."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Register validates request fields and performs Origin/CSRF checks before account creation side effects.", "verdict": "PASS", "evidence": ["tests/unit/auth/routes.test.ts", "validateRegistrationInput in src/server/services/identity/account.ts"]},
+    {"id": "AC-2", "description": "Login, logout, /auth/me, and /auth/csrf handlers return safe responses with request IDs and session/pre-session cookies.", "verdict": "PASS", "evidence": ["tests/unit/auth/api-routes.test.ts", "src/app/api/v1/auth/*/route.ts"]},
+    {"id": "AC-3", "description": "D-44 login sequence checks both limits before credential verification and consumes both failure limits on failed authentication.", "verdict": "PASS", "evidence": ["tests/unit/identity/auth-service.test.ts", "352 passing unit tests"]},
+    {"id": "AC-4", "description": "Required repository validation is complete.", "verdict": "UNVERIFIABLE", "evidence": ["Authorized loopback integration run passed with 282 tests", "Next build still failed in Turbopack worker creation"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- --run tests/unit/auth tests/unit/identity/auth-service.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0, "result": "23 files, 352 tests passed"},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "set -a; . ./.env; set +a; npm run test:integration", "required": true, "status": "PASS", "exit_code": 0, "result": "8 files, 282 tests passed against disposable loopback PostgreSQL."},
+    {"command": "npm run build", "required": true, "status": "FAIL", "exit_code": 1, "reason": "Next/Turbopack failed creating a worker while processing src/app/globals.css.css: Operation not permitted."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changes remain within Increment 3 identity services, auth handlers, tests, evidence, and required interaction log; no Increment 4 work or commit."},
+  "claims_review": {"verdict": "PASS", "evidence": "Unavailable integration and failed build are explicitly recorded; checklist remains incomplete."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-increment-3-baseline.86UBdF",
+    "baseline_digest": "606ca6bbcb5b038e8887a6cfddd6cd11c59e8a23",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "606ca6bbcb5b038e8887a6cfddd6cd11c59e8a23"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

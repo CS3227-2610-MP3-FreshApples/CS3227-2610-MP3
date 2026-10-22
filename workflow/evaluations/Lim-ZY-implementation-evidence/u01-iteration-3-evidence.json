@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-iteration-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Add public GET Route Handlers using K2 and focused API boundary tests",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved _temp/u01-plan.md earlier in this conversation."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human explicitly requested proceeding with the next iteration and authorized the main agent to implement it."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/u01-iteration-3-direct-baseline-3YS3MY; commit f5d1af9f2486f2682bd466d6e8d5c74c8e9d3ca7"},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-api-routes.test.ts exited 1 because src/app/api/v1/movies/route did not exist."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Added composition wiring and three public GET Route Handler files."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused route tests exited 0; 1 file and 6 tests passed."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Full unit: 47 files/712 tests passed; type-check, lint and diff checks passed; build skipped under human-approved Turbopack permission exception."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-iteration-3-visual-diff.html; 5 changed files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence bundle complete."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Movie list returns the standard paginated public envelope with request ID and no-store headers.", "verdict": "PASS", "evidence": ["tests/unit/catalogue/public-api-routes.test.ts"]},
+    {"id": "AC-2", "description": "Invalid pagination, q and sort return 422 without invoking the service.", "verdict": "PASS", "evidence": ["tests/unit/catalogue/public-api-routes.test.ts"]},
+    {"id": "AC-3", "description": "Malformed, unknown and archived Movie IDs use the same public 404 contract.", "verdict": "PASS", "evidence": ["tests/unit/catalogue/public-api-routes.test.ts"]},
+    {"id": "AC-4", "description": "Published Announcements return the standard paginated envelope.", "verdict": "PASS", "evidence": ["tests/unit/catalogue/public-api-routes.test.ts"]},
+    {"id": "AC-5", "description": "Read dependency failures map to safe 503 responses.", "verdict": "PASS", "evidence": ["tests/unit/catalogue/public-api-routes.test.ts"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/catalogue/public-api-routes.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Human-approved recurring Turbopack permission restriction; not reported as successful."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only public GET handlers, composition wiring, focused tests and required evidence/disclosure changed."},
+  "claims_review": {"verdict": "PASS", "evidence": "Handoff matches actual red/green and validation outputs and accurately records the skipped build."},
+  "artifacts": {
+    "baseline_path": "/tmp/u01-iteration-3-direct-baseline-3YS3MY",
+    "baseline_digest": "f5d1af9f2486f2682bd466d6e8d5c74c8e9d3ca7",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-iteration-3-visual-diff.html",
+    "visual_diff_baseline_digest": "f5d1af9f2486f2682bd466d6e8d5c74c8e9d3ca7"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

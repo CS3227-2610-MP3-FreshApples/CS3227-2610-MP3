@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u03-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — POST /api/v1/reports and reporter-only report history routes",
+  "events": [
+    {"sequence": 1, "type": "continuation_approved", "evidence": "Human explicitly approved proceeding with the next iteration in the conversation on 2026-10-21 after the Increment 1 handoff."},
+    {"sequence": 2, "type": "plan_approved", "evidence": "Increment 2 was the next approved item in _temp/u03-plan.md: POST /api/v1/reports and reporter-only report history routes."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-2-baseline at commit a68c02a2f4a1e57d558707e9c75fdbb3cc231edb."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/moderation/report-routes.test.ts failed before route implementation because the route modules were not yet implemented."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "First production edits added the POST report route and reporter-only list/detail routes."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/moderation/report-routes.test.ts exited 0 with 6 tests passed."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit exited 0 (80 files/1563 tests); integration exited 0 (38 files/648 tests); lint, typecheck, and git diff --check exited 0."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "Generated _temp/u03-iteration-2-visual-diff.html from the refreshed Increment 2 baseline."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest completed with acceptance criteria, checks, scope/claims reviews, and visual artifact."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "POST /api/v1/reports validates an authenticated mutation, submits only the service payload, and returns a safe receipt.", "verdict": "PASS", "evidence": ["report-routes.test.ts: creates a report", "report-journey.test.ts: submits a report", "evidence snapshot is absent from the response"]},
+    {"id": "AC-2", "description": "GET /api/v1/me/reports returns stable paginated reporter-only receipts.", "verdict": "PASS", "evidence": ["report-routes.test.ts: lists only the authenticated reporter", "report-journey.test.ts: reads reporter history", "repository orders by created_at DESC, id ASC"]},
+    {"id": "AC-3", "description": "GET /api/v1/me/reports/:id protects ownership and returns not found for an unavailable report.", "verdict": "PASS", "evidence": ["report-routes.test.ts: ownership-protected detail", "report-routes.test.ts: null detail returns 404"]},
+    {"id": "AC-4", "description": "Report submission persists the immutable evidence snapshot and exposes only the reporter projection.", "verdict": "PASS", "evidence": ["report-journey.test.ts verifies stored evidence_snapshot", "report-journey.test.ts verifies response redaction"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/moderation/report-routes.test.ts", "required": true, "status": "PASS", "exit_code": 0, "summary": "6 tests passed"},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0, "summary": "80 files, 1563 tests passed"},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0, "summary": "38 files, 648 tests passed"},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Skipped per explicit human instruction because of permissions issues."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changes are limited to U-03 report routes/services/repository, tests, and required workflow/log evidence; pre-existing test-results changes remain untouched."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are supported by the focused/API/database tests and recorded validation commands; no commit or push was performed."},
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-2-baseline",
+    "baseline_digest": "a68c02a2f4a1e57d558707e9c75fdbb3cc231edb",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u03-iteration-2-visual-diff.html",
+    "visual_diff_baseline_digest": "a68c02a2f4a1e57d558707e9c75fdbb3cc231edb"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

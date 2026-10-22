@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-k4-increment-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 -- expose a type-safe K4 account-status provider",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved checklist is _temp/s04-review-remediation-plan.md; Increment 2 is the next unchecked item after the completed Increment 1 handoff."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "After the Increment 1 handoff, the human explicitly replied on 2026-10-17: 'Great proceed with the next iteration'."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "Complete external hard-linked working-tree snapshot excluding only the real .git directory at /home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-k4-increment-2-baseline; temporary baseline commit a20496806708ae01ed326609fb143b3b9a102d12."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "`npm run test:unit -- tests/unit/identity/authorization-and-status.test.ts` exited 1: the missing-role and invalid-role cases returned ok:true instead of not_user_target; 2 failed and 10 passed. This is the intended unsafe optional-role behavior."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "After the confirmed red result, production edits made the repository lock role structurally required at the narrowing boundary, default-denied every role except USER, and composed K4 from Identity repositories in src/server/composition.ts."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "`npm run test:unit -- tests/unit/identity/authorization-and-status.test.ts` exited 0; 1 file and 12 tests passed, including ADMIN, missing-role, invalid-role, suspension, revocation, and reinstatement behavior."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Focused PostgreSQL integration exited 0 (2 files/6 tests); full unit exited 0 (28 files/403 tests); full integration exited 0 (14 files/304 tests); `npx tsc --noEmit`, `npm run lint`, and `git diff --check` exited 0. An initial sandboxed DB attempt failed with EPERM and the first escalated retry found no server; neither is claimed as validation. The repository-prescribed disposable PostgreSQL 17 container was then started on loopback and the tests passed."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit a20496806708ae01ed326609fb143b3b9a102d12 with its refreshed worktree and wrote _temp/visual-diff.html; final generator summary: 11 changed files and 307 unchanged files."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "The approved plan, requirements, raw test results, baseline-derived visual diff, scope, claims, and this evidence bundle are complete for semantic and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "K4-COMPOSITION",
+      "description": "The composition root exposes AccountStatusService only when its database-backed Identity repositories are available.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/identity/account-status-composition.test.ts covers invalid-core null and valid-dependency service availability.",
+        "src/server/composition.ts constructs K4 with createAccountRepository and createSessionRepository."
+      ]
+    },
+    {
+      "id": "K4-ROLE-SAFETY",
+      "description": "The repository role is structurally required and only USER targets are accepted; ADMIN, missing, and invalid runtime roles are denied.",
+      "verdict": "PASS",
+      "evidence": [
+        "The focused red test observed missing and MODERATOR roles incorrectly return ok:true before production changes.",
+        "tests/unit/identity/authorization-and-status.test.ts passes ADMIN, missing-role, and invalid-role denial cases after the default-deny change."
+      ]
+    },
+    {
+      "id": "K4-SUSPEND-ATOMICITY",
+      "description": "Suspension changes Account status and revokes sessions in the caller's transaction, with rollback preserving both.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/identity/account-status-atomicity.test.ts passes commit, rollback, and competing-write cases against PostgreSQL.",
+        "Focused PostgreSQL integration passed 2 files/6 tests."
+      ]
+    },
+    {
+      "id": "K4-REINSTATEMENT",
+      "description": "Reinstatement advances the strike cycle without restoring revoked sessions.",
+      "verdict": "PASS",
+      "evidence": [
+        "The PostgreSQL reinstatement case observes active/version 3/strikeCycle 1 and zero sessions after suspend then reinstate.",
+        "The unit status case verifies the strike cycle advances from 0 to 1."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/identity/authorization-and-status.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "1 file, 12 tests passed after implementation and after final test refactor."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration -- tests/integration/identity/account-status-composition.test.ts tests/integration/identity/account-status-atomicity.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "2 files, 6 tests passed against the disposable loopback PostgreSQL database."
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "28 files, 403 tests passed."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "14 files, 304 tests passed against the disposable loopback PostgreSQL database."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Baseline-derived status lists only K4 composition, K4 role narrowing, matching unit/integration tests, this iteration evidence, and the existing session disclosure log. No Increment 3, bootstrap migration, dependency, or unrelated application change was made."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Reported pass counts and limitations match raw command results; the unsuccessful pre-database integration attempts are disclosed and are not claimed as validation."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-k4-increment-2-baseline",
+    "baseline_digest": "a20496806708ae01ed326609fb143b3b9a102d12",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "a20496806708ae01ed326609fb143b3b9a102d12"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

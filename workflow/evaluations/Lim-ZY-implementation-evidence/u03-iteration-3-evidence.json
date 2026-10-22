@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u03-iteration-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 — User report-submission and reporter-history UI",
+  "events": [
+    {"sequence": 1, "type": "continuation_approved", "evidence": "Human explicitly approved proceeding with the next iteration in the conversation on 2026-10-21 after the Increment 2 handoff."},
+    {"sequence": 2, "type": "plan_approved", "evidence": "Increment 3 was the next item in _temp/u03-plan.md: User report-submission and reporter-history UI, including the public Review report action."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-3-baseline at commit f09efcb7d2ba24df3cff1493369f0e8a6f4a8243."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/user-ui/report-client.test.ts tests/unit/user-ui/public-review-list.test.ts failed because the new report client and public review component did not exist."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Added the report client/list, public review list/card, report dialog, receipt messaging and Movie-page/private-report-page wiring."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused UI tests exited 0 with 3 files and 6 tests passed."},
+    {"sequence": 7, "type": "initial_validation_completed", "evidence": "npm run test:unit exited 0 with 82 files/1566 tests; npm run lint, npx tsc --noEmit and git diff --check exited 0."},
+    {"sequence": 8, "type": "initial_visual_diff_created", "evidence": "Generated _temp/u03-iteration-3-visual-diff.html from the Increment 3 baseline."},
+    {"sequence": 9, "type": "initial_grade_requested", "evidence": "Evidence manifest completed with acceptance criteria, checks, scope/claims reviews and visual artifact."},
+    {"sequence": 10, "type": "independent_review", "evidence": "reviewer_tester and code_quality_test_generator independently identified duplicate-conflict mapping, UI error-state, response-validation, accessibility, stale-copy, incorrect-link and negative-test gaps."},
+    {"sequence": 11, "type": "review_remediation", "evidence": "Mapped SQLSTATE 23505 to conflict, separated review/auth loading, added retry/error states, strict Zod schemas, strict ISO-UTC response validation, field-level 422 errors, bounded validation, focus trapping/restoration and receipt timestamps, removed the invalid report link and stale copy, and added duplicate/cross-user integration coverage."},
+    {"sequence": 12, "type": "validation_completed", "evidence": "Focused remediation checks passed; full unit passed (82 files/1574 tests); focused report integration and full integration passed (38 files/648 tests); lint, typecheck and diff-check passed."},
+    {"sequence": 13, "type": "visual_diff_created", "evidence": "Refreshed _temp/u03-iteration-3-visual-diff.html after review remediation."},
+    {"sequence": 14, "type": "grade_requested", "evidence": "Corrected implementation evidence bundle completed after independent review remediation."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Published Review cards show safe plain text, author, rating, timestamps and edited state.", "verdict": "PASS", "evidence": ["public-review-list.test.ts verifies escaped text and Edited label", "PublicReviewCard renders whitespace-pre-wrap break-words and time"]},
+    {"id": "AC-2", "description": "A signed-in User can report another User through an accessible modal with the recorded category and explanation fields.", "verdict": "PASS", "evidence": ["report-client.test.ts verifies CSRF and POST submission", "ReportDialog contains labelled category/select, 10–1,000-character explanation, Cancel and Submit report controls", "PublicReviewCard suppresses the action for unauthenticated users and the author"]},
+    {"id": "AC-3", "description": "Successful submission shows only a reporter-safe receipt and links to private report history.", "verdict": "PASS", "evidence": ["PublicReviewList renders Report submitted, category, awaiting-review status, submitted time and /app/reports link", "No evidence snapshot or explanation is rendered"]},
+    {"id": "AC-4", "description": "My reports loads private history with safe empty/error states and pagination.", "verdict": "PASS", "evidence": ["report-client.test.ts verifies no-store history request", "ReportList uses reporter API, safe messages and shared pagination", "private-pages.test.ts remains green"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/user-ui/report-client.test.ts tests/unit/user-ui/public-review-list.test.ts tests/unit/user-ui/private-pages.test.ts tests/unit/moderation/report-submission.test.ts", "required": true, "status": "PASS", "exit_code": 0, "summary": "4 files, 21 tests passed"},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0, "summary": "82 files, 1574 tests passed"},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0, "summary": "38 files, 648 tests passed; focused report journey passed"},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Skipped per explicit human instruction because of permissions issues."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changes are limited to U-03 User/report UI, its tests and required workflow/log evidence; pre-existing test-results changes remain untouched."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are supported by independent review remediation, focused/full unit tests, report integration tests, lint, type-check, diff-check and the refreshed visual artifact; no commit or push was performed."},
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-3-baseline",
+    "baseline_digest": "f09efcb7d2ba24df3cff1493369f0e8a6f4a8243",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u03-iteration-3-visual-diff.html",
+    "visual_diff_baseline_digest": "f09efcb7d2ba24df3cff1493369f0e8a6f4a8243"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

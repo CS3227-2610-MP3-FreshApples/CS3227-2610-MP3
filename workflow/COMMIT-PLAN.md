@@ -6,7 +6,7 @@ Status: **approved; S-01–S-07 and U-01/A#4 are merged; U-02a/A#5 is merged in 
 
 This plan sets the order in which each developer opens PRs, which files each PR may touch, and which **sync points** require something to be on `master` first. Commit messages below are templates: humans make the commits (`AGENTS.md` § Git). Requirement IDs in messages are copied from `spec/`. Task IDs appear only in PR titles and bodies.
 
-Current state (22 Oct 2026): U-03/A#8 is merged in PR #25 (`d135824`); B#7/A-03 is merged in PR #26 (`aa0750f`); B#8/A-04 is merged in PR #28 (`0fccd91`); B#9/A-05 is merged in PR #29 (`cbbeec9`) with verification/release evidence still open. B#10/A-06 implementation and AT-25 validation are complete on `feat/admin-user-status`; human review and commit approval remain pending.
+Current state (22 Oct 2026): U-03/A#8 is merged in PR #25 (`d135824`); B#7/A-03 is merged in PR #26 (`aa0750f`); B#8/A-04 is merged in PR #28 (`0fccd91`); B#9/A-05 is merged in PR #29 (`cbbeec9`) with verification/release evidence still open; and B#10/A-06 is merged in PR #32 (`8c003fd`). The feature dependencies for SP-6 are now on `master`; R-01/R-02 evidence remains open and is delivered by A#11/B#12.
 
 ## 1. Why a commit plan helps here
 
@@ -68,7 +68,7 @@ Merge everything listed for a sync point to `master` before the dependent PRs th
 | A#8 | U-03 | `feat/moderation-report-submission` | `feat(moderation): submit report with evidence snapshot (FR-04, INV-04, INV-07)` · `feat(moderation): reporter-only report history` · `feat(ui): report user flow` | report-submission service, `/reports`, `/me/reports`, pages | A#7 | Merged (PR #25, `d135824`) (**SP-5**); R-02 two-user/two-role evidence remains |
 | A#9 | — | — | Reassigned to Developer B as B#13 (D-85) | — | — | Moved |
 | A#10 | — | — | Reassigned to Developer B as B#14 (D-85) | — | — | Moved |
-| A#11 | R-01/R-02 | `test/user-security-e2e` | `test(ai): summary benign and adversarial fixtures (AT-11)` · `test(e2e): user journey` · `test(api): user access matrix (AT-01, AT-04)` | `tests/` | SP-6 | Planned |
+| A#11 | R-01/R-02 | `test/user-security-e2e` | `test(ai): summary benign and adversarial fixtures (AT-11)` · `test(e2e): user journey` · `test(api): user access matrix (AT-01, AT-04)` | `tests/` | SP-6 | **In progress on `test/user-security-e2e`; deterministic fixtures and unit access guards are present, while database-backed matrix and User journey evidence remain. R-01/R-02 remain open.** |
 | A#12 | R-05 | `docs/user-guide-site` | `docs: user guide and product site for release` | `docs/UserGuide.md`, `docs/*.md` (site) | SP-6 | Planned |
 
 ## 5. Developer B: Admin role + database, CI/deploy, audit, AI infrastructure

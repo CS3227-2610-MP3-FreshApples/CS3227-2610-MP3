@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-public-read-unavailable",
+  "iteration_number": 1,
+  "approved_plan_item": "Render a safe, accessible unavailable state on the three affected public pages.",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human directly requested a fix for the reported public-announcement read-service runtime error."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/u01-unavailable-page-baseline-Ujtso8 at 9cd3583908c308196de9f31a616b999b7c21f45f"
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run tests/unit/catalogue/public-pages-unavailable.test.ts exited 1: AnnouncementsPage threw 'Public announcement read service is unavailable.'."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "Added the PublicReadUnavailable presentation component and replaced null-service throws in the three U-01 public pages."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run tests/unit/catalogue/public-pages-unavailable.test.ts tests/unit/catalogue/public-pages.test.ts exited 0: 2 files, 5 tests passed."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit exited 0 (49 files, 717 tests); npx tsc --noEmit, npm run lint, and git diff --check exited 0."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "_temp/u01-unavailable-page-fix-visual-diff.html"
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Evidence bundle complete; deterministic and second-pass grading pending."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "When a public read service is unavailable, the public Movie list, Movie detail, and Announcements pages render a safe accessible message instead of throwing a composition error.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/catalogue/public-pages-unavailable.test.ts",
+        "src/components/public-read-unavailable.tsx"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npx vitest run tests/unit/catalogue/public-pages-unavailable.test.ts tests/unit/catalogue/public-pages.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run build",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "Skipped under the human-approved Turbopack permission exception; a previous attempt was blocked by the environment's CSS-worker process/port restriction."
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Only the reported nullable public-read service path, its rendering regression test, session log, and required handoff evidence changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "workflow/handoffs/u01-public-read-unavailable.md agrees with the recorded test and validation results."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/u01-unavailable-page-baseline-Ujtso8",
+    "baseline_digest": "9cd3583908c308196de9f31a616b999b7c21f45f",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-unavailable-page-fix-visual-diff.html",
+    "visual_diff_baseline_digest": "9cd3583908c308196de9f31a616b999b7c21f45f"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

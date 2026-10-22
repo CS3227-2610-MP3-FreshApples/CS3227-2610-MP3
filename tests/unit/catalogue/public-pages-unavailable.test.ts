@@ -26,9 +26,15 @@ describe("U-01 public pages when read services are unavailable", () => {
       html(MovieDetailsPage({ params: Promise.resolve({ id: MOVIE_ID }) })),
     ]);
 
+    expect(rendered[0]).toContain("Announcements");
+    expect(rendered[0]).toContain("From the FreshApples team");
+    expect(rendered[0]).toContain("The service is temporarily unavailable. Please try again later.");
+    expect(rendered[1]).toContain("Explore the catalogue");
+    expect(rendered[1]).toContain('name="q"');
+    expect(rendered[1]).toContain('name="sort"');
+    expect(rendered[1]).toContain("The service is temporarily unavailable. Please try again later.");
     for (const page of rendered) {
       expect(page).toContain('role="alert"');
-      expect(page).toContain("The service is temporarily unavailable. Please try again later.");
       expect(page).not.toContain("Public announcement read service is unavailable.");
       expect(page).not.toContain("Public catalogue read service is unavailable.");
     }

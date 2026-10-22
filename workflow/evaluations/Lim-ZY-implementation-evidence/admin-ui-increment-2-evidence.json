@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "admin-ui-increment-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Movie and Announcement Admin flows",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "The human-approved Developer B Admin UI plan selected the Movie and Announcement Admin flows as Increment 2."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human approved continuation after Increment 1 by saying: Great. Proceed with the next iteration."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/admin-ui-increment-2-baseline-g3AZ8d at commit 10df636a4770bf6fe522fea4b7af341fb25b8294; node_modules and .next were excluded because the /tmp quota could not hold them."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/ui-shell/k12-components-and-shell.test.ts; 1 failed, 6 passed because DataTable and Pagination had no responsive presentation hooks."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Edited the shared DataTable/Pagination presentation, Movie and Announcement list headers, and Movie/Announcement forms after the red test."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/ui-shell/k12-components-and-shell.test.ts tests/unit/ui-shell/k12-primitives.test.ts tests/unit/admin-ui/admin-pages.test.ts; 107 passed."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit: 1,583 passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0. npm run build was skipped under the user's standing instruction to skip remaining Turbopack checks."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/admin-ui-increment-2-visual-diff.html; 8 changed files against the captured Increment 2 baseline."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest, scoped handoff, session log, and visual diff are present."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Movie and Announcement lists share responsive table, status, action, and pagination presentation while retaining their existing behavior.", "verdict": "PASS", "evidence": ["src/components/table-state.tsx", "src/components/pagination.tsx", "tests/unit/ui-shell/k12-components-and-shell.test.ts"]},
+    {"id": "AC-2", "description": "Movie and Announcement list headers provide consistent hierarchy and clear creation actions.", "verdict": "PASS", "evidence": ["src/app/admin/movies/_components/movie-list.tsx", "src/app/admin/announcements/_components/announcement-list.tsx", "tests/unit/admin-ui/admin-pages.test.ts"]},
+    {"id": "AC-3", "description": "Movie and Announcement forms gain a consistent responsive surface without changing validation, plain-text, or mutation contracts.", "verdict": "PASS", "evidence": ["src/app/admin/movies/_components/movie-form.tsx", "src/app/admin/announcements/_components/announcement-form.tsx", "npm run test:unit"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/ui-shell/k12-components-and-shell.test.ts tests/unit/ui-shell/k12-primitives.test.ts tests/unit/admin-ui/admin-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping remaining Turbopack checks."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only the shared UI primitives, Movie/Announcement Admin presentation, and focused presentation test changed; pre-existing workflow and handoff files were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The manifest records the red test, green test, full checks, build skip, baseline limitation, and visual diff accurately."},
+  "artifacts": {
+    "baseline_path": "/tmp/admin-ui-increment-2-baseline-g3AZ8d",
+    "baseline_digest": "10df636a4770bf6fe522fea4b7af341fb25b8294",
+    "visual_diff_path": "admin-ui-increment-2-visual-diff.html",
+    "visual_diff_baseline_digest": "10df636a4770bf6fe522fea4b7af341fb25b8294"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-bootstrap-increment-9",
+  "iteration_number": 9,
+  "approved_plan_item": "Increment 9 -- reconcile and harden the first-Admin bootstrap",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human-approved S-04 remediation plan; Gate A decisions recorded before implementation."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "Human message after Increment 7 handoff: Great proceed with the next iteration. I approve of the details and recommended bootstrap HTTP mapping and precedence for now."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/tmp/s04-bootstrap-increment-9.vsfj7d complete working-tree snapshot excluding only the real .git directory; temporary baseline commit 284ce67d8a2a84ea09657e26f7e382235d995848."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npm run test:unit -- --run tests/unit/identity/bootstrap.test.ts tests/unit/identity/bootstrap-readiness.test.ts: 2 intended behavioral failures. Bootstrap never called lockAccountTableForFirstAdmin; readiness returned ready=true when no Admin existed but bootstrap config was valid. Vitest reported 2 failed/3 passed (the npm wrapper unexpectedly returned process exit 0, so the raw failing assertions are the red evidence)."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "After red, replaced singleton bootstrap coordination with the D-51 Account table lock, typed bootstrap outcomes, typed readiness sentinel, and composition/route wiring."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npm run test:unit -- --run tests/unit/identity/bootstrap.test.ts tests/unit/identity/bootstrap-readiness.test.ts tests/unit/auth/bootstrap-route.test.ts: exit 0; 3 files, 15 tests passed."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Focused PostgreSQL bootstrap/readiness/schema/privilege tests passed 5 files/146 tests; full unit passed 29 files/420 tests; full PostgreSQL integration passed 17 files/320 tests; type-check, lint and git diff --check passed. Default Turbopack build hit the previously recorded managed-environment worker-port EPERM after normal and approved external attempts; npm run build -- --webpack then completed the production build and generated the dynamic bootstrap route."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit 284ce67d8a2a84ea09657e26f7e382235d995848 with its refreshed complete worktree and wrote _temp/visual-diff.html: 49 changed files and 23,835 unchanged. The larger page includes ignored build/test artifacts because this baseline intentionally tracked the complete tree excluding only real .git."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Requirements, raw red/green/validation outputs, the external-baseline diff and evidence manifest are complete for separated semantic self-audit and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Concurrent first-Admin invocations serialize on the Account table and create exactly one active ADMIN with one audit entry.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/identity/admin-bootstrap.test.ts concurrently invokes three service calls and observes one created result, two already_provisioned results, one ADMIN and one account.admin_provisioned audit entry.",
+        "tests/unit/identity/bootstrap.test.ts asserts lockAccountTableForFirstAdmin precedes Admin count and Account insert precedes AuditEntry; the iteration diff shows the repository method issuing exact SQL LOCK TABLE app.account IN SHARE ROW EXCLUSIVE MODE."
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Admin existence alone provides idempotency, while normalized-email conflict never promotes a USER.",
+      "verdict": "PASS",
+      "evidence": [
+        "Unit and PostgreSQL tests return already_provisioned without Account or AuditEntry writes after an Admin exists.",
+        "The PostgreSQL conflict case preserves the existing role USER, creates zero Admins and writes no provisioning audit entry."
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Account and AuditEntry creation are atomic and dependency failure maps safely to unavailable.",
+      "verdict": "PASS",
+      "evidence": [
+        "The PostgreSQL audit-failure case observes ServiceUnavailableError and zero Admin/AuditEntry rows after rollback.",
+        "The route unit suite maps ServiceUnavailableError to the safe 503 service_unavailable envelope without raw dependency details."
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "The approved HTTP mapping and precedence are enforced solely by availability plus the deployment secret, with no browser authority or sensitive output.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/bootstrap-route.test.ts covers missing/wrong secret 403 with no Identity call, disabled config 503 before a deliberately wrong secret, conflict 409, distinct created/already 200 bodies, dependency 503, new request ID, and ignored cookies/session/CSRF/Origin.",
+        "Response/log assertions exclude the supplied secret, configured email and configured password."
+      ]
+    },
+    {
+      "id": "AC-5",
+      "description": "Readiness remains unavailable without an Admin and uses typed control flow, while it becomes ready after an Admin exists.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused unit tests cover valid and absent bootstrap configuration with no Admin, timeout and query failure classification.",
+        "The PostgreSQL health suite returns the identical unavailable public body with no Admin and returns ready only after inserting an Admin."
+      ]
+    },
+    {
+      "id": "AC-6",
+      "description": "The legacy singleton table, methods, migration, privileges and schema expectations are fully removed.",
+      "verdict": "PASS",
+      "evidence": [
+        "Read-only scan reports MIGRATION_ABSENT and no app.admin_bootstrap, lockBootstrap or completeBootstrap reference in src/tests.",
+        "Fresh-schema object, constraint and privilege tests passed as part of the focused and full PostgreSQL suites."
+      ]
+    },
+    {
+      "id": "AC-7",
+      "description": "Build/module initialization and ordinary startup do not invoke first-Admin bootstrap.",
+      "verdict": "PASS",
+      "evidence": [
+        "Route-module initialization unit test dynamically imports a fresh route/composition mock and observes zero bootstrap calls.",
+        "npm run build -- --webpack completed all production build phases without bootstrap invocation and emitted the bootstrap endpoint as a dynamic route."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- --run tests/unit/identity/bootstrap.test.ts tests/unit/identity/bootstrap-readiness.test.ts tests/unit/auth/bootstrap-route.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "3 files, 15 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration -- --run tests/integration/identity/admin-bootstrap.test.ts tests/integration/api/health/health.test.ts tests/integration/database/schema-objects.test.ts tests/integration/database/schema-constraints.test.ts tests/integration/database/schema-privileges.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "5 files, 146 tests passed"
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "29 files, 420 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "17 files, 320 tests passed"
+    },
+    {
+      "command": "npm run build",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "Attempted twice; the managed environment blocks Turbopack CSS-worker process/port creation with EPERM before application compilation. The webpack production-build fallback below completed."
+    },
+    {
+      "command": "npm run build -- --webpack",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "Production build compiled, type-checked, generated 23 static pages and emitted the bootstrap endpoint as dynamic."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "test migration absence and rg app.admin_bootstrap|lockBootstrap|completeBootstrap src tests",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "MIGRATION_ABSENT; NO_LIVE_SINGLETON_REFERENCES"
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Changes are limited to the approved Identity bootstrap/repository/composition/readiness/route boundaries, directly matching tests/schema expectations, the explicitly authorized untracked migration deletion, the existing disclosure log, and ignored Increment 9 evidence. No dependency or unrelated feature changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Raw outputs support the recorded counts. The default Turbopack failure and successful webpack production-build fallback are distinguished explicitly; no default-build success is claimed."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s04-bootstrap-increment-9.vsfj7d",
+    "baseline_digest": "284ce67d8a2a84ea09657e26f7e382235d995848",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "284ce67d8a2a84ea09657e26f7e382235d995848"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

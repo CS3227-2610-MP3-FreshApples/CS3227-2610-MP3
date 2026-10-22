@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s07-ui-shell-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — route shells and navigation structure",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human approval in the task request for _temp/s07-ui-shell-plan.md; first increment only."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/s07-ui-shell-baseline.sQHvuy/repo at c85b8ecd0b5385c04cc01c4ca8b8f9d880e4c483; complete working tree copied excluding only the real .git directory; 168 tracked files."
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/ui-shell/route-shells.test.ts exited 1: Cannot find module '../../../src/app/app/layout', the intended missing route-shell behavior."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "First production edit added the shared presentation shell and D-49 route/layout files under src/components/ and src/app/."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/ui-shell/route-shells.test.ts exited 0: 1 test file and 3 tests passed."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "npm run lint exited 0; npx tsc --noEmit exited 0."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "present-changes-visually generator exited 0 and wrote _temp/visual-diff.html (1,901 KB), comparing baseline commit c85b8ecd0b5385c04cc01c4ca8b8f9d880e4c483 with the refreshed temporary worktree."
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Evidence bundle contains the approved plan reference, external baseline, red/green tests, validation results, visual diff, scope audit, and no real Git commit."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "The root, User, and Admin route shells render with the D-49 URL structure.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused test: D-49 route tree test passed for all public, /app, and /admin route files.",
+        "Visual diff shows the route/layout files added under src/app/."
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "User navigation does not expose Admin destinations.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused test passed: User shell contains only /app destinations and no /admin destination.",
+        "src/components/route-shell.tsx contains separate userNavigation and adminNavigation lists."
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Layouts provide presentation structure only and do not perform authorization.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused test passed for presentation-only rendered shells.",
+        "Scope/import audit exited 0 with no src/server imports in changed UI paths; layouts only render RouteShell."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npx vitest run --project unit tests/unit/ui-shell/route-shells.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "scope/import audit for changed UI paths",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Changed production paths are limited to src/components/, src/app/layout.tsx, src/app/page.tsx, and D-49 route/layout paths under src/app/; the required focused test is under tests/unit/ui-shell/. No server/API/database/dependency/spec/workflow files were changed by this iteration."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Handoff will report the recorded red parser correction, intended red module failure, green tests, full unit results, lint/type-check results, visual diff, and no commit."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s07-ui-shell-baseline.sQHvuy/repo",
+    "baseline_digest": "c85b8ecd0b5385c04cc01c4ca8b8f9d880e4c483",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "c85b8ecd0b5385c04cc01c4ca8b8f9d880e4c483"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

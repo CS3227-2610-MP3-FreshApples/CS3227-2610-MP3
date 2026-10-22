@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "iteration_id": "http-api-kernel-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — JSON body and strict validation helpers",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved S-02 iterative-TDD checklist in _temp/http-api-kernel-plan.md includes Increment 2."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "Human explicitly instructed: 'Great. Now proceed with the next iteration'."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/tmp/http-api-kernel-iteration-2-baseline.pL1Av7; commit 1d24be4cdcdf5b45f6b8d8a7b59b5941e978f297"
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/http/body.test.ts failed as intended: readJsonBody and trimmedCodePointLength were not functions."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Added readJsonBody, Validator and trimmedCodePointLength to src/server/http/index.ts after the red test."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/http/body.test.ts: 1 file, 6 tests passed."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit: 5 files, 137 tests passed; npm run lint: passed; npx tsc --noEmit: passed. The production build remains unverified from iteration 1 because Next.js build tooling failed before application compilation."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "_temp/visual-diff.html; generated against baseline commit 1d24be4cdcdf5b45f6b8d8a7b59b5941e978f297"
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Iteration evidence manifest complete; no real Git commit created."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "JSON requests with application/json content type are decoded and passed to the validator.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/body.test.ts", "src/server/http/index.ts"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Missing or unsupported content types, malformed JSON and bodies over 32 KiB return the documented domain errors.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/body.test.ts", "src/server/http/index.ts"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Validator field errors are returned as invalid_fields and trimmed Unicode code-point lengths count code points rather than UTF-16 code units.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/body.test.ts", "src/server/http/index.ts"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/http/body.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Known environment/tooling failure from iteration 1: Turbopack cannot bind its internal process port and the webpack fallback fails parsing TypeScript showConfig before application compilation."}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Application changes remain limited to src/server/http/ and tests/unit/http/; no dependencies or unrelated services changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "The manifest records the body-test red/green sequence and accurately identifies the inherited build limitation."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/http-api-kernel-iteration-2-baseline.pL1Av7",
+    "baseline_digest": "1d24be4cdcdf5b45f6b8d8a7b59b5941e978f297",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "1d24be4cdcdf5b45f6b8d8a7b59b5941e978f297"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ui-design-auth-nav-comparison-eratKK: 5404e04...working folder</title>
+<style>
+:root {
+  --fg: #1f2328; --muted: #656d76; --border: #d1d9e0; --bg: #ffffff;
+  --bg-soft: #f6f8fa; --accent: #0969da;
+  --del-bg: #ffebe9; --del-strong: #ffc9c4; --del-num: #ffd8d3;
+  --add-bg: #e6ffec; --add-strong: #abf2bc; --add-num: #ccffd8;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg-soft); color: var(--fg);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1600px; margin: 0 auto; padding: 0 16px 80px; }
+
+header.page { padding: 24px 0 12px; }
+header.page h1 { font-size: 20px; margin: 0 0 12px; }
+.revs { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.rev {
+  flex: 1 1 320px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+}
+.rev .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.rev .sha { font-family: var(--mono); font-weight: 600; }
+.rev .subject { color: var(--muted); overflow-wrap: anywhere; }
+.summary { margin: 14px 0 4px; color: var(--muted); }
+.summary strong { color: var(--fg); }
+.add-count { color: #1a7f37; font-weight: 600; }
+.del-count { color: #cf222e; font-weight: 600; }
+
+.toolbar {
+  position: sticky; top: 0; z-index: 20; display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; padding: 10px 0; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border); margin-bottom: 16px;
+}
+.toolbar input[type=search] {
+  flex: 1 1 220px; min-width: 160px; padding: 5px 10px; font-size: 13px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+}
+button {
+  font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--fg);
+}
+button:hover { background: var(--bg-soft); }
+
+.index { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+.index > summary { cursor: pointer; padding: 10px 14px; font-weight: 600; }
+.index ol { margin: 0; padding: 0 14px 12px 14px; list-style: none; }
+.index li { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+.index .path { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.index .counts { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+
+.file { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+.file[hidden] { display: none; }
+.file > summary {
+  position: sticky; top: 47px; z-index: 10; cursor: pointer; list-style: none;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border); border-radius: 6px 6px 0 0;
+}
+.file:not([open]) > summary { border-bottom: none; border-radius: 6px; }
+.file > summary::-webkit-details-marker { display: none; }
+.file > summary::before { content: "\25be"; color: var(--muted); width: 10px; }
+.file:not([open]) > summary::before { content: "\25b8"; }
+.file .name { font-family: var(--mono); font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.file .from { color: var(--muted); font-weight: 400; }
+.badge {
+  font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); background: var(--bg);
+}
+.badge.added { color: #1a7f37; border-color: #aceebb; background: var(--add-bg); }
+.badge.deleted { color: #cf222e; border-color: #ffcecb; background: var(--del-bg); }
+.badge.renamed, .badge.copied { color: #9a6700; border-color: #f5d5a3; background: #fff8c5; }
+.file .counts { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.note { padding: 14px; color: var(--muted); font-style: italic; }
+
+.diff-wrap { overflow-x: auto; }
+table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--mono); font-size: 12px; }
+table.diff col.num { width: 50px; }
+table.diff col.code { width: calc(50% - 50px); }
+table.diff.single col.code { width: calc(100% - 50px); }
+td.num {
+  text-align: right; padding: 0 8px; color: var(--muted); background: var(--bg-soft);
+  border-right: 1px solid var(--border); user-select: none; vertical-align: top;
+  white-space: nowrap; width: 50px;
+}
+td.code {
+  padding: 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: top; tab-size: 4;
+}
+td.code.side-old { border-right: 1px solid var(--border); }
+tr.del td.code, tr.rep td.code.side-old { background: var(--del-bg); }
+tr.del td.num.old, tr.rep td.num.old { background: var(--del-num); }
+tr.ins td.code, tr.rep td.code.side-new { background: var(--add-bg); }
+tr.ins td.num.new, tr.rep td.num.new { background: var(--add-num); }
+table.diff td.code.blank {
+  background: repeating-linear-gradient(45deg, #fafbfc, #fafbfc 6px, #f0f2f4 6px, #f0f2f4 12px);
+}
+mark.word { padding: 0; border-radius: 2px; }
+td.code.side-old mark.word { background: var(--del-strong); }
+td.code.side-new mark.word { background: var(--add-strong); }
+tr.fold td { padding: 0; background: #eef3f9; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+tr.fold button {
+  width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent;
+  color: var(--accent); font-family: var(--mono); font-size: 12px; padding: 4px 12px;
+}
+.pending { padding: 14px; color: var(--muted); }
+
+.hljs-comment, .hljs-quote { color: #6a737d; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-formula { color: #cf222e; }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute, .hljs-meta .hljs-string { color: #0a3069; }
+.hljs-number, .hljs-literal, .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #0550ae; }
+.hljs-title, .hljs-section, .hljs-title.class_, .hljs-title.function_, .hljs-name { color: #8250df; }
+.hljs-built_in, .hljs-type, .hljs-symbol, .hljs-bullet, .hljs-selector-id, .hljs-selector-class { color: #953800; }
+.hljs-meta, .hljs-attr, .hljs-params { color: #116329; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+.hljs-deletion { color: #82071e; }
+
+@media print {
+  .toolbar, .index { display: none; }
+  .file, .rev { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="page">
+  <h1>Comparing 5404e04…working folder
+      in <code>ui-design-auth-nav-comparison-eratKK</code></h1>
+  <div class="revs"><div class="rev"><div class="label">Base (before)</div><div><span class="sha">5404e04</span> <span class="subject"></span></div><div class="subject">chore: capture auth navigation baseline</div><div class="subject">Codex baseline · 2026-10-21</div></div><div class="rev"><div class="label">Compare (after)</div><div><span class="sha">working folder</span> <span class="subject"></span></div><div class="subject">uncommitted state, on main</div><div class="subject">2026-10-21 18:30</div></div></div>
+  <p class="summary"><strong>6</strong> changed
+     files with
+     <span class="add-count">58 additions</span> and
+     <span class="del-count">17 deletions</span>.</p>
+  <p class="summary">The working folder side covers staged and unstaged work alike, and counts files Git does not track yet as additions. Gitignored files are left out.</p>
+</header>
+<div class="toolbar">
+  <input id="filter" type="search" placeholder="Filter files by path…" autocomplete="off">
+  <button id="expand-all" type="button">Expand all</button>
+  <button id="collapse-all" type="button">Collapse all</button>
+</div>
+<details class="index" open><summary>6 changed files</summary><ol><li data-path="src/app/(public)/layout.tsx"><span class="badge modified">modified</span><a class="path" href="#file-0">src/app/(public)/layout.tsx</a><span class="counts"><span class="add-count">+1</span> <span class="del-count">−1</span></span></li><li data-path="src/components/auth-client.ts"><span class="badge modified">modified</span><a class="path" href="#file-1">src/components/auth-client.ts</a><span class="counts"><span class="add-count">+2</span> <span class="del-count">−2</span></span></li><li data-path="src/components/route-navigation.tsx"><span class="badge modified">modified</span><a class="path" href="#file-2">src/components/route-navigation.tsx</a><span class="counts"><span class="add-count">+37</span> <span class="del-count">−3</span></span></li><li data-path="src/components/route-shell.tsx"><span class="badge modified">modified</span><a class="path" href="#file-3">src/components/route-shell.tsx</a><span class="counts"><span class="add-count">+5</span> <span class="del-count">−10</span></span></li><li data-path="tests/unit/auth/auth-client.test.ts"><span class="badge modified">modified</span><a class="path" href="#file-4">tests/unit/auth/auth-client.test.ts</a><span class="counts"><span class="add-count">+1</span> <span class="del-count">−1</span></span></li><li data-path="tests/unit/auth/public-auth-pages.test.ts"><span class="badge modified">modified</span><a class="path" href="#file-5">tests/unit/auth/public-auth-pages.test.ts</a><span class="counts"><span class="add-count">+12</span></span></li></ol></details>
+<details class="file" id="file-0" data-index="0" data-path="src/app/(public)/layout.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/app/(public)/layout.tsx</span><span class="counts"><span class="add-count">+1</span> <span class="del-count">−1</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-1" data-index="1" data-path="src/components/auth-client.ts" open><summary><span class="badge modified">modified</span><span class="name">src/components/auth-client.ts</span><span class="counts"><span class="add-count">+2</span> <span class="del-count">−2</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-2" data-index="2" data-path="src/components/route-navigation.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/components/route-navigation.tsx</span><span class="counts"><span class="add-count">+37</span> <span class="del-count">−3</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-3" data-index="3" data-path="src/components/route-shell.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/components/route-shell.tsx</span><span class="counts"><span class="add-count">+5</span> <span class="del-count">−10</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-4" data-index="4" data-path="tests/unit/auth/auth-client.test.ts" open><summary><span class="badge modified">modified</span><span class="name">tests/unit/auth/auth-client.test.ts</span><span class="counts"><span class="add-count">+1</span> <span class="del-count">−1</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-5" data-index="5" data-path="tests/unit/auth/public-auth-pages.test.ts" open><summary><span class="badge modified">modified</span><span class="name">tests/unit/auth/public-auth-pages.test.ts</span><span class="counts"><span class="add-count">+12</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details>
+
+</div>
+<script>window.DIFF_DATA = {"files": [{"path": "src/app/(public)/layout.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { RouteShell, publicNavigation } from \"../../components/route-shell\";", "", "export default function PublicLayout({ children }: { children: React.ReactNode }) {", "  return (", "    <RouteShell links={publicNavigation} title=\"Movie Reviews\">", "      {children}", "    <\/RouteShell>", "  );", "}"], "new": ["import { RouteShell, publicNavigation } from \"../../components/route-shell\";", "", "export default function PublicLayout({ children }: { children: React.ReactNode }) {", "  return (", "    <RouteShell authAware links={publicNavigation} title=\"Movie Reviews\">", "      {children}", "    <\/RouteShell>", "  );", "}"], "rows": [[0, 0, 0], [0, 1, 1], [0, 2, 2], [0, 3, 3], [3, 4, 4, [], [15, 25]], [0, 5, 5], [0, 6, 6], [0, 7, 7], [0, 8, 8]]}, {"path": "src/components/auth-client.ts", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["export type AuthAccount = Readonly<{", "  id: string;", "  displayName: string;", "  role: \"USER\" | \"ADMIN\";", "  status: \"active\" | \"suspended\";", "  version: number;", "}>;", "", "export type LoginInput = Readonly<{", "  email: string;", "  password: string;", "}>;", "", "export type RegistrationInput = Readonly<{", "  displayName: string;", "  email: string;", "  password: string;", "  confirmPassword: string;", "}>;", "", "export type LoginResult =", "  | Readonly<{ ok: true; account: AuthAccount }>", "  | Readonly<{", "      ok: false;", "      kind: \"unauthenticated\" | \"rate_limited\" | \"unavailable\";", "    message: string;", "  }>;", "", "export type RegistrationResult =", "  | Readonly<{ ok: true; account: AuthAccount }>", "  | Readonly<{", "      ok: false;", "      kind: \"conflict\" | \"unavailable\" | \"validation\";", "      message?: string;", "      fieldErrors?: Readonly<Record<string, readonly string[]>>;", "    }>;", "", "type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;", "", "const GENERIC_LOGIN_MESSAGE = \"We couldn’t sign you in. Check your email and password.\";", "const RATE_LIMITED_MESSAGE = \"Too many sign-in attempts. Please try again later.\";", "const UNAVAILABLE_MESSAGE = \"We couldn’t sign you in right now. Please try again later.\";", "const DUPLICATE_EMAIL_MESSAGE = \"An account may already exist for this email. Try signing in.\";", "", "function validAccount(value: unknown): value is AuthAccount {", "  if (typeof value !== \"object\" || value === null) return false;", "  const account = value as Record<string, unknown>;", "  return typeof account.id === \"string\"", "    && typeof account.displayName === \"string\"", "    && (account.role === \"USER\" || account.role === \"ADMIN\")", "    && (account.status === \"active\" || account.status === \"suspended\")", "    && typeof account.version === \"number\";", "}", "", "function fieldErrors(value: unknown): Readonly<Record<string, readonly string[]>> | undefined {", "  if (typeof value !== \"object\" || value === null) return undefined;", "  const errors = (value as { fieldErrors?: unknown }).fieldErrors;", "  if (typeof errors !== \"object\" || errors === null) return undefined;", "", "  const result: Record<string, readonly string[]> = {};", "  for (const [field, messages] of Object.entries(errors)) {", "    if (!Array.isArray(messages) || !messages.every((message) => typeof message === \"string\")) continue;", "    result[field] = messages;", "  }", "  return Object.keys(result).length > 0 ? result : undefined;", "}", "", "export function resolveAuthDestination(account: Pick<AuthAccount, \"role\" | \"status\">): \"/app\" | \"/admin\" | null {", "  if (account.status !== \"active\") return null;", "  if (account.role === \"USER\") return \"/app\";", "  if (account.role === \"ADMIN\") return \"/admin\";", "  return null;", "}", "", "export async function submitLogin(input: LoginInput, fetcher: Fetcher = fetch): Promise<LoginResult> {", "  try {", "    const csrfResponse = await fetcher(\"/api/v1/auth/csrf\", {", "      cache: \"no-store\",", "      credentials: \"same-origin\",", "    });", "    if (!csrfResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const csrfBody: unknown = await csrfResponse.json();", "    const csrfToken = typeof csrfBody === \"object\" && csrfBody !== null", "      ? (csrfBody as { csrfToken?: unknown }).csrfToken", "      : undefined;", "    if (typeof csrfToken !== \"string\" || csrfToken.length === 0) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    const loginResponse = await fetcher(\"/api/v1/auth/login\", {", "      method: \"POST\",", "      credentials: \"same-origin\",", "      headers: {", "        \"Content-Type\": \"application/json\",", "        \"X-CSRF-Token\": csrfToken,", "      },", "      body: JSON.stringify({ email: input.email, password: input.password }),", "    });", "", "    if (loginResponse.status === 401) {", "      return { ok: false, kind: \"unauthenticated\", message: GENERIC_LOGIN_MESSAGE };", "    }", "    if (loginResponse.status === 429) {", "      return { ok: false, kind: \"rate_limited\", message: RATE_LIMITED_MESSAGE };", "    }", "    if (!loginResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const account: unknown = await loginResponse.json();", "    if (!validAccount(account)) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    return { ok: true, account };", "  } catch {", "    return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "  }", "}", "", "export async function submitRegistration(input: RegistrationInput, fetcher: Fetcher = fetch): Promise<RegistrationResult> {", "  if (input.password !== input.confirmPassword) {", "    return {", "      ok: false,", "      kind: \"validation\",", "      fieldErrors: { confirmPassword: [\"Passwords do not match.\"] },", "    };", "  }", "", "  try {", "    const csrfResponse = await fetcher(\"/api/v1/auth/csrf\", {", "      cache: \"no-store\",", "      credentials: \"same-origin\",", "    });", "    if (!csrfResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const csrfBody: unknown = await csrfResponse.json();", "    const csrfToken = typeof csrfBody === \"object\" && csrfBody !== null", "      ? (csrfBody as { csrfToken?: unknown }).csrfToken", "      : undefined;", "    if (typeof csrfToken !== \"string\" || csrfToken.length === 0) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    const registrationResponse = await fetcher(\"/api/v1/auth/register\", {", "      method: \"POST\",", "      credentials: \"same-origin\",", "      headers: {", "        \"Content-Type\": \"application/json\",", "        \"X-CSRF-Token\": csrfToken,", "      },", "      body: JSON.stringify({", "        displayName: input.displayName,", "        email: input.email,", "        password: input.password,", "      }),", "    });", "", "    const body: unknown = await registrationResponse.json();", "    if (registrationResponse.status === 422) {", "      const error = typeof body === \"object\" && body !== null ? (body as { error?: unknown }).error : undefined;", "      const errors = fieldErrors(error);", "      return {", "        ok: false,", "        kind: \"validation\",", "        ...(errors ? { fieldErrors: errors } : {}),", "      };", "    }", "    if (registrationResponse.status === 409) {", "      return { ok: false, kind: \"conflict\", message: DUPLICATE_EMAIL_MESSAGE };", "    }", "    if (registrationResponse.status !== 201 || !validAccount(body)) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    return { ok: true, account: body };", "  } catch {", "    return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "  }", "}"], "new": ["export type AuthAccount = Readonly<{", "  id: string;", "  displayName: string;", "  role: \"USER\" | \"ADMIN\";", "  status: \"active\" | \"suspended\";", "  version: number;", "}>;", "", "export type LoginInput = Readonly<{", "  email: string;", "  password: string;", "}>;", "", "export type RegistrationInput = Readonly<{", "  displayName: string;", "  email: string;", "  password: string;", "  confirmPassword: string;", "}>;", "", "export type LoginResult =", "  | Readonly<{ ok: true; account: AuthAccount }>", "  | Readonly<{", "      ok: false;", "      kind: \"unauthenticated\" | \"rate_limited\" | \"unavailable\";", "    message: string;", "  }>;", "", "export type RegistrationResult =", "  | Readonly<{ ok: true; account: AuthAccount }>", "  | Readonly<{", "      ok: false;", "      kind: \"conflict\" | \"unavailable\" | \"validation\";", "      message?: string;", "      fieldErrors?: Readonly<Record<string, readonly string[]>>;", "    }>;", "", "type Fetcher = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;", "", "const GENERIC_LOGIN_MESSAGE = \"We couldn’t sign you in. Check your email and password.\";", "const RATE_LIMITED_MESSAGE = \"Too many sign-in attempts. Please try again later.\";", "const UNAVAILABLE_MESSAGE = \"We couldn’t sign you in right now. Please try again later.\";", "const DUPLICATE_EMAIL_MESSAGE = \"An account may already exist for this email. Try signing in.\";", "", "function validAccount(value: unknown): value is AuthAccount {", "  if (typeof value !== \"object\" || value === null) return false;", "  const account = value as Record<string, unknown>;", "  return typeof account.id === \"string\"", "    && typeof account.displayName === \"string\"", "    && (account.role === \"USER\" || account.role === \"ADMIN\")", "    && (account.status === \"active\" || account.status === \"suspended\")", "    && typeof account.version === \"number\";", "}", "", "function fieldErrors(value: unknown): Readonly<Record<string, readonly string[]>> | undefined {", "  if (typeof value !== \"object\" || value === null) return undefined;", "  const errors = (value as { fieldErrors?: unknown }).fieldErrors;", "  if (typeof errors !== \"object\" || errors === null) return undefined;", "", "  const result: Record<string, readonly string[]> = {};", "  for (const [field, messages] of Object.entries(errors)) {", "    if (!Array.isArray(messages) || !messages.every((message) => typeof message === \"string\")) continue;", "    result[field] = messages;", "  }", "  return Object.keys(result).length > 0 ? result : undefined;", "}", "", "export function resolveAuthDestination(account: Pick<AuthAccount, \"role\" | \"status\">): \"/\" | \"/admin\" | null {", "  if (account.status !== \"active\") return null;", "  if (account.role === \"USER\") return \"/\";", "  if (account.role === \"ADMIN\") return \"/admin\";", "  return null;", "}", "", "export async function submitLogin(input: LoginInput, fetcher: Fetcher = fetch): Promise<LoginResult> {", "  try {", "    const csrfResponse = await fetcher(\"/api/v1/auth/csrf\", {", "      cache: \"no-store\",", "      credentials: \"same-origin\",", "    });", "    if (!csrfResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const csrfBody: unknown = await csrfResponse.json();", "    const csrfToken = typeof csrfBody === \"object\" && csrfBody !== null", "      ? (csrfBody as { csrfToken?: unknown }).csrfToken", "      : undefined;", "    if (typeof csrfToken !== \"string\" || csrfToken.length === 0) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    const loginResponse = await fetcher(\"/api/v1/auth/login\", {", "      method: \"POST\",", "      credentials: \"same-origin\",", "      headers: {", "        \"Content-Type\": \"application/json\",", "        \"X-CSRF-Token\": csrfToken,", "      },", "      body: JSON.stringify({ email: input.email, password: input.password }),", "    });", "", "    if (loginResponse.status === 401) {", "      return { ok: false, kind: \"unauthenticated\", message: GENERIC_LOGIN_MESSAGE };", "    }", "    if (loginResponse.status === 429) {", "      return { ok: false, kind: \"rate_limited\", message: RATE_LIMITED_MESSAGE };", "    }", "    if (!loginResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const account: unknown = await loginResponse.json();", "    if (!validAccount(account)) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    return { ok: true, account };", "  } catch {", "    return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "  }", "}", "", "export async function submitRegistration(input: RegistrationInput, fetcher: Fetcher = fetch): Promise<RegistrationResult> {", "  if (input.password !== input.confirmPassword) {", "    return {", "      ok: false,", "      kind: \"validation\",", "      fieldErrors: { confirmPassword: [\"Passwords do not match.\"] },", "    };", "  }", "", "  try {", "    const csrfResponse = await fetcher(\"/api/v1/auth/csrf\", {", "      cache: \"no-store\",", "      credentials: \"same-origin\",", "    });", "    if (!csrfResponse.ok) return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "", "    const csrfBody: unknown = await csrfResponse.json();", "    const csrfToken = typeof csrfBody === \"object\" && csrfBody !== null", "      ? (csrfBody as { csrfToken?: unknown }).csrfToken", "      : undefined;", "    if (typeof csrfToken !== \"string\" || csrfToken.length === 0) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    const registrationResponse = await fetcher(\"/api/v1/auth/register\", {", "      method: \"POST\",", "      credentials: \"same-origin\",", "      headers: {", "        \"Content-Type\": \"application/json\",", "        \"X-CSRF-Token\": csrfToken,", "      },", "      body: JSON.stringify({", "        displayName: input.displayName,", "        email: input.email,", "        password: input.password,", "      }),", "    });", "", "    const body: unknown = await registrationResponse.json();", "    if (registrationResponse.status === 422) {", "      const error = typeof body === \"object\" && body !== null ? (body as { error?: unknown }).error : undefined;", "      const errors = fieldErrors(error);", "      return {", "        ok: false,", "        kind: \"validation\",", "        ...(errors ? { fieldErrors: errors } : {}),", "      };", "    }", "    if (registrationResponse.status === 409) {", "      return { ok: false, kind: \"conflict\", message: DUPLICATE_EMAIL_MESSAGE };", "    }", "    if (registrationResponse.status !== 201 || !validAccount(body)) {", "      return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "    }", "", "    return { ok: true, account: body };", "  } catch {", "    return { ok: false, kind: \"unavailable\", message: UNAVAILABLE_MESSAGE };", "  }", "}"], "rows": [[0, 0, 0], [0, 1, 1], [0, 2, 2], [0, 3, 3], [0, 4, 4], [0, 5, 5], [0, 6, 6], [0, 7, 7], [0, 8, 8], [0, 9, 9], [0, 10, 10], [0, 11, 11], [0, 12, 12], [0, 13, 13], [0, 14, 14], [0, 15, 15], [0, 16, 16], [0, 17, 17], [0, 18, 18], [0, 19, 19], [0, 20, 20], [0, 21, 21], [0, 22, 22], [0, 23, 23], [0, 24, 24], [0, 25, 25], [0, 26, 26], [0, 27, 27], [0, 28, 28], [0, 29, 29], [0, 30, 30], [0, 31, 31], [0, 32, 32], [0, 33, 33], [0, 34, 34], [0, 35, 35], [0, 36, 36], [0, 37, 37], [0, 38, 38], [0, 39, 39], [0, 40, 40], [0, 41, 41], [0, 42, 42], [0, 43, 43], [0, 44, 44], [0, 45, 45], [0, 46, 46], [0, 47, 47], [0, 48, 48], [0, 49, 49], [0, 50, 50], [0, 51, 51], [0, 52, 52], [0, 53, 53], [0, 54, 54], [0, 55, 55], [0, 56, 56], [0, 57, 57], [0, 58, 58], [0, 59, 59], [0, 60, 60], [0, 61, 61], [0, 62, 62], [0, 63, 63], [0, 64, 64], [0, 65, 65], [0, 66, 66], [3, 67, 67, [89, 92], []], [0, 68, 68], [3, 69, 69, [40, 43], []], [0, 70, 70], [0, 71, 71], [0, 72, 72], [0, 73, 73], [0, 74, 74], [0, 75, 75], [0, 76, 76], [0, 77, 77], [0, 78, 78], [0, 79, 79], [0, 80, 80], [0, 81, 81], [0, 82, 82], [0, 83, 83], [0, 84, 84], [0, 85, 85], [0, 86, 86], [0, 87, 87], [0, 88, 88], [0, 89, 89], [0, 90, 90], [0, 91, 91], [0, 92, 92], [0, 93, 93], [0, 94, 94], [0, 95, 95], [0, 96, 96], [0, 97, 97], [0, 98, 98], [0, 99, 99], [0, 100, 100], [0, 101, 101], [0, 102, 102], [0, 103, 103], [0, 104, 104], [0, 105, 105], [0, 106, 106], [0, 107, 107], [0, 108, 108], [0, 109, 109], [0, 110, 110], [0, 111, 111], [0, 112, 112], [0, 113, 113], [0, 114, 114], [0, 115, 115], [0, 116, 116], [0, 117, 117], [0, 118, 118], [0, 119, 119], [0, 120, 120], [0, 121, 121], [0, 122, 122], [0, 123, 123], [0, 124, 124], [0, 125, 125], [0, 126, 126], [0, 127, 127], [0, 128, 128], [0, 129, 129], [0, 130, 130], [0, 131, 131], [0, 132, 132], [0, 133, 133], [0, 134, 134], [0, 135, 135], [0, 136, 136], [0, 137, 137], [0, 138, 138], [0, 139, 139], [0, 140, 140], [0, 141, 141], [0, 142, 142], [0, 143, 143], [0, 144, 144], [0, 145, 145], [0, 146, 146], [0, 147, 147], [0, 148, 148], [0, 149, 149], [0, 150, 150], [0, 151, 151], [0, 152, 152], [0, 153, 153], [0, 154, 154], [0, 155, 155], [0, 156, 156], [0, 157, 157], [0, 158, 158], [0, 159, 159], [0, 160, 160], [0, 161, 161], [0, 162, 162], [0, 163, 163], [0, 164, 164], [0, 165, 165], [0, 166, 166], [0, 167, 167], [0, 168, 168], [0, 169, 169], [0, 170, 170], [0, 171, 171], [0, 172, 172], [0, 173, 173], [0, 174, 174], [0, 175, 175]]}, {"path": "src/components/route-navigation.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["\"use client\";", "", "import Link from \"next/link\";", "import { usePathname } from \"next/navigation\";", "", "type NavigationLink = Readonly<{", "  href: string;", "  label: string;", "}>;", "", "type RouteNavigationProps = Readonly<{", "  links: readonly NavigationLink[];", "  label: string;", "}>;", "", "export function RouteNavigation({ links, label }: RouteNavigationProps) {", "  const pathname = usePathname();", "  const activeHref = pathname === null ? null : findActiveHref(pathname, links);", "", "  return (", "    <nav aria-label={label}>", "      <ul className=\"flex flex-wrap items-center gap-x-5 gap-y-2\" data-navigation=\"primary\">", "        {links.map((link) => {", "          const active = link.href === activeHref;", "", "          return (", "            <li key={link.href}>", "              <Link", "                aria-current={active ? \"page\" : undefined}", "                className={[", "                  \"inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-sm font-medium text-slate-700 underline-offset-4 transition-colors hover:bg-slate-100 hover:text-blue-700 hover:underline\",", "                  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\",", "                  active ? \"bg-blue-50 text-blue-800 underline\" : \"\",", "                ].join(\" \")}", "                href={link.href}", "              >", "                {link.label}", "              <\/Link>", "            <\/li>", "          );", "        })}", "      <\/ul>", "    <\/nav>", "  );", "}", "", "function findActiveHref(pathname: string, links: readonly NavigationLink[]): string | null {", "  return links", "    .filter((link) => pathname === link.href || (link.href !== \"/\" && pathname.startsWith(`${link.href}/`)))", "    .sort((left, right) => right.href.length - left.href.length)[0]?.href ?? null;", "}"], "new": ["\"use client\";", "", "import Link from \"next/link\";", "import { usePathname } from \"next/navigation\";", "import { useEffect, useState } from \"react\";", "", "type NavigationLink = Readonly<{", "  href: string;", "  label: string;", "}>;", "", "type RouteNavigationProps = Readonly<{", "  authAware?: boolean;", "  links: readonly NavigationLink[];", "  label: string;", "}>;", "", "type PublicAccountIdentity = Readonly<{", "  displayName: string;", "  role: \"USER\" | \"ADMIN\";", "}>;", "", "export function publicNavigationForAccount(account: PublicAccountIdentity | null): readonly NavigationLink[] {", "  const baseLinks: readonly NavigationLink[] = [", "    { href: \"/\", label: \"Home\" },", "    { href: \"/movies\", label: \"Movies\" },", "    { href: \"/announcements\", label: \"Announcements\" },", "  ];", "  if (account === null) return [...baseLinks, { href: \"/sign-in\", label: \"Sign in\" }, { href: \"/register\", label: \"Register\" }];", "  return [...baseLinks, { href: account.role === \"ADMIN\" ? \"/admin\" : \"/app\", label: account.displayName }];", "}", "", "export function RouteNavigation({ authAware = false, links, label }: RouteNavigationProps) {", "  const pathname = usePathname();", "  const [account, setAccount] = useState<PublicAccountIdentity | null>(null);", "  useEffect(() => {", "    if (!authAware) return;", "    let active = true;", "    void fetch(\"/api/v1/auth/me\", { cache: \"no-store\", credentials: \"same-origin\" })", "      .then(async (response) => response.ok ? response.json() as Promise<unknown> : null)", "      .then((value) => {", "        if (!active || typeof value !== \"object\" || value === null) return;", "        const candidate = value as Record<string, unknown>;", "        if (typeof candidate.displayName !== \"string\" || (candidate.role !== \"USER\" && candidate.role !== \"ADMIN\")) return;", "        setAccount({ displayName: candidate.displayName, role: candidate.role });", "      })", "      .catch(() => undefined);", "    return () => { active = false; };", "  }, [authAware]);", "", "  const visibleLinks = authAware && account !== null ? publicNavigationForAccount(account) : links;", "  const activeHref = pathname === null ? null : findActiveHref(pathname, visibleLinks);", "", "  return (", "    <nav aria-label={label}>", "      <ul className=\"flex flex-wrap items-center gap-x-5 gap-y-2\" data-navigation=\"primary\">", "        {visibleLinks.map((link) => {", "          const active = link.href === activeHref;", "", "          return (", "            <li key={link.href}>", "              <Link", "                aria-current={active ? \"page\" : undefined}", "                className={[", "                  \"inline-flex min-h-11 items-center rounded-md px-2 py-1.5 text-sm font-medium text-slate-700 underline-offset-4 transition-colors hover:bg-slate-100 hover:text-blue-700 hover:underline\",", "                  \"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\",", "                  active ? \"bg-blue-50 text-blue-800 underline\" : \"\",", "                ].join(\" \")}", "                href={link.href}", "              >", "                {link.label}", "              <\/Link>", "            <\/li>", "          );", "        })}", "      <\/ul>", "    <\/nav>", "  );", "}", "", "function findActiveHref(pathname: string, links: readonly NavigationLink[]): string | null {", "  return links", "    .filter((link) => pathname === link.href || (link.href !== \"/\" && pathname.startsWith(`${link.href}/`)))", "    .sort((left, right) => right.href.length - left.href.length)[0]?.href ?? null;", "}"], "rows": [[0, 0, 0], [0, 1, 1], [0, 2, 2], [0, 3, 3], [2, -1, 4], [0, 4, 5], [0, 5, 6], [0, 6, 7], [0, 7, 8], [0, 8, 9], [0, 9, 10], [0, 10, 11], [2, -1, 12], [0, 11, 13], [0, 12, 14], [0, 13, 15], [0, 14, 16], [3, 15, 17], [2, -1, 18], [2, -1, 19], [2, -1, 20], [2, -1, 21], [2, -1, 22], [2, -1, 23], [2, -1, 24], [2, -1, 25], [2, -1, 26], [2, -1, 27], [2, -1, 28], [2, -1, 29], [2, -1, 30], [2, -1, 31], [2, -1, 32], [0, 16, 33], [3, 17, 34, [8, 18, 21, 29, 30, 33, 38, 41, 45, 78], [8, 29, 32, 62, 63, 64, 69, 71]], [2, -1, 35], [2, -1, 36], [2, -1, 37], [2, -1, 38], [2, -1, 39], [2, -1, 40], [2, -1, 41], [2, -1, 42], [2, -1, 43], [2, -1, 44], [2, -1, 45], [2, -1, 46], [2, -1, 47], [2, -1, 48], [2, -1, 49], [2, -1, 50], [2, -1, 51], [0, 18, 52], [0, 19, 53], [0, 20, 54], [0, 21, 55], [3, 22, 56, [9, 14], [9, 21]], [0, 23, 57], [0, 24, 58], [0, 25, 59], [0, 26, 60], [0, 27, 61], [0, 28, 62], [0, 29, 63], [0, 30, 64], [0, 31, 65], [0, 32, 66], [0, 33, 67], [0, 34, 68], [0, 35, 69], [0, 36, 70], [0, 37, 71], [0, 38, 72], [0, 39, 73], [0, 40, 74], [0, 41, 75], [0, 42, 76], [0, 43, 77], [0, 44, 78], [0, 45, 79], [0, 46, 80], [0, 47, 81], [0, 48, 82], [0, 49, 83], [0, 50, 84]]}, {"path": "src/components/route-shell.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import Link from \"next/link\";", "", "import { RouteNavigation } from \"./route-navigation\";", "", "type ShellLink = {", "  href: string;", "  label: string;", "};", "", "type RouteShellProps = Readonly<{", "  children: React.ReactNode;", "  links: readonly ShellLink[];", "  title: string;", "}>;", "", "export function RouteShell({ children, links, title }: RouteShellProps) {", "  return (", "    <div className=\"min-h-screen bg-slate-50 text-slate-950\">", "      <a", "        className=\"absolute left-4 top-4 z-50 -translate-y-20 rounded-md bg-white px-4 py-3 font-medium text-blue-800 shadow-sm ring-1 ring-slate-200 transition-transform focus-visible:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\"", "        href=\"#main-content\"", "      >", "        Skip to main content", "      <\/a>", "      <header className=\"border-b border-slate-200 bg-white\">", "        <div className=\"mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8\">", "          <Link", "            className=\"inline-flex w-fit items-center rounded-md text-lg font-semibold tracking-tight text-slate-950 underline-offset-4 hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\"", "            href={links.some((link) => link.href === \"/\") ? \"/\" : links[0]?.href ?? \"/\"}", "          >", "            {title}", "          <\/Link>", "          <RouteNavigation label={`${title} navigation`} links={links} />", "        <\/div>", "      <\/header>", "      <main className=\"mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8\" id=\"main-content\">{children}<\/main>", "    <\/div>", "  );", "}", "", "export const publicNavigation = [", "  { href: \"/\", label: \"Home\" },", "  { href: \"/movies\", label: \"Movies\" },", "  { href: \"/announcements\", label: \"Announcements\" },", "  { href: \"/sign-in\", label: \"Sign in\" },", "  { href: \"/register\", label: \"Register\" },", "] as const;", "", "export const userNavigation = [", "  { href: \"/app\", label: \"Overview\" },", "  { href: \"/app/reviews\", label: \"My reviews\" },", "  { href: \"/app/reports\", label: \"My reports\" },", "] as const;", "", "export const adminNavigation = [", "  { href: \"/admin\", label: \"Overview\" },", "  { href: \"/admin/movies\", label: \"Movies\" },", "  { href: \"/admin/reviews\", label: \"Reviews\" },", "  { href: \"/admin/reports\", label: \"Reports\" },", "  { href: \"/admin/announcements\", label: \"Announcements\" },", "  { href: \"/admin/users\", label: \"Users\" },", "] as const;"], "new": ["import Link from \"next/link\";", "", "import { publicNavigationForAccount, RouteNavigation } from \"./route-navigation\";", "", "type ShellLink = {", "  href: string;", "  label: string;", "};", "", "type RouteShellProps = Readonly<{", "  authAware?: boolean;", "  children: React.ReactNode;", "  links: readonly ShellLink[];", "  title: string;", "}>;", "", "export function RouteShell({ authAware = false, children, links, title }: RouteShellProps) {", "  return (", "    <div className=\"min-h-screen bg-slate-50 text-slate-950\">", "      <a", "        className=\"absolute left-4 top-4 z-50 -translate-y-20 rounded-md bg-white px-4 py-3 font-medium text-blue-800 shadow-sm ring-1 ring-slate-200 transition-transform focus-visible:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\"", "        href=\"#main-content\"", "      >", "        Skip to main content", "      <\/a>", "      <header className=\"border-b border-slate-200 bg-white\">", "        <div className=\"mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 sm:py-5 lg:flex-row lg:items-center lg:justify-between lg:px-8\">", "          <Link", "            className=\"inline-flex w-fit items-center rounded-md text-lg font-semibold tracking-tight text-slate-950 underline-offset-4 hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\"", "            href={links.some((link) => link.href === \"/\") ? \"/\" : links[0]?.href ?? \"/\"}", "          >", "            {title}", "          <\/Link>", "          <RouteNavigation authAware={authAware} label={`${title} navigation`} links={links} />", "        <\/div>", "      <\/header>", "      <main className=\"mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8\" id=\"main-content\">{children}<\/main>", "    <\/div>", "  );", "}", "", "export const publicNavigation = publicNavigationForAccount(null);", "", "export const userNavigation = [", "  { href: \"/app\", label: \"Overview\" },", "  { href: \"/app/reviews\", label: \"My reviews\" },", "  { href: \"/app/reports\", label: \"My reports\" },", "] as const;", "", "export const adminNavigation = [", "  { href: \"/admin\", label: \"Overview\" },", "  { href: \"/admin/movies\", label: \"Movies\" },", "  { href: \"/admin/reviews\", label: \"Reviews\" },", "  { href: \"/admin/reports\", label: \"Reports\" },", "  { href: \"/admin/announcements\", label: \"Announcements\" },", "  { href: \"/admin/users\", label: \"Users\" },", "] as const;"], "rows": [[0, 0, 0], [0, 1, 1], [3, 2, 2, [], [8, 36]], [0, 3, 3], [0, 4, 4], [0, 5, 5], [0, 6, 6], [0, 7, 7], [0, 8, 8], [0, 9, 9], [2, -1, 10], [0, 10, 11], [0, 11, 12], [0, 12, 13], [0, 13, 14], [0, 14, 15], [3, 15, 16, [], [28, 47]], [0, 16, 17], [0, 17, 18], [0, 18, 19], [0, 19, 20], [0, 20, 21], [0, 21, 22], [0, 22, 23], [0, 23, 24], [0, 24, 25], [0, 25, 26], [0, 26, 27], [0, 27, 28], [0, 28, 29], [0, 29, 30], [0, 30, 31], [0, 31, 32], [3, 32, 33, [], [26, 48]], [0, 33, 34], [0, 34, 35], [0, 35, 36], [0, 36, 37], [0, 37, 38], [0, 38, 39], [0, 39, 40], [3, 40, 41, [32, 33], [32, 65]], [1, 41, -1], [1, 42, -1], [1, 43, -1], [1, 44, -1], [1, 45, -1], [1, 46, -1], [0, 47, 42], [0, 48, 43], [0, 49, 44], [0, 50, 45], [0, 51, 46], [0, 52, 47], [0, 53, 48], [0, 54, 49], [0, 55, 50], [0, 56, 51], [0, 57, 52], [0, 58, 53], [0, 59, 54], [0, 60, 55], [0, 61, 56]]}, {"path": "tests/unit/auth/auth-client.test.ts", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { describe, expect, it } from \"vitest\";", "", "import { resolveAuthDestination, submitLogin } from \"../../../src/components/auth-client\";", "", "function response(body: unknown, status = 200, headers?: HeadersInit): Response {", "  return new Response(JSON.stringify(body), {", "    status,", "    headers: { \"content-type\": \"application/json\", ...headers },", "  });", "}", "", "describe(\"public sign-in client behavior — increment 2\", () => {", "  it(\"prepares CSRF, submits credentials with the token, and returns the server account projection\", async () => {", "    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];", "    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {", "      calls.push({ input, init });", "      if (calls.length === 1) return response({ csrfToken: \"csrf_v1.synthetic\" });", "      return response({", "        id: \"00000000-0000-4000-8000-000000000001\",", "        displayName: \"Person\",", "        role: \"USER\",", "        status: \"active\",", "        version: 1,", "      });", "    };", "", "    await expect(submitLogin({ email: \"person@example.com\", password: \"Password1!\" }, fetcher)).resolves.toMatchObject({", "      ok: true,", "      account: { role: \"USER\", status: \"active\" },", "    });", "", "    expect(calls).toHaveLength(2);", "    expect(calls[0]?.input).toBe(\"/api/v1/auth/csrf\");", "    expect(calls[0]?.init).toMatchObject({ cache: \"no-store\", credentials: \"same-origin\" });", "    expect(calls[1]?.input).toBe(\"/api/v1/auth/login\");", "    expect(calls[1]?.init).toMatchObject({ credentials: \"same-origin\" });", "    expect(calls[1]?.init?.headers).toEqual(expect.objectContaining({", "      \"Content-Type\": \"application/json\",", "      \"X-CSRF-Token\": \"csrf_v1.synthetic\",", "    }));", "    expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ email: \"person@example.com\", password: \"Password1!\" });", "  });", "", "  it(\"maps safe authentication failures without exposing account state\", async () => {", "    const fetcher = async (input: RequestInfo | URL) => input === \"/api/v1/auth/csrf\"", "      ? response({ csrfToken: \"csrf_v1.synthetic\" })", "      : response({ error: { code: \"unauthenticated\", message: \"Authentication is required.\" } }, 401);", "", "    await expect(submitLogin({ email: \"person@example.com\", password: \"Password1!\" }, fetcher)).resolves.toEqual({", "      ok: false,", "      kind: \"unauthenticated\",", "      message: \"We couldn’t sign you in. Check your email and password.\",", "    });", "  });", "", "  it(\"routes only active server-authoritative roles\", () => {", "    expect(resolveAuthDestination({ role: \"USER\", status: \"active\" })).toBe(\"/app\");", "    expect(resolveAuthDestination({ role: \"ADMIN\", status: \"active\" })).toBe(\"/admin\");", "    expect(resolveAuthDestination({ role: \"USER\", status: \"suspended\" })).toBeNull();", "  });", "});"], "new": ["import { describe, expect, it } from \"vitest\";", "", "import { resolveAuthDestination, submitLogin } from \"../../../src/components/auth-client\";", "", "function response(body: unknown, status = 200, headers?: HeadersInit): Response {", "  return new Response(JSON.stringify(body), {", "    status,", "    headers: { \"content-type\": \"application/json\", ...headers },", "  });", "}", "", "describe(\"public sign-in client behavior — increment 2\", () => {", "  it(\"prepares CSRF, submits credentials with the token, and returns the server account projection\", async () => {", "    const calls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];", "    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {", "      calls.push({ input, init });", "      if (calls.length === 1) return response({ csrfToken: \"csrf_v1.synthetic\" });", "      return response({", "        id: \"00000000-0000-4000-8000-000000000001\",", "        displayName: \"Person\",", "        role: \"USER\",", "        status: \"active\",", "        version: 1,", "      });", "    };", "", "    await expect(submitLogin({ email: \"person@example.com\", password: \"Password1!\" }, fetcher)).resolves.toMatchObject({", "      ok: true,", "      account: { role: \"USER\", status: \"active\" },", "    });", "", "    expect(calls).toHaveLength(2);", "    expect(calls[0]?.input).toBe(\"/api/v1/auth/csrf\");", "    expect(calls[0]?.init).toMatchObject({ cache: \"no-store\", credentials: \"same-origin\" });", "    expect(calls[1]?.input).toBe(\"/api/v1/auth/login\");", "    expect(calls[1]?.init).toMatchObject({ credentials: \"same-origin\" });", "    expect(calls[1]?.init?.headers).toEqual(expect.objectContaining({", "      \"Content-Type\": \"application/json\",", "      \"X-CSRF-Token\": \"csrf_v1.synthetic\",", "    }));", "    expect(JSON.parse(String(calls[1]?.init?.body))).toEqual({ email: \"person@example.com\", password: \"Password1!\" });", "  });", "", "  it(\"maps safe authentication failures without exposing account state\", async () => {", "    const fetcher = async (input: RequestInfo | URL) => input === \"/api/v1/auth/csrf\"", "      ? response({ csrfToken: \"csrf_v1.synthetic\" })", "      : response({ error: { code: \"unauthenticated\", message: \"Authentication is required.\" } }, 401);", "", "    await expect(submitLogin({ email: \"person@example.com\", password: \"Password1!\" }, fetcher)).resolves.toEqual({", "      ok: false,", "      kind: \"unauthenticated\",", "      message: \"We couldn’t sign you in. Check your email and password.\",", "    });", "  });", "", "  it(\"routes only active server-authoritative roles\", () => {", "    expect(resolveAuthDestination({ role: \"USER\", status: \"active\" })).toBe(\"/\");", "    expect(resolveAuthDestination({ role: \"ADMIN\", status: \"active\" })).toBe(\"/admin\");", "    expect(resolveAuthDestination({ role: \"USER\", status: \"suspended\" })).toBeNull();", "  });", "});"], "rows": [[0, 0, 0], [0, 1, 1], [0, 2, 2], [0, 3, 3], [0, 4, 4], [0, 5, 5], [0, 6, 6], [0, 7, 7], [0, 8, 8], [0, 9, 9], [0, 10, 10], [0, 11, 11], [0, 12, 12], [0, 13, 13], [0, 14, 14], [0, 15, 15], [0, 16, 16], [0, 17, 17], [0, 18, 18], [0, 19, 19], [0, 20, 20], [0, 21, 21], [0, 22, 22], [0, 23, 23], [0, 24, 24], [0, 25, 25], [0, 26, 26], [0, 27, 27], [0, 28, 28], [0, 29, 29], [0, 30, 30], [0, 31, 31], [0, 32, 32], [0, 33, 33], [0, 34, 34], [0, 35, 35], [0, 36, 36], [0, 37, 37], [0, 38, 38], [0, 39, 39], [0, 40, 40], [0, 41, 41], [0, 42, 42], [0, 43, 43], [0, 44, 44], [0, 45, 45], [0, 46, 46], [0, 47, 47], [0, 48, 48], [0, 49, 49], [0, 50, 50], [0, 51, 51], [0, 52, 52], [0, 53, 53], [0, 54, 54], [0, 55, 55], [3, 56, 56, [78, 81], []], [0, 57, 57], [0, 58, 58], [0, 59, 59], [0, 60, 60]]}, {"path": "tests/unit/auth/public-auth-pages.test.ts", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { createElement } from \"react\";", "import { renderToStaticMarkup } from \"react-dom/server\";", "import { describe, expect, it } from \"vitest\";", "", "import RegisterPage from \"../../../src/app/(public)/register/page\";", "import SignInPage from \"../../../src/app/(public)/sign-in/page\";", "import PublicLayout from \"../../../src/app/(public)/layout\";", "", "function html(element: React.ReactElement): string {", "  return renderToStaticMarkup(element);", "}", "", "describe(\"public authentication UI — increment 1\", () => {", "  it(\"renders the sign-in page with the required fields and registration link\", () => {", "    const rendered = html(createElement(SignInPage));", "", "    expect(rendered).toContain(\"Sign in\");", "    expect(rendered).toContain('type=\"email\"');", "    expect(rendered).toContain('autoComplete=\"email\"');", "    expect(rendered).toContain('autoComplete=\"current-password\"');", "    expect(rendered).toContain(\"border-slate-200\");", "    expect(rendered).toContain(\"min-h-11\");", "    expect(rendered).toContain('href=\"/register\"');", "  });", "", "  it(\"renders registration guidance and a sign-in link without role controls\", () => {", "    const rendered = html(createElement(RegisterPage));", "", "    expect(rendered).toContain(\"Create an account\");", "    expect(rendered).toContain('autoComplete=\"name\"');", "    expect(rendered).toContain(\"12–128 characters, including at least one number and one special character\");", "    expect(rendered).toContain('autoComplete=\"new-password\"');", "    expect(rendered).toContain('name=\"confirmPassword\"');", "    expect(rendered).toContain(\"border-slate-200\");", "    expect(rendered).toContain(\"min-h-11\");", "    expect(rendered).toContain('href=\"/sign-in\"');", "    expect(rendered).not.toContain('name=\"role\"');", "    expect(rendered).not.toContain('name=\"status\"');", "  });", "", "  it(\"adds authentication links and a skip target to the public shell\", () => {", "    const rendered = html(createElement(PublicLayout, null, createElement(\"p\", null, \"Content\")));", "", "    expect(rendered).toContain('href=\"/sign-in\"');", "    expect(rendered).toContain('href=\"/register\"');", "    expect(rendered).toContain('href=\"#main-content\"');", "    expect(rendered).toContain('id=\"main-content\"');", "    expect(rendered.match(/<main/g)?.length).toBe(1);", "  });", "", "  it(\"keeps auth actions in a bordered, readable form surface\", () => {", "    const signIn = html(createElement(SignInPage));", "    const register = html(createElement(RegisterPage));", "", "    for (const rendered of [signIn, register]) {", "      expect(rendered).toContain(\"rounded-xl\");", "      expect(rendered).toContain(\"bg-white\");", "      expect(rendered).toContain(\"focus-visible:ring-2\");", "    }", "  });", "});"], "new": ["import { createElement } from \"react\";", "import { renderToStaticMarkup } from \"react-dom/server\";", "import { describe, expect, it } from \"vitest\";", "", "import RegisterPage from \"../../../src/app/(public)/register/page\";", "import SignInPage from \"../../../src/app/(public)/sign-in/page\";", "import PublicLayout from \"../../../src/app/(public)/layout\";", "import { publicNavigationForAccount } from \"../../../src/components/route-navigation\";", "", "function html(element: React.ReactElement): string {", "  return renderToStaticMarkup(element);", "}", "", "describe(\"public authentication UI — increment 1\", () => {", "  it(\"renders the sign-in page with the required fields and registration link\", () => {", "    const rendered = html(createElement(SignInPage));", "", "    expect(rendered).toContain(\"Sign in\");", "    expect(rendered).toContain('type=\"email\"');", "    expect(rendered).toContain('autoComplete=\"email\"');", "    expect(rendered).toContain('autoComplete=\"current-password\"');", "    expect(rendered).toContain(\"border-slate-200\");", "    expect(rendered).toContain(\"min-h-11\");", "    expect(rendered).toContain('href=\"/register\"');", "  });", "", "  it(\"renders registration guidance and a sign-in link without role controls\", () => {", "    const rendered = html(createElement(RegisterPage));", "", "    expect(rendered).toContain(\"Create an account\");", "    expect(rendered).toContain('autoComplete=\"name\"');", "    expect(rendered).toContain(\"12–128 characters, including at least one number and one special character\");", "    expect(rendered).toContain('autoComplete=\"new-password\"');", "    expect(rendered).toContain('name=\"confirmPassword\"');", "    expect(rendered).toContain(\"border-slate-200\");", "    expect(rendered).toContain(\"min-h-11\");", "    expect(rendered).toContain('href=\"/sign-in\"');", "    expect(rendered).not.toContain('name=\"role\"');", "    expect(rendered).not.toContain('name=\"status\"');", "  });", "", "  it(\"adds authentication links and a skip target to the public shell\", () => {", "    const rendered = html(createElement(PublicLayout, null, createElement(\"p\", null, \"Content\")));", "", "    expect(rendered).toContain('href=\"/sign-in\"');", "    expect(rendered).toContain('href=\"/register\"');", "    expect(rendered).toContain('href=\"#main-content\"');", "    expect(rendered).toContain('id=\"main-content\"');", "    expect(rendered.match(/<main/g)?.length).toBe(1);", "  });", "", "  it(\"keeps auth actions in a bordered, readable form surface\", () => {", "    const signIn = html(createElement(SignInPage));", "    const register = html(createElement(RegisterPage));", "", "    for (const rendered of [signIn, register]) {", "      expect(rendered).toContain(\"rounded-xl\");", "      expect(rendered).toContain(\"bg-white\");", "      expect(rendered).toContain(\"focus-visible:ring-2\");", "    }", "  });", "", "  it(\"replaces public auth links with the signed-in display name\", () => {", "    const rendered = publicNavigationForAccount({ displayName: \"Person\", role: \"USER\" });", "", "    expect(rendered).toEqual([", "      { href: \"/\", label: \"Home\" },", "      { href: \"/movies\", label: \"Movies\" },", "      { href: \"/announcements\", label: \"Announcements\" },", "      { href: \"/app\", label: \"Person\" },", "    ]);", "  });", "});"], "rows": [[0, 0, 0], [0, 1, 1], [0, 2, 2], [0, 3, 3], [0, 4, 4], [0, 5, 5], [0, 6, 6], [2, -1, 7], [0, 7, 8], [0, 8, 9], [0, 9, 10], [0, 10, 11], [0, 11, 12], [0, 12, 13], [0, 13, 14], [0, 14, 15], [0, 15, 16], [0, 16, 17], [0, 17, 18], [0, 18, 19], [0, 19, 20], [0, 20, 21], [0, 21, 22], [0, 22, 23], [0, 23, 24], [0, 24, 25], [0, 25, 26], [0, 26, 27], [0, 27, 28], [0, 28, 29], [0, 29, 30], [0, 30, 31], [0, 31, 32], [0, 32, 33], [0, 33, 34], [0, 34, 35], [0, 35, 36], [0, 36, 37], [0, 37, 38], [0, 38, 39], [0, 39, 40], [0, 40, 41], [0, 41, 42], [0, 42, 43], [0, 43, 44], [0, 44, 45], [0, 45, 46], [0, 46, 47], [0, 47, 48], [0, 48, 49], [0, 49, 50], [0, 50, 51], [0, 51, 52], [0, 52, 53], [0, 53, 54], [0, 54, 55], [0, 55, 56], [0, 56, 57], [0, 57, 58], [0, 58, 59], [0, 59, 60], [2, -1, 61], [2, -1, 62], [2, -1, 63], [2, -1, 64], [2, -1, 65], [2, -1, 66], [2, -1, 67], [2, -1, 68], [2, -1, 69], [2, -1, 70], [2, -1, 71], [0, 60, 72]]}]};</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>
+const OP_EQUAL = 0, OP_DELETE = 1, OP_INSERT = 2, OP_REPLACE = 3;
+const FOLD_THRESHOLD = 20, CONTEXT_LINES = 6;
+
+function escapeHtml(text) {
+  return text.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+}
+
+/* highlight.js colors a whole file at once (so block comments and multi-line
+   strings are read correctly), then we cut the result into lines, re-opening
+   any spans that straddle a line break. */
+function highlightLines(lines, language) {
+  const plain = () => lines.map(escapeHtml);
+  if (!lines.length) return [];
+  if (!window.hljs || !hljs.getLanguage(language)) return plain();
+  let html;
+  try {
+    html = hljs.highlight(lines.join("\n"), { language, ignoreIllegals: true }).value;
+  } catch (err) {
+    return plain();
+  }
+  const out = [];
+  const open = [];
+  let current = "";
+  let i = 0;
+  while (i < html.length) {
+    const next = html.slice(i).search(/[<\n]/);
+    if (next === -1) { current += html.slice(i); break; }
+    current += html.slice(i, i + next);
+    i += next;
+    if (html[i] === "\n") {
+      out.push(current + "</span>".repeat(open.length));
+      current = open.join("");
+      i += 1;
+    } else {
+      const end = html.indexOf(">", i);
+      const tag = html.slice(i, end + 1);
+      if (tag[1] === "/") open.pop(); else open.push(tag);
+      current += tag;
+      i = end + 1;
+    }
+  }
+  out.push(current);
+  return out.length === lines.length ? out : plain();
+}
+
+/* Wrap the changed character ranges of one line, working on the DOM so the
+   offsets stay in sync with the text rather than with the highlighting markup. */
+function applyWordRanges(cell, ranges) {
+  if (!ranges || !ranges.length) return;
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  let offset = 0;
+  for (const textNode of nodes) {
+    const start = offset, end = offset + textNode.nodeValue.length;
+    offset = end;
+    const pieces = [];
+    for (let r = 0; r < ranges.length; r += 2) {
+      const from = Math.max(ranges[r], start), to = Math.min(ranges[r + 1], end);
+      if (to > from) pieces.push([from - start, to - start]);
+    }
+    let rest = textNode;
+    let consumed = 0;
+    for (const [from, to] of pieces) {
+      const tail = rest.splitText(from - consumed);
+      const after = tail.splitText(to - from);
+      const mark = document.createElement("mark");
+      mark.className = "word";
+      tail.parentNode.replaceChild(mark, tail);
+      mark.appendChild(tail);
+      rest = after;
+      consumed = to;
+    }
+  }
+}
+
+function numCell(index, side) {
+  return index >= 0
+    ? `<td class="num ${side}">${index + 1}</td>`
+    : `<td class="num ${side}"></td>`;
+}
+
+/* mode is "split", or "old"/"new" for the one-column view used by files that
+   were added, deleted, or not changed at all. */
+function renderRow(row, oldHtml, newHtml, mode) {
+  const [op, oldIndex, newIndex] = row;
+  const cls = { [OP_EQUAL]: "eq", [OP_DELETE]: "del", [OP_INSERT]: "ins", [OP_REPLACE]: "rep" }[op];
+  const cell = (index, side, lines) => index >= 0
+    ? `<td class="code side-${side}">${lines[index] || "&nbsp;"}</td>`
+    : `<td class="code side-${side} blank"></td>`;
+  if (mode === "old") return `<tr class="${cls}">${numCell(oldIndex, "old")}${cell(oldIndex, "old", oldHtml)}</tr>`;
+  if (mode === "new") return `<tr class="${cls}">${numCell(newIndex, "new")}${cell(newIndex, "new", newHtml)}</tr>`;
+  return `<tr class="${cls}">${numCell(oldIndex, "old")}${cell(oldIndex, "old", oldHtml)}`
+       + `${numCell(newIndex, "new")}${cell(newIndex, "new", newHtml)}</tr>`;
+}
+
+/* Group the rows into segments: long stretches of untouched lines become a
+   single clickable "N unchanged lines" strip. */
+function segmentRows(rows, foldAll) {
+  const segments = [];
+  let run = [];
+  const flushRun = () => {
+    if (!run.length) return;
+    if (foldAll || run.length > FOLD_THRESHOLD) {
+      const head = foldAll ? [] : run.slice(0, segments.length ? CONTEXT_LINES : 0);
+      const tail = foldAll ? [] : run.slice(-CONTEXT_LINES);
+      const hidden = run.slice(head.length, run.length - tail.length);
+      if (head.length) segments.push({ type: "rows", rows: head });
+      if (hidden.length) segments.push({ type: "fold", rows: hidden });
+      if (tail.length) segments.push({ type: "rows", rows: tail });
+    } else {
+      segments.push({ type: "rows", rows: run });
+    }
+    run = [];
+  };
+  for (const row of rows) {
+    if (row[0] === OP_EQUAL) run.push(row);
+    else { flushRun(); segments.push({ type: "rows", rows: [row] }); }
+  }
+  flushRun();
+  /* The last stretch of a file has no following change, so drop its trailing context. */
+  return segments;
+}
+
+function renderFile(file, container) {
+  const mode = file.status === "D" ? "old"
+    : (!file.changed || file.status === "A") ? "new" : "split";
+  const single = mode !== "split";
+  const oldHtml = highlightLines(file.old, file.language);
+  const newHtml = highlightLines(file.new, file.language);
+  const table = document.createElement("table");
+  table.className = "diff" + (single ? " single" : "");
+  table.innerHTML = single
+    ? '<colgroup><col class="num"><col class="code"></colgroup>'
+    : '<colgroup><col class="num"><col class="code"><col class="num"><col class="code"></colgroup>';
+  const body = document.createElement("tbody");
+  table.appendChild(body);
+
+  const segments = segmentRows(file.rows, !file.changed);
+  const chunks = [];
+  segments.forEach((segment, index) => {
+    if (segment.type === "fold") {
+      const label = `⋯  ${segment.rows.length} unchanged line${segment.rows.length === 1 ? "" : "s"}`;
+      chunks.push(
+        `<tr class="fold" data-segment="${index}"><td colspan="${single ? 2 : 4}">` +
+        `<button type="button">${label}</button></td></tr>`
+      );
+    } else {
+      for (const row of segment.rows) chunks.push(renderRow(row, oldHtml, newHtml, mode));
+    }
+  });
+  body.innerHTML = chunks.join("");
+
+  const markRows = (scope) => {
+    for (const tr of scope.querySelectorAll("tr.rep")) {
+      const row = tr._row;
+      if (!row || row.length < 5) continue;
+      applyWordRanges(tr.querySelector("td.side-old"), row[3]);
+      applyWordRanges(tr.querySelector("td.side-new"), row[4]);
+    }
+  };
+  /* Attach each rendered <tr> to its row data so word marks can be applied. */
+  const attach = (scope, rows) => {
+    const trs = scope.querySelectorAll("tr:not(.fold)");
+    let cursor = 0;
+    for (const tr of trs) { if (!tr._row) tr._row = rows[cursor++]; }
+  };
+  const flatRows = [];
+  segments.forEach(segment => { if (segment.type !== "fold") flatRows.push(...segment.rows); });
+  attach(body, flatRows);
+  markRows(body);
+
+  body.addEventListener("click", event => {
+    const button = event.target.closest("tr.fold button");
+    if (!button) return;
+    const tr = button.closest("tr.fold");
+    const segment = segments[Number(tr.dataset.segment)];
+    const holder = document.createElement("tbody");
+    holder.innerHTML = segment.rows.map(row => renderRow(row, oldHtml, newHtml, mode)).join("");
+    const fragment = document.createDocumentFragment();
+    while (holder.firstChild) fragment.appendChild(holder.firstChild);
+    tr.replaceWith(fragment);
+  });
+
+  container.innerHTML = "";
+  const scroller = document.createElement("div");
+  scroller.className = "diff-wrap";
+  scroller.appendChild(table);
+  container.appendChild(scroller);
+}
+
+function setup() {
+  const files = window.DIFF_DATA.files;
+  const byIndex = new Map();
+  document.querySelectorAll(".file").forEach(element => {
+    byIndex.set(element, files[Number(element.dataset.index)]);
+  });
+
+  const render = element => {
+    const file = byIndex.get(element);
+    const slot = element.querySelector(".slot");
+    if (!file || !slot || slot.dataset.done === "1") return;
+    slot.dataset.done = "1";
+    renderFile(file, slot);
+  };
+
+  const sections = [...document.querySelectorAll(".file")];
+  sections.forEach(element => {
+    element.addEventListener("toggle", () => { if (element.open) render(element); });
+  });
+
+  /* Changed files are all built up front -- so browser find-in-page and printing
+     see everything -- but in small batches, so the page is usable right away.
+     Files that did not change are built only when their panel is opened. */
+  const queue = sections.filter(element => element.open);
+  const renderBatch = () => {
+    const started = performance.now();
+    while (queue.length && performance.now() - started < 40) render(queue.shift());
+    if (queue.length) setTimeout(renderBatch, 0);
+  };
+  renderBatch();
+  window.addEventListener("beforeprint", () => sections.forEach(render));
+
+  document.getElementById("expand-all").addEventListener("click", () => {
+    document.querySelectorAll(".file").forEach(element => { element.open = true; render(element); });
+  });
+  document.getElementById("collapse-all").addEventListener("click", () => {
+    document.querySelectorAll(".file").forEach(element => { element.open = false; });
+  });
+
+  const filter = document.getElementById("filter");
+  filter.addEventListener("input", () => {
+    const needle = filter.value.trim().toLowerCase();
+    document.querySelectorAll(".file").forEach(element => {
+      const path = element.dataset.path.toLowerCase();
+      element.hidden = needle !== "" && !path.includes(needle);
+    });
+    document.querySelectorAll(".index li").forEach(item => {
+      item.hidden = needle !== "" && !item.dataset.path.toLowerCase().includes(needle);
+    });
+  });
+
+  document.querySelectorAll(".index a").forEach(link => {
+    link.addEventListener("click", () => {
+      const target = document.querySelector(link.getAttribute("href"));
+      if (target) { target.open = true; render(target); }
+    });
+  });
+}
+
+if (window.hljs) setup();
+else window.addEventListener("load", setup, { once: true });
+</script>
+</body>
+</html>

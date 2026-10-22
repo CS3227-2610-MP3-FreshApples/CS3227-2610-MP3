@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "iteration_id": "admin-logout-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — Admin logout control",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "User explicitly approved the first iteration in the conversation: Proceed with the first iteration."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "Copied the complete working tree excluding only .git to /tmp/admin-logout-iter1-baseline.ia1r1Y and committed baseline 112add2803f6ffc288afd46d077aa10196995e7a before production edits."
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/auth/admin-logout-client.test.ts failed because src/components/admin-account-control.tsx did not exist; the test-authoring JSX parse issue was corrected before this intended red run."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "Added src/components/admin-account-control.tsx and mounted AdminAccountControl from src/app/admin/layout.tsx."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/auth/admin-logout-client.test.ts passed: 1 file, 3 tests."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "Auth/UI-shell unit tests passed 15 files/63 tests; npm run lint passed; npx tsc --noEmit passed; git diff --check passed. npm run build failed with Turbopack process-binding permission error, and npx next build --webpack compiled but failed on the pre-existing src/app/app/reviews/page.ts TypeScript PageProps error."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "Generated _temp/visual-diff.html from baseline commit 112add2803f6ffc288afd46d077aa10196995e7a against the refreshed external comparison worktree; generator reported 3 changed files and 700 unchanged."
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Evidence manifest completed and deterministic iterative-TDD grader requested."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "A successful admin logout performs the existing CSRF-protected logout request and redirects to /sign-in.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/admin-logout-client.test.ts — redirects to sign-in after the authenticated logout succeeds",
+        "src/components/admin-account-control.tsx — logoutAdmin calls submitLogout and replaces the route only for ok: true"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "A logout failure displays a safe inline error and does not navigate away from the admin dashboard.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/admin-logout-client.test.ts — keeps the admin dashboard in place and returns an inline-safe error on failure",
+        "src/components/admin-account-control.tsx — renders the result message with role=alert and does not call replace on failure"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "The admin shell mounts an accessible sign-out control without exposing session details.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/admin-logout-client.test.ts — mounts the logout control in the admin shell",
+        "src/app/admin/layout.tsx — passes AdminAccountControl as RouteShell headerAction"
+      ]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/admin-logout-client.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit -- tests/unit/auth tests/unit/ui-shell", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": true, "status": "FAIL", "exit_code": 1, "reason": "Turbopack failed to bind a process port with Operation not permitted; human instructed that this check may be skipped, but the attempted command did not pass."},
+    {"command": "npx next build --webpack", "required": true, "status": "FAIL", "exit_code": 1, "reason": "Compilation succeeded, then the existing src/app/app/reviews/page.ts PageProps type error stopped the build; this file is outside the approved increment and unchanged."},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The baseline comparison contains only the approved admin layout integration, admin account control, and focused test; unrelated pre-existing test-results changes were preserved and not included in the iteration diff."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "This manifest reports the focused behavior and passing checks accurately, and explicitly reports both failed build attempts and the reasons they could not validate the increment."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/admin-logout-iter1-baseline.ia1r1Y",
+    "baseline_digest": "112add2803f6ffc288afd46d077aa10196995e7a",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "112add2803f6ffc288afd46d077aa10196995e7a"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": false
+}

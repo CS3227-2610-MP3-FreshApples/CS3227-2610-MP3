@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Pagination } from "../../../../components/pagination";
 import { StatusBadge, StatusMessage } from "../../../../components/status-primitives";
 import { DataTable } from "../../../../components/table-state";
+import { UserRetryButton } from "../../_components/user-ui";
 import { formatReviewDate, listOwnReviews, type ReviewFailure, type ReviewPage } from "../_lib/review-client";
 
 type ReviewListState =
@@ -48,7 +49,7 @@ export function ReviewList({ page }: ReviewListProps) {
     return (
       <section className="space-y-4" aria-label="Review status">
         <StatusMessage status="error">{state.failure.message}</StatusMessage>
-        <button className="rounded-md border border-slate-300 px-4 py-2 font-semibold" onClick={reload} type="button">Try again</button>
+        <UserRetryButton onClick={reload} />
       </section>
     );
   }

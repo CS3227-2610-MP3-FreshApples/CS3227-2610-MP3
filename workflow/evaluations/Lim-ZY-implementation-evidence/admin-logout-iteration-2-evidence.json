@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "iteration_id": "admin-logout-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — AI summary UI verification and any evidence-backed completion",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The user approved proceeding with the next checklist increment after the Iteration 1 handoff."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "User explicitly approved proceeding with the next iteration, then explicitly authorized option 1 to resolve the discovered admin UI boundary conflict."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "Copied the complete current working tree excluding only .git to /tmp/admin-logout-iter2-baseline.Mox5k6 and committed baseline 4fe14f1dfdf9ea9b9da31a3d6ed85523c7d9ebef before iteration-2 production edits."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "After correcting the server-only test mock, npx vitest run --project unit tests/unit/ai/summary/review-summary-presentation.test.ts failed because the existing summary markup lacked the expected public Movie-page card hierarchy and typography classes."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Added the summary presentation refinement in src/app/(public)/movies/[id]/_components/review-summary.tsx and updated its focused semantic rendering assertions."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "The focused summary presentation and existing summary UI tests passed 12/12 after the styling refinement; after the later authorized admin-boundary remediation, the combined focused suite passed 15/15 and the structural admin suite passed 108/108."
+    },
+    {
+      "sequence": 7,
+      "type": "boundary_remediation_authorized",
+      "evidence": "The full unit suite found that admin UI files may not import non-K12 shared components or call fetch directly. The user explicitly approved moving the admin control into src/app/admin/_components and routing HTTP calls through _lib/admin-http.ts."
+    },
+    {
+      "sequence": 8,
+      "type": "validation_completed",
+      "evidence": "Full unit suite passed 80 files/1557 tests; npm run lint passed; git diff --check passed. npx tsc --noEmit and npx next build --webpack remain blocked by the existing generated .next/types/app/app/reviews/page.ts PageProps error outside this increment. Turbopack was skipped per the user's instruction after its process-permission failure."
+    },
+    {
+      "sequence": 9,
+      "type": "visual_diff_created",
+      "evidence": "Generated _temp/visual-diff-iteration-2.html from baseline commit 4fe14f1dfdf9ea9b9da31a3d6ed85523c7d9ebef against the refreshed external comparison worktree; generator reported 7 changed files and 700 unchanged."
+    },
+    {
+      "sequence": 10,
+      "type": "grade_requested",
+      "evidence": "Iteration-2 evidence manifest completed and deterministic iterative-TDD grader requested."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "The public AI summary UI presents the ready state within the established Movie-page card hierarchy while retaining the specified disclosure, overall text, lists, counts and UTC timestamp.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ai/summary/review-summary-presentation.test.ts",
+        "tests/unit/ai/summary/review-summary-ui.test.ts",
+        "src/app/(public)/movies/[id]/_components/review-summary.tsx"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Existing summary states, escaping, truncation behavior and no-control rule remain intact after the UI refinement.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ai/summary/review-summary-ui.test.ts — 11 tests passed",
+        "Full unit suite — 1557 tests passed"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Admin UI remains within its recorded module boundaries while retaining the logout behavior from Increment 1.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/admin-ui/admin-pages.test.ts — 93 tests passed",
+        "tests/unit/auth/admin-logout-client.test.ts — 3 tests passed",
+        "src/app/admin/_components/admin-account-control.tsx and src/app/admin/_lib/admin-http.ts"
+      ]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/admin-logout-client.test.ts tests/unit/admin-ui/admin-pages.test.ts tests/unit/ai/summary/review-summary-presentation.test.ts tests/unit/ai/summary/review-summary-ui.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "FAIL", "exit_code": 2, "reason": "Existing generated .next/types/app/app/reviews/page.ts PageProps error outside this increment."},
+    {"command": "npx next build --webpack", "required": true, "status": "FAIL", "exit_code": 1, "reason": "Compilation succeeds, then the same existing generated PageProps type error stops the build."},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Human authorized skipping Turbopack validation after its environment process-binding permission failure."},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The final iteration diff is limited to the summary UI presentation/tests and the explicitly authorized admin-control boundary remediation; unrelated test-results changes remain preserved."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "The manifest reports all passing tests and the unresolved type-check/build failures accurately, without marking the checklist complete."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/admin-logout-iter2-baseline.Mox5k6",
+    "baseline_digest": "4fe14f1dfdf9ea9b9da31a3d6ed85523c7d9ebef",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff-iteration-2.html",
+    "visual_diff_baseline_digest": "4fe14f1dfdf9ea9b9da31a3d6ed85523c7d9ebef"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": false
+}

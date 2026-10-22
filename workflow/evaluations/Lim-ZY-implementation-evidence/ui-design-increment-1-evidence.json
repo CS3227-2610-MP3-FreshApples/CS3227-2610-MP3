@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "iteration_id": "ui-design-increment-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Shared shell and design tokens",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "User explicitly approved the implementation checklist in the message: Great. Proceed to implement it."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/ui-design-increment-1-baseline; temporary Git baseline commit 41d69f3eab6dca5c225a7aacf2843a4227a3e239"
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npm run test:unit -- tests/unit/ui-shell/route-shells.test.ts tests/unit/ui-shell/k12-primitives.test.ts failed before production edits because the new shell landmarks and high-contrast status hooks were absent. After correcting a test import and running again, both intended assertions remained red."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "First production edit added src/components/route-navigation.tsx and updated the shared route shell, status primitives, form primitives, and global CSS."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "npm run test:unit -- tests/unit/ui-shell/route-shells.test.ts tests/unit/ui-shell/k12-primitives.test.ts passed: 2 files, 10 tests."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "Full unit suite passed: 66 files, 1438 tests. npm run lint passed. npx tsc --noEmit passed. npm run build was attempted but blocked by the documented environment restriction while Turbopack processed CSS and tried to bind a process port (Operation not permitted)."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "_temp/visual-diff.html generated from the temporary baseline commit against the refreshed temporary worktree; generator reported 7 changed files and 612 unchanged files."
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Evidence bundle complete; deterministic grader requested after this manifest was written."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Shared public/User/Admin route shell uses responsive page structure, skip navigation, visible focus treatment, and active navigation support without changing route boundaries.",
+      "verdict": "PASS",
+      "evidence": [
+        "src/components/route-shell.tsx",
+        "src/components/route-navigation.tsx",
+        "tests/unit/ui-shell/route-shells.test.ts",
+        "Focused shell tests passed: 10 tests"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Shared status and form primitives expose readable high-contrast visual hooks while preserving labels, hints, errors, live regions, and existing markup contracts.",
+      "verdict": "PASS",
+      "evidence": [
+        "src/components/status-primitives.tsx",
+        "src/components/form-primitives.tsx",
+        "src/app/globals.css",
+        "tests/unit/ui-shell/k12-primitives.test.ts",
+        "Focused primitive tests passed: 10 tests"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "The increment adds no dependencies, API/database changes, private-data exposure, or unrelated page behaviour.",
+      "verdict": "PASS",
+      "evidence": [
+        "git diff --stat",
+        "package.json and lockfile unchanged",
+        "Full unit suite passed: 1438 tests",
+        "No API or database files changed"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/ui-shell/route-shells.test.ts tests/unit/ui-shell/k12-primitives.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run build",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "Attempted but unavailable in the sandbox: Next.js Turbopack failed with Operation not permitted while creating a process/binding a port during CSS processing."
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Changes are limited to shared UI shell/primitives, global CSS, and focused UI-shell tests; existing untracked handoff/log files were preserved."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Build limitation and all executed checks are stated accurately; no commit was created."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/ui-design-increment-1-baseline",
+    "baseline_digest": "41d69f3eab6dca5c225a7aacf2843a4227a3e239",
+    "visual_diff_path": "../_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "41d69f3eab6dca5c225a7aacf2843a4227a3e239"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": false
+}

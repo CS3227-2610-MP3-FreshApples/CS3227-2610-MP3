@@ -1,0 +1,31 @@
+{
+  "overall_verdict": "PASS",
+  "output_correctness": {
+    "verdict": "PASS",
+    "findings": [
+      "The movie page uses release_desc when the sort parameter is omitted, matching the documented newest-release ordering and retaining an explicit selectable sort control; this is a page default and does not change the API contract."
+    ],
+    "evidence": [
+      "src/app/(public)/movies/page.tsx: direct publicCatalogueReadService call, search/sort controls, empty result, navigation, and text-only summary projection",
+      "src/app/(public)/movies/[id]/page.tsx: direct detail read, notFound mapping, aggregate/metadata projection, and no visible Review list",
+      "src/app/(public)/announcements/page.tsx: direct announcement read and conditional active Movie link",
+      "src/app/(public)/movies/loading.tsx, src/app/(public)/movies/[id]/loading.tsx, src/app/(public)/announcements/loading.tsx, and their error.tsx companions: route-level text loading and retry UI",
+      "tests/unit/catalogue/public-pages.test.ts: four passing rendering tests for empty, success, loading/error, text-only and U-02 exclusion behavior",
+      "_temp/u01-iteration-4-evidence.json: focused/full test passes plus type-check, lint, and diff-check passes",
+      "_temp/u01-iteration-4-visual-diff.html: iteration-scoped eleven-file diff from the external baseline"
+    ]
+  },
+  "process_compliance": {
+    "verdict": "PASS",
+    "findings": [
+      "This was a self-audit by the implementing main agent because no independent evaluator was used; the deterministic grader separately checks evidence structure and chronology."
+    ],
+    "evidence": [
+      "_temp/u01-iteration-4-evidence.json: approved plan, continuation approval, external baseline, red-before-production, green, validation, and visual-diff event order",
+      "/tmp/u01-iteration-4-baseline-izhagq: external working-tree baseline captured before Iteration 4 edits",
+      "workflow/handoffs/u01-public-pages.md: one-increment handoff with no commit and no Increment 5 work"
+    ]
+  },
+  "missing_evidence": [],
+  "required_remediation": []
+}

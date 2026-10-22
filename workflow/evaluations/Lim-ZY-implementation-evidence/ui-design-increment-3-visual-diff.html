@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ui-design-increment-3-comparison-EJbGTK: 2f4792a...working folder</title>
+<style>
+:root {
+  --fg: #1f2328; --muted: #656d76; --border: #d1d9e0; --bg: #ffffff;
+  --bg-soft: #f6f8fa; --accent: #0969da;
+  --del-bg: #ffebe9; --del-strong: #ffc9c4; --del-num: #ffd8d3;
+  --add-bg: #e6ffec; --add-strong: #abf2bc; --add-num: #ccffd8;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg-soft); color: var(--fg);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 1600px; margin: 0 auto; padding: 0 16px 80px; }
+
+header.page { padding: 24px 0 12px; }
+header.page h1 { font-size: 20px; margin: 0 0 12px; }
+.revs { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.rev {
+  flex: 1 1 320px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 10px 12px;
+}
+.rev .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.rev .sha { font-family: var(--mono); font-weight: 600; }
+.rev .subject { color: var(--muted); overflow-wrap: anywhere; }
+.summary { margin: 14px 0 4px; color: var(--muted); }
+.summary strong { color: var(--fg); }
+.add-count { color: #1a7f37; font-weight: 600; }
+.del-count { color: #cf222e; font-weight: 600; }
+
+.toolbar {
+  position: sticky; top: 0; z-index: 20; display: flex; gap: 8px; align-items: center;
+  flex-wrap: wrap; padding: 10px 0; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border); margin-bottom: 16px;
+}
+.toolbar input[type=search] {
+  flex: 1 1 220px; min-width: 160px; padding: 5px 10px; font-size: 13px;
+  border: 1px solid var(--border); border-radius: 6px; background: var(--bg);
+}
+button {
+  font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--fg);
+}
+button:hover { background: var(--bg-soft); }
+
+.index { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+.index > summary { cursor: pointer; padding: 10px 14px; font-weight: 600; }
+.index ol { margin: 0; padding: 0 14px 12px 14px; list-style: none; }
+.index li { display: flex; gap: 10px; padding: 2px 0; align-items: baseline; }
+.index .path { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.index .counts { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+
+.file { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; }
+.file[hidden] { display: none; }
+.file > summary {
+  position: sticky; top: 47px; z-index: 10; cursor: pointer; list-style: none;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--bg-soft);
+  border-bottom: 1px solid var(--border); border-radius: 6px 6px 0 0;
+}
+.file:not([open]) > summary { border-bottom: none; border-radius: 6px; }
+.file > summary::-webkit-details-marker { display: none; }
+.file > summary::before { content: "\25be"; color: var(--muted); width: 10px; }
+.file:not([open]) > summary::before { content: "\25b8"; }
+.file .name { font-family: var(--mono); font-size: 12.5px; font-weight: 600; overflow-wrap: anywhere; }
+.file .from { color: var(--muted); font-weight: 400; }
+.badge {
+  font-size: 11px; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); background: var(--bg);
+}
+.badge.added { color: #1a7f37; border-color: #aceebb; background: var(--add-bg); }
+.badge.deleted { color: #cf222e; border-color: #ffcecb; background: var(--del-bg); }
+.badge.renamed, .badge.copied { color: #9a6700; border-color: #f5d5a3; background: #fff8c5; }
+.file .counts { margin-left: auto; font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+.note { padding: 14px; color: var(--muted); font-style: italic; }
+
+.diff-wrap { overflow-x: auto; }
+table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: var(--mono); font-size: 12px; }
+table.diff col.num { width: 50px; }
+table.diff col.code { width: calc(50% - 50px); }
+table.diff.single col.code { width: calc(100% - 50px); }
+td.num {
+  text-align: right; padding: 0 8px; color: var(--muted); background: var(--bg-soft);
+  border-right: 1px solid var(--border); user-select: none; vertical-align: top;
+  white-space: nowrap; width: 50px;
+}
+td.code {
+  padding: 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: top; tab-size: 4;
+}
+td.code.side-old { border-right: 1px solid var(--border); }
+tr.del td.code, tr.rep td.code.side-old { background: var(--del-bg); }
+tr.del td.num.old, tr.rep td.num.old { background: var(--del-num); }
+tr.ins td.code, tr.rep td.code.side-new { background: var(--add-bg); }
+tr.ins td.num.new, tr.rep td.num.new { background: var(--add-num); }
+table.diff td.code.blank {
+  background: repeating-linear-gradient(45deg, #fafbfc, #fafbfc 6px, #f0f2f4 6px, #f0f2f4 12px);
+}
+mark.word { padding: 0; border-radius: 2px; }
+td.code.side-old mark.word { background: var(--del-strong); }
+td.code.side-new mark.word { background: var(--add-strong); }
+tr.fold td { padding: 0; background: #eef3f9; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+tr.fold button {
+  width: 100%; text-align: left; border: 0; border-radius: 0; background: transparent;
+  color: var(--accent); font-family: var(--mono); font-size: 12px; padding: 4px 12px;
+}
+.pending { padding: 14px; color: var(--muted); }
+
+.hljs-comment, .hljs-quote { color: #6a737d; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-formula { color: #cf222e; }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute, .hljs-meta .hljs-string { color: #0a3069; }
+.hljs-number, .hljs-literal, .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #0550ae; }
+.hljs-title, .hljs-section, .hljs-title.class_, .hljs-title.function_, .hljs-name { color: #8250df; }
+.hljs-built_in, .hljs-type, .hljs-symbol, .hljs-bullet, .hljs-selector-id, .hljs-selector-class { color: #953800; }
+.hljs-meta, .hljs-attr, .hljs-params { color: #116329; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+.hljs-deletion { color: #82071e; }
+
+@media print {
+  .toolbar, .index { display: none; }
+  .file, .rev { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="page">
+  <h1>Comparing 2f4792a…working folder
+      in <code>ui-design-increment-3-comparison-EJbGTK</code></h1>
+  <div class="revs"><div class="rev"><div class="label">Base (before)</div><div><span class="sha">2f4792a</span> <span class="subject"></span></div><div class="subject">chore: capture increment 3 baseline</div><div class="subject">Codex baseline · 2026-10-21</div></div><div class="rev"><div class="label">Compare (after)</div><div><span class="sha">working folder</span> <span class="subject"></span></div><div class="subject">uncommitted state, on main</div><div class="subject">2026-10-21 18:35</div></div></div>
+  <p class="summary"><strong>4</strong> changed
+     files with
+     <span class="add-count">100 additions</span> and
+     <span class="del-count">7 deletions</span>.</p>
+  <p class="summary">The working folder side covers staged and unstaged work alike, and counts files Git does not track yet as additions. Gitignored files are left out.</p>
+</header>
+<div class="toolbar">
+  <input id="filter" type="search" placeholder="Filter files by path…" autocomplete="off">
+  <button id="expand-all" type="button">Expand all</button>
+  <button id="collapse-all" type="button">Collapse all</button>
+</div>
+<details class="index" open><summary>4 changed files</summary><ol><li data-path="src/app/app/page.tsx"><span class="badge modified">modified</span><a class="path" href="#file-0">src/app/app/page.tsx</a><span class="counts"><span class="add-count">+22</span> <span class="del-count">−2</span></span></li><li data-path="src/app/app/reports/page.tsx"><span class="badge modified">modified</span><a class="path" href="#file-1">src/app/app/reports/page.tsx</a><span class="counts"><span class="add-count">+13</span> <span class="del-count">−3</span></span></li><li data-path="src/app/app/reviews/page.tsx"><span class="badge modified">modified</span><a class="path" href="#file-2">src/app/app/reviews/page.tsx</a><span class="counts"><span class="add-count">+15</span> <span class="del-count">−2</span></span></li><li data-path="tests/unit/user-ui/private-pages.test.ts"><span class="badge added">added</span><a class="path" href="#file-3">tests/unit/user-ui/private-pages.test.ts</a><span class="counts"><span class="add-count">+50</span></span></li></ol></details>
+<details class="file" id="file-0" data-index="0" data-path="src/app/app/page.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/app/app/page.tsx</span><span class="counts"><span class="add-count">+22</span> <span class="del-count">−2</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-1" data-index="1" data-path="src/app/app/reports/page.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/app/app/reports/page.tsx</span><span class="counts"><span class="add-count">+13</span> <span class="del-count">−3</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-2" data-index="2" data-path="src/app/app/reviews/page.tsx" open><summary><span class="badge modified">modified</span><span class="name">src/app/app/reviews/page.tsx</span><span class="counts"><span class="add-count">+15</span> <span class="del-count">−2</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details><details class="file" id="file-3" data-index="3" data-path="tests/unit/user-ui/private-pages.test.ts" open><summary><span class="badge added">added</span><span class="name">tests/unit/user-ui/private-pages.test.ts</span><span class="counts"><span class="add-count">+50</span></span></summary><div class="slot"><div class="pending">Loading…</div></div></details>
+
+</div>
+<script>window.DIFF_DATA = {"files": [{"path": "src/app/app/page.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { PagePlaceholder } from \"../../components/page-placeholder\";", "", "export default function UserOverviewPage() {", "  return <PagePlaceholder title=\"Your overview\" description=\"Manage your reviews and reports.\" />;", "}"], "new": ["import Link from \"next/link\";", "", "export default function UserOverviewPage() {", "  return (", "    <section className=\"space-y-8\" aria-labelledby=\"user-overview-title\">", "      <header className=\"max-w-3xl space-y-3\">", "        <p className=\"text-sm font-semibold uppercase tracking-[0.18em] text-blue-700\">Your account<\/p>", "        <h1 className=\"text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl\" id=\"user-overview-title\">Your overview<\/h1>", "        <p className=\"text-lg leading-8 text-slate-600\">Keep track of your published reviews and submitted reports from one private space.<\/p>", "      <\/header>", "      <div className=\"grid gap-5 md:grid-cols-2\">", "        <section className=\"rounded-xl border border-slate-200 bg-white p-6 shadow-sm\" aria-labelledby=\"user-reviews-card-title\">", "          <h2 className=\"text-xl font-semibold text-slate-950\" id=\"user-reviews-card-title\">Your reviews<\/h2>", "          <p className=\"mt-2 text-slate-600\">No published reviews yet.<\/p>", "          <Link className=\"mt-5 inline-flex min-h-11 items-center font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\" href=\"/app/reviews\">View your reviews<\/Link>", "        <\/section>", "        <section className=\"rounded-xl border border-slate-200 bg-white p-6 shadow-sm\" aria-labelledby=\"user-reports-card-title\">", "          <h2 className=\"text-xl font-semibold text-slate-950\" id=\"user-reports-card-title\">Your reports<\/h2>", "          <p className=\"mt-2 text-slate-600\">No submitted reports yet.<\/p>", "          <Link className=\"mt-5 inline-flex min-h-11 items-center font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\" href=\"/app/reports\">View your reports<\/Link>", "        <\/section>", "      <\/div>", "    <\/section>", "  );", "}"], "rows": [[3, 0, 0, [7, 26, 33, 35, 36, 66], [7, 11, 18, 22, 23, 27]], [0, 1, 1], [0, 2, 2], [3, 3, 3], [2, -1, 4], [2, -1, 5], [2, -1, 6], [2, -1, 7], [2, -1, 8], [2, -1, 9], [2, -1, 10], [2, -1, 11], [2, -1, 12], [2, -1, 13], [2, -1, 14], [2, -1, 15], [2, -1, 16], [2, -1, 17], [2, -1, 18], [2, -1, 19], [2, -1, 20], [2, -1, 21], [2, -1, 22], [2, -1, 23], [0, 4, 24]]}, {"path": "src/app/app/reports/page.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { PagePlaceholder } from \"../../../components/page-placeholder\";", "", "export default function UserReportsPage() {", "  return <PagePlaceholder title=\"My reports\" description=\"View your submitted reports.\" />;", "}"], "new": ["export default function UserReportsPage() {", "  return (", "    <section className=\"space-y-8\" aria-labelledby=\"user-reports-title\">", "      <header className=\"max-w-3xl space-y-3\">", "        <p className=\"text-sm font-semibold uppercase tracking-[0.18em] text-blue-700\">Your account<\/p>", "        <h1 className=\"text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl\" id=\"user-reports-title\">My reports<\/h1>", "        <p className=\"text-lg leading-8 text-slate-600\">Your submitted reports are private and will appear here when available.<\/p>", "      <\/header>", "      <section className=\"rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm\" aria-labelledby=\"user-reports-empty-title\">", "        <h2 className=\"text-xl font-semibold text-slate-950\" id=\"user-reports-empty-title\">No submitted reports yet<\/h2>", "        <p className=\"mx-auto mt-2 max-w-xl text-slate-600\">Reports you submit about published content will remain visible only in your account.<\/p>", "      <\/section>", "    <\/section>", "  );", "}"], "rows": [[1, 0, -1], [1, 1, -1], [0, 2, 0], [3, 3, 1], [2, -1, 2], [2, -1, 3], [2, -1, 4], [2, -1, 5], [2, -1, 6], [2, -1, 7], [2, -1, 8], [2, -1, 9], [2, -1, 10], [2, -1, 11], [2, -1, 12], [2, -1, 13], [0, 4, 14]]}, {"path": "src/app/app/reviews/page.tsx", "oldPath": null, "status": "M", "language": "typescript", "changed": true, "old": ["import { PagePlaceholder } from \"../../../components/page-placeholder\";", "", "export default function UserReviewsPage() {", "  return <PagePlaceholder title=\"My reviews\" description=\"View and manage your reviews.\" />;", "}"], "new": ["import Link from \"next/link\";", "", "export default function UserReviewsPage() {", "  return (", "    <section className=\"space-y-8\" aria-labelledby=\"user-reviews-title\">", "      <header className=\"max-w-3xl space-y-3\">", "        <p className=\"text-sm font-semibold uppercase tracking-[0.18em] text-blue-700\">Your account<\/p>", "        <h1 className=\"text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl\" id=\"user-reviews-title\">My reviews<\/h1>", "        <p className=\"text-lg leading-8 text-slate-600\">Published reviews will appear here when they are available.<\/p>", "      <\/header>", "      <section className=\"rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm\" aria-labelledby=\"user-reviews-empty-title\">", "        <h2 className=\"text-xl font-semibold text-slate-950\" id=\"user-reviews-empty-title\">No published reviews yet<\/h2>", "        <p className=\"mx-auto mt-2 max-w-xl text-slate-600\">Browse the catalogue when you are ready to share a thoughtful perspective.<\/p>", "        <Link className=\"mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-blue-700 px-5 py-2.5 font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2\" href=\"/movies\">Browse movies<\/Link>", "      <\/section>", "    <\/section>", "  );", "}"], "rows": [[3, 0, 0, [7, 26, 33, 35, 36, 69], [7, 11, 18, 22, 23, 27]], [0, 1, 1], [0, 2, 2], [3, 3, 3], [2, -1, 4], [2, -1, 5], [2, -1, 6], [2, -1, 7], [2, -1, 8], [2, -1, 9], [2, -1, 10], [2, -1, 11], [2, -1, 12], [2, -1, 13], [2, -1, 14], [2, -1, 15], [2, -1, 16], [0, 4, 17]]}, {"path": "tests/unit/user-ui/private-pages.test.ts", "oldPath": null, "status": "A", "language": "typescript", "changed": true, "old": [], "new": ["import { createElement } from \"react\";", "import { renderToStaticMarkup } from \"react-dom/server\";", "import { describe, expect, it } from \"vitest\";", "", "import UserOverviewPage from \"../../../src/app/app/page\";", "import UserReviewsPage from \"../../../src/app/app/reviews/page\";", "import UserReportsPage from \"../../../src/app/app/reports/page\";", "import UserLayout from \"../../../src/app/app/layout\";", "", "function html(element: React.ReactElement): string {", "  return renderToStaticMarkup(element);", "}", "", "describe(\"private User pages\", () => {", "  it(\"renders a private overview with clear destinations and honest empty states\", () => {", "    const rendered = html(createElement(UserOverviewPage));", "", "    expect(rendered).toContain(\"Your overview\");", "    expect(rendered).toContain(\"Your reviews\");", "    expect(rendered).toContain(\"Your reports\");", "    expect(rendered).toContain(\"No published reviews yet\");", "    expect(rendered).toContain(\"No submitted reports yet\");", "    expect(rendered).toContain(\"rounded-xl\");", "    expect(rendered).toContain('href=\"/app/reviews\"');", "    expect(rendered).toContain('href=\"/app/reports\"');", "  });", "", "  it(\"renders private reviews and reports with safe available-state messaging\", () => {", "    const reviews = html(createElement(UserReviewsPage));", "    const reports = html(createElement(UserReportsPage));", "", "    expect(reviews).toContain(\"My reviews\");", "    expect(reviews).toContain(\"No published reviews yet\");", "    expect(reviews).toContain('href=\"/movies\"');", "    expect(reports).toContain(\"My reports\");", "    expect(reports).toContain(\"No submitted reports yet\");", "    expect(reports).toContain(\"private\");", "    for (const rendered of [reviews, reports]) expect(rendered).toContain(\"border-slate-200\");", "  });", "", "  it(\"keeps the private shell focused on User destinations\", () => {", "    const rendered = html(createElement(UserLayout, null, createElement(\"p\", null, \"Content\")));", "", "    expect(rendered).toContain(\"Your account\");", "    expect(rendered).toContain('href=\"/app/reviews\"');", "    expect(rendered).toContain('href=\"/app/reports\"');", "    expect(rendered).not.toContain('href=\"/sign-in\"');", "    expect(rendered).not.toContain('href=\"/admin\"');", "  });", "});"], "rows": [[2, -1, 0], [2, -1, 1], [2, -1, 2], [2, -1, 3], [2, -1, 4], [2, -1, 5], [2, -1, 6], [2, -1, 7], [2, -1, 8], [2, -1, 9], [2, -1, 10], [2, -1, 11], [2, -1, 12], [2, -1, 13], [2, -1, 14], [2, -1, 15], [2, -1, 16], [2, -1, 17], [2, -1, 18], [2, -1, 19], [2, -1, 20], [2, -1, 21], [2, -1, 22], [2, -1, 23], [2, -1, 24], [2, -1, 25], [2, -1, 26], [2, -1, 27], [2, -1, 28], [2, -1, 29], [2, -1, 30], [2, -1, 31], [2, -1, 32], [2, -1, 33], [2, -1, 34], [2, -1, 35], [2, -1, 36], [2, -1, 37], [2, -1, 38], [2, -1, 39], [2, -1, 40], [2, -1, 41], [2, -1, 42], [2, -1, 43], [2, -1, 44], [2, -1, 45], [2, -1, 46], [2, -1, 47], [2, -1, 48], [2, -1, 49]]}]};</script>
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script>
+const OP_EQUAL = 0, OP_DELETE = 1, OP_INSERT = 2, OP_REPLACE = 3;
+const FOLD_THRESHOLD = 20, CONTEXT_LINES = 6;
+
+function escapeHtml(text) {
+  return text.replace(/[&<>]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]));
+}
+
+/* highlight.js colors a whole file at once (so block comments and multi-line
+   strings are read correctly), then we cut the result into lines, re-opening
+   any spans that straddle a line break. */
+function highlightLines(lines, language) {
+  const plain = () => lines.map(escapeHtml);
+  if (!lines.length) return [];
+  if (!window.hljs || !hljs.getLanguage(language)) return plain();
+  let html;
+  try {
+    html = hljs.highlight(lines.join("\n"), { language, ignoreIllegals: true }).value;
+  } catch (err) {
+    return plain();
+  }
+  const out = [];
+  const open = [];
+  let current = "";
+  let i = 0;
+  while (i < html.length) {
+    const next = html.slice(i).search(/[<\n]/);
+    if (next === -1) { current += html.slice(i); break; }
+    current += html.slice(i, i + next);
+    i += next;
+    if (html[i] === "\n") {
+      out.push(current + "</span>".repeat(open.length));
+      current = open.join("");
+      i += 1;
+    } else {
+      const end = html.indexOf(">", i);
+      const tag = html.slice(i, end + 1);
+      if (tag[1] === "/") open.pop(); else open.push(tag);
+      current += tag;
+      i = end + 1;
+    }
+  }
+  out.push(current);
+  return out.length === lines.length ? out : plain();
+}
+
+/* Wrap the changed character ranges of one line, working on the DOM so the
+   offsets stay in sync with the text rather than with the highlighting markup. */
+function applyWordRanges(cell, ranges) {
+  if (!ranges || !ranges.length) return;
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  let offset = 0;
+  for (const textNode of nodes) {
+    const start = offset, end = offset + textNode.nodeValue.length;
+    offset = end;
+    const pieces = [];
+    for (let r = 0; r < ranges.length; r += 2) {
+      const from = Math.max(ranges[r], start), to = Math.min(ranges[r + 1], end);
+      if (to > from) pieces.push([from - start, to - start]);
+    }
+    let rest = textNode;
+    let consumed = 0;
+    for (const [from, to] of pieces) {
+      const tail = rest.splitText(from - consumed);
+      const after = tail.splitText(to - from);
+      const mark = document.createElement("mark");
+      mark.className = "word";
+      tail.parentNode.replaceChild(mark, tail);
+      mark.appendChild(tail);
+      rest = after;
+      consumed = to;
+    }
+  }
+}
+
+function numCell(index, side) {
+  return index >= 0
+    ? `<td class="num ${side}">${index + 1}</td>`
+    : `<td class="num ${side}"></td>`;
+}
+
+/* mode is "split", or "old"/"new" for the one-column view used by files that
+   were added, deleted, or not changed at all. */
+function renderRow(row, oldHtml, newHtml, mode) {
+  const [op, oldIndex, newIndex] = row;
+  const cls = { [OP_EQUAL]: "eq", [OP_DELETE]: "del", [OP_INSERT]: "ins", [OP_REPLACE]: "rep" }[op];
+  const cell = (index, side, lines) => index >= 0
+    ? `<td class="code side-${side}">${lines[index] || "&nbsp;"}</td>`
+    : `<td class="code side-${side} blank"></td>`;
+  if (mode === "old") return `<tr class="${cls}">${numCell(oldIndex, "old")}${cell(oldIndex, "old", oldHtml)}</tr>`;
+  if (mode === "new") return `<tr class="${cls}">${numCell(newIndex, "new")}${cell(newIndex, "new", newHtml)}</tr>`;
+  return `<tr class="${cls}">${numCell(oldIndex, "old")}${cell(oldIndex, "old", oldHtml)}`
+       + `${numCell(newIndex, "new")}${cell(newIndex, "new", newHtml)}</tr>`;
+}
+
+/* Group the rows into segments: long stretches of untouched lines become a
+   single clickable "N unchanged lines" strip. */
+function segmentRows(rows, foldAll) {
+  const segments = [];
+  let run = [];
+  const flushRun = () => {
+    if (!run.length) return;
+    if (foldAll || run.length > FOLD_THRESHOLD) {
+      const head = foldAll ? [] : run.slice(0, segments.length ? CONTEXT_LINES : 0);
+      const tail = foldAll ? [] : run.slice(-CONTEXT_LINES);
+      const hidden = run.slice(head.length, run.length - tail.length);
+      if (head.length) segments.push({ type: "rows", rows: head });
+      if (hidden.length) segments.push({ type: "fold", rows: hidden });
+      if (tail.length) segments.push({ type: "rows", rows: tail });
+    } else {
+      segments.push({ type: "rows", rows: run });
+    }
+    run = [];
+  };
+  for (const row of rows) {
+    if (row[0] === OP_EQUAL) run.push(row);
+    else { flushRun(); segments.push({ type: "rows", rows: [row] }); }
+  }
+  flushRun();
+  /* The last stretch of a file has no following change, so drop its trailing context. */
+  return segments;
+}
+
+function renderFile(file, container) {
+  const mode = file.status === "D" ? "old"
+    : (!file.changed || file.status === "A") ? "new" : "split";
+  const single = mode !== "split";
+  const oldHtml = highlightLines(file.old, file.language);
+  const newHtml = highlightLines(file.new, file.language);
+  const table = document.createElement("table");
+  table.className = "diff" + (single ? " single" : "");
+  table.innerHTML = single
+    ? '<colgroup><col class="num"><col class="code"></colgroup>'
+    : '<colgroup><col class="num"><col class="code"><col class="num"><col class="code"></colgroup>';
+  const body = document.createElement("tbody");
+  table.appendChild(body);
+
+  const segments = segmentRows(file.rows, !file.changed);
+  const chunks = [];
+  segments.forEach((segment, index) => {
+    if (segment.type === "fold") {
+      const label = `⋯  ${segment.rows.length} unchanged line${segment.rows.length === 1 ? "" : "s"}`;
+      chunks.push(
+        `<tr class="fold" data-segment="${index}"><td colspan="${single ? 2 : 4}">` +
+        `<button type="button">${label}</button></td></tr>`
+      );
+    } else {
+      for (const row of segment.rows) chunks.push(renderRow(row, oldHtml, newHtml, mode));
+    }
+  });
+  body.innerHTML = chunks.join("");
+
+  const markRows = (scope) => {
+    for (const tr of scope.querySelectorAll("tr.rep")) {
+      const row = tr._row;
+      if (!row || row.length < 5) continue;
+      applyWordRanges(tr.querySelector("td.side-old"), row[3]);
+      applyWordRanges(tr.querySelector("td.side-new"), row[4]);
+    }
+  };
+  /* Attach each rendered <tr> to its row data so word marks can be applied. */
+  const attach = (scope, rows) => {
+    const trs = scope.querySelectorAll("tr:not(.fold)");
+    let cursor = 0;
+    for (const tr of trs) { if (!tr._row) tr._row = rows[cursor++]; }
+  };
+  const flatRows = [];
+  segments.forEach(segment => { if (segment.type !== "fold") flatRows.push(...segment.rows); });
+  attach(body, flatRows);
+  markRows(body);
+
+  body.addEventListener("click", event => {
+    const button = event.target.closest("tr.fold button");
+    if (!button) return;
+    const tr = button.closest("tr.fold");
+    const segment = segments[Number(tr.dataset.segment)];
+    const holder = document.createElement("tbody");
+    holder.innerHTML = segment.rows.map(row => renderRow(row, oldHtml, newHtml, mode)).join("");
+    const fragment = document.createDocumentFragment();
+    while (holder.firstChild) fragment.appendChild(holder.firstChild);
+    tr.replaceWith(fragment);
+  });
+
+  container.innerHTML = "";
+  const scroller = document.createElement("div");
+  scroller.className = "diff-wrap";
+  scroller.appendChild(table);
+  container.appendChild(scroller);
+}
+
+function setup() {
+  const files = window.DIFF_DATA.files;
+  const byIndex = new Map();
+  document.querySelectorAll(".file").forEach(element => {
+    byIndex.set(element, files[Number(element.dataset.index)]);
+  });
+
+  const render = element => {
+    const file = byIndex.get(element);
+    const slot = element.querySelector(".slot");
+    if (!file || !slot || slot.dataset.done === "1") return;
+    slot.dataset.done = "1";
+    renderFile(file, slot);
+  };
+
+  const sections = [...document.querySelectorAll(".file")];
+  sections.forEach(element => {
+    element.addEventListener("toggle", () => { if (element.open) render(element); });
+  });
+
+  /* Changed files are all built up front -- so browser find-in-page and printing
+     see everything -- but in small batches, so the page is usable right away.
+     Files that did not change are built only when their panel is opened. */
+  const queue = sections.filter(element => element.open);
+  const renderBatch = () => {
+    const started = performance.now();
+    while (queue.length && performance.now() - started < 40) render(queue.shift());
+    if (queue.length) setTimeout(renderBatch, 0);
+  };
+  renderBatch();
+  window.addEventListener("beforeprint", () => sections.forEach(render));
+
+  document.getElementById("expand-all").addEventListener("click", () => {
+    document.querySelectorAll(".file").forEach(element => { element.open = true; render(element); });
+  });
+  document.getElementById("collapse-all").addEventListener("click", () => {
+    document.querySelectorAll(".file").forEach(element => { element.open = false; });
+  });
+
+  const filter = document.getElementById("filter");
+  filter.addEventListener("input", () => {
+    const needle = filter.value.trim().toLowerCase();
+    document.querySelectorAll(".file").forEach(element => {
+      const path = element.dataset.path.toLowerCase();
+      element.hidden = needle !== "" && !path.includes(needle);
+    });
+    document.querySelectorAll(".index li").forEach(item => {
+      item.hidden = needle !== "" && !item.dataset.path.toLowerCase().includes(needle);
+    });
+  });
+
+  document.querySelectorAll(".index a").forEach(link => {
+    link.addEventListener("click", () => {
+      const target = document.querySelector(link.getAttribute("href"));
+      if (target) { target.open = true; render(target); }
+    });
+  });
+}
+
+if (window.hljs) setup();
+else window.addEventListener("load", setup, { once: true });
+</script>
+</body>
+</html>

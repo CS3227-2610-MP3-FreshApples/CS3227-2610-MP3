@@ -6,11 +6,7 @@ import { publicAnnouncementReadService } from "../../../server/composition";
 const PAGE_SIZE = 20;
 
 export default async function AnnouncementsPage() {
-  if (publicAnnouncementReadService === null) {
-    return <PublicReadUnavailable title="Announcements" titleId="announcements-title" />;
-  }
-
-  const result = await publicAnnouncementReadService.listAnnouncements({ page: 1, pageSize: PAGE_SIZE });
+  const result = publicAnnouncementReadService === null ? null : await publicAnnouncementReadService.listAnnouncements({ page: 1, pageSize: PAGE_SIZE });
 
   return (
     <section className="max-w-3xl space-y-8" aria-labelledby="announcements-title">
@@ -19,7 +15,7 @@ export default async function AnnouncementsPage() {
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl" id="announcements-title">Announcements</h1>
         <p className="text-lg leading-8 text-slate-600">Product news, community updates, and movie-related notices.</p>
       </header>
-      {result.items.length === 0 ? (
+      {result === null ? <PublicReadUnavailable title="Announcements" titleId="announcements-unavailable-title" /> : result.items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8" role="status">There are no published announcements.</div>
       ) : (
         <ul className="space-y-4">

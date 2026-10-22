@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02b-iteration-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 — Admin transitions and archive/create race",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "The human-approved U-02b iterative-TDD checklist covers Increment 3 Admin transitions and archive/create locking."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "User explicitly approved continuation after Increment 2's PASS handoff."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/u02b-iteration-3-baseline-D6GCnq; temporary Git baseline commit 2501ef2e5656feeef24f4393eac6b71b7cb054e1"},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm exec vitest run tests/unit/reviews/review-transitions-admin.test.ts exited 1 with 7 failures because createAdminReviewTransitions was not implemented."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Production edits added guarded Admin repository transitions, K8 Admin transition service, composition wiring, and a PostgreSQL lock-order assertion."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused transition tests passed: 3 files / 17 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Unit 62 files / 1003 tests passed; PostgreSQL integration 28 files / 537 tests passed; npx tsc --noEmit, npm run lint, git diff --check, and npx next build --webpack exited 0. Turbopack remains skipped under explicit user authorization."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/u02b-iteration-3-visual-diff.html generated from baseline 2501ef2e5656feeef24f4393eac6b71b7cb054e1."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest records the approved increment, external baseline, red/green tests, validation, visual diff, and no real repository commit."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Admin approval is version-guarded, clears held Reviews with admin provenance, preserves hidden/deleted state, and marks Movie eligibility only when it changes.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-transitions-admin.test.ts: approval, preservation, marker assertions", "review-repository.ts guarded APPROVE_ADMIN update"]},
+    {"id": "AC-2", "description": "Admin hide and restore are version-guarded visibility-only transitions with correct eligibility invalidation.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-transitions-admin.test.ts: hide/restore and marker assertions", "review-repository.ts guarded HIDE_ADMIN and RESTORE_ADMIN updates"]},
+    {"id": "AC-3", "description": "Stale If-Match is rejected before no-op decisions, and already-applied/no-op transitions preserve the row version and do not mark eligibility.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-transitions-admin.test.ts: stale and no-op assertions"]},
+    {"id": "AC-4", "description": "The archive path is wired to K8's real Movie-then-Review lock boundary, and all Reviews of a Movie are locked in deterministic order.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/catalogue-core.test.ts: archive lock order holds every Review row", "tests/integration/api/admin/admin-movies.test.ts: archive/restore uses the real K8 provider through a recording wrapper"]},
+    {"id": "AC-5", "description": "The implementation preserves K9/audit caller ownership and does not add routes, migrations, or provider calls.", "verdict": "PASS", "evidence": ["review transition services only call repository writes and K7 marker", "full unit/integration/build validation"]}
+  ],
+  "checks": [
+    {"command": "npm exec vitest run tests/unit/reviews/review-transitions-admin.test.ts tests/unit/reviews/review-transitions.test.ts tests/unit/reviews/review-transitions-automatic.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:[redacted]@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx next build --webpack", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (Turbopack)", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping the Turbopack check."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changes are limited to the K8 Reviews transition/repository boundary, composition wiring required by D-84, and focused/integration tests; unrelated UI-designer handoff changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The manifest records continuation approval, external baseline, red/green tests, actual validation, visual diff, and no commit creation."},
+  "artifacts": {"baseline_path": "/tmp/u02b-iteration-3-baseline-D6GCnq", "baseline_digest": "2501ef2e5656feeef24f4393eac6b71b7cb054e1", "visual_diff_path": "u02b-iteration-3-visual-diff.html", "visual_diff_baseline_digest": "2501ef2e5656feeef24f4393eac6b71b7cb054e1"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

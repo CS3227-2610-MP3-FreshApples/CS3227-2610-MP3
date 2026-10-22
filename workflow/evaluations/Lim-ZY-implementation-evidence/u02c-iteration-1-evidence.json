@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02c-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — My reviews page and safe private review listing",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "User explicitly approved the U-02c iterative-TDD checklist in the preceding message."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "Complete external working-tree snapshot captured at /home/klzy/.codex/visualizations/2026/10/21/01a15e19-5093-7892-a727-0897be9b4be1/u02c-iteration-1-baseline, commit 96b3066fefbaa190c72fe716c4499e5aaaa8c551."
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "UI red run: npx vitest run --project unit tests/unit/user-ui/private-pages.test.ts exited 1 because /app/reviews still rendered the empty placeholder. API red run after the clarified requirement: TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npx vitest run --project integration tests/integration/api/reviews/review-security-and-me.test.ts exited 1 because the endpoint returned 3 rows instead of excluding the hidden and deleted rows."
+    },
+    {
+      "sequence": 4,
+      "type": "plan_revised_approved",
+      "evidence": "User clarified that deleted and hidden Reviews must not be visible to the User and explicitly instructed continuation; spec/api.md, spec/product.md, and the iterative checklist were updated before production implementation."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Production edits began after the red tests: repository filtering for deleted/hidden rows, private review client/list UI, and updated review page."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "Focused UI tests passed: 3 files / 8 tests. Focused PostgreSQL API test passed: 1 file / 1 test, confirming hidden and deleted Reviews are excluded."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Full unit suite passed: 73 files / 1,471 tests. Full PostgreSQL integration suite passed: 32 files / 596 tests. Type-check, lint, and git diff --check passed. Canonical Turbopack build failed with the known worker-port EPERM; webpack build also failed in this environment while parsing TypeScript --showConfig."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "Generated /home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u02c-iteration-1-visual-diff.html from the external baseline commit 96b3066fefbaa190c72fe716c4499e5aaaa8c551; final generator refresh reported 17 changed files and 646 unchanged."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Evidence manifest contains the approved revised scope, external baseline, red/green tests, validation results, visual diff, and no real repository commit."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "GET /me/reviews excludes the caller's deleted and Admin-hidden Reviews while retaining visible pending/flagged/cleared Reviews.",
+      "verdict": "PASS",
+      "evidence": ["tests/integration/api/reviews/review-security-and-me.test.ts", "Focused PostgreSQL test passed with hidden and deleted fixtures returning only the visible Review."]
+    },
+    {
+      "id": "AC-2",
+      "description": "My Reviews presents the approved pending, flagged, and cleared states with safe accessible labels.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/user-ui/review-list.test.ts", "ReviewStatus renders Pending moderation, Held for review, and Published with accessible Review status labels."]
+    },
+    {
+      "id": "AC-3",
+      "description": "The private client requests no-store data, accepts empty pages, and maps unauthorized or malformed responses to safe messages.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/user-ui/review-client.test.ts", "8 focused UI/client tests passed."]
+    },
+    {
+      "id": "AC-4",
+      "description": "The My Reviews page exposes an accessible loading/status surface and does not render hidden or deleted content.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/user-ui/private-pages.test.ts", "The page renders Loading reviews… and the Review status landmark; repository/API filtering prevents hidden/deleted rows from reaching it."]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/user-ui/private-pages.test.ts tests/unit/user-ui/review-list.test.ts tests/unit/user-ui/review-client.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npx vitest run --project integration tests/integration/api/reviews/review-security-and-me.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (Turbopack)", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted but blocked by the known environment worker-port EPERM; standing user authorization permits omitting this check."},
+    {"command": "npx next build --webpack", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted twice, including from a clean generated-build directory; Next failed while parsing TypeScript --showConfig before compilation."}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Changed application and test files are limited to the U-02c private review listing, projection query, and focused tests; no AI dispatcher, moderation decision, migration, dependency, or unrelated feature was added."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "The manifest records only the plan approval, baseline capture, and red-test result actually observed."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/21/01a15e19-5093-7892-a727-0897be9b4be1/u02c-iteration-1-baseline",
+    "baseline_digest": "96b3066fefbaa190c72fe716c4499e5aaaa8c551",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u02c-iteration-1-visual-diff.html",
+    "visual_diff_baseline_digest": "96b3066fefbaa190c72fe716c4499e5aaaa8c551"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

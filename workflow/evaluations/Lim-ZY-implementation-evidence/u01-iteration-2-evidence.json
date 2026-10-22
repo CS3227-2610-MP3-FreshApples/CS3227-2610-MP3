@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Implement PostgreSQL movie list/detail and announcement read queries",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved the U-01 iterative-TDD plan in the current conversation."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human requested proceeding with the next iteration in the current conversation."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/u01-iteration-2-baseline-UTW6vk; commit 0834f0c9cbbb1a49f39a6ae5353d7d3e050fc64f"},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused integration test failed with expected missing createPublicMovieReadRepository export; see workflow/handoffs/u01-postgresql-read-queries.md."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Read repository/service files added under src/server/repositories and src/server/services."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused PostgreSQL integration test passed: 1 file, 6 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npx tsc --noEmit, npm run lint and git diff --check passed; build/Turbopack unavailable due explicit human-approved permission restriction."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html generated from the current worktree comparison."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Iteration evidence bundle prepared."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Active movies are listed and archived movies excluded.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/public-reads.test.ts"]},
+    {"id": "AC-2", "description": "Movie detail aggregates include only eligible visible reviews and return null/zero when none qualify.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/public-reads.test.ts"]},
+    {"id": "AC-3", "description": "Movie pagination and D-79 stable ordering are implemented.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/public-reads.test.ts"]},
+    {"id": "AC-4", "description": "Published announcements are paginated and drafts/deleted rows are excluded.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/public-reads.test.ts"]},
+    {"id": "AC-5", "description": "Absent or archived announcement movie references are projected as null.", "verdict": "PASS", "evidence": ["tests/integration/catalogue/public-reads.test.ts"]}
+  ],
+  "checks": [
+    {"command": "focused PostgreSQL integration test", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Human-approved recurring Turbopack permission restriction; recorded as unavailable, not successful."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Read repositories/services and focused integration tests only; no routes, pages, migrations or shared contracts."},
+  "claims_review": {"verdict": "PASS", "evidence": "Handoff records actual red/green and validation outcomes, including unavailable build verification."},
+  "artifacts": {"baseline_path": "/tmp/u01-iteration-2-baseline-UTW6vk", "baseline_digest": "0834f0c9cbbb1a49f39a6ae5353d7d3e050fc64f", "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html", "visual_diff_baseline_digest": "0834f0c9cbbb1a49f39a6ae5353d7d3e050fc64f"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

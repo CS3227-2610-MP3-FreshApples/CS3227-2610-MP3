@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/app", useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 import UserLayout from "../../../src/app/app/layout";
 import { submitLogout } from "../../../src/components/auth-client";
@@ -40,10 +40,13 @@ describe("normal-user logout behavior", () => {
     });
   });
 
-  it("renders the normal-user shell with a sign-out control and no private session details", () => {
+  it("renders the normal-user shell with an account menu and no private session details", () => {
     const rendered = renderToStaticMarkup(createElement(UserLayout, null, createElement("p", null, "Content")));
 
     expect(rendered).toContain("Sign out");
+    expect(rendered).toContain("Manage my account");
+    expect(rendered).toContain('disabled="" type="button">Manage my account');
+    expect(rendered).toContain("data-account-menu");
     expect(rendered).toContain("Your account");
     expect(rendered).not.toContain("session");
     expect(rendered).not.toContain("@example");

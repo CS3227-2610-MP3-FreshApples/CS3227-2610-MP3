@@ -1,0 +1,243 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-release-increment-10",
+  "iteration_number": 10,
+  "approved_plan_item": "Increment 10 -- complete security, deployment and release evidence",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human-approved S-04 remediation checklist and recorded Gate A/B/C decisions."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "Human message after Increment 9 handoff: Great proceed with the next iteration."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-final-increment-10-baseline complete working-tree snapshot excluding only the real .git directory; temporary baseline commit 0c20dc0f98a681f97b2cd822b6a9889ea11f5bcf."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npm run test:unit -- --run tests/unit/ci/s04-release-traceability.test.ts: exit 1; the required S-04 release evidence handoff was absent (ENOENT), leaving no durable eight-row mapping or explicit deferred/operator states."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "After red, added workflow/handoffs/s04-release-evidence.md with eight mapped acceptance rows and explicit FR-01, AT-01, U-03/R-02 and operator-only states."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npm run test:unit -- --run tests/unit/ci/s04-release-traceability.test.ts: exit 0; 1 file, 1 test passed."
+    },
+    {
+      "sequence": 7,
+      "type": "bundle_canary_gap_discovered",
+      "evidence": "npm run test:unit -- --run tests/unit/ci/check-bundle-canary.test.ts: exit 1; D-41's checker omitted ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_PASSWORD and ADMIN_BOOTSTRAP_SECRET from its claimed complete server-only canary list."
+    },
+    {
+      "sequence": 8,
+      "type": "bundle_canary_repair_validated",
+      "evidence": "After aligning D-41, CI canary generation and the checker, the focused canary unit suite passed 10/10."
+    },
+    {
+      "sequence": 9,
+      "type": "production_e2e_gaps_discovered",
+      "evidence": "Configured npm run test:e2e first returned ready=503 because the fresh database had no Admin; after the harness used the real local bootstrap endpoint, the production bundle exposed a 500 Request private-field brand error. Both were genuine D-38/D-51 production-server boundary failures."
+    },
+    {
+      "sequence": 10,
+      "type": "production_e2e_repairs_validated",
+      "evidence": "After preserving NextRequest via clone() and forwarding synthetic per-run bootstrap values into the isolated server, configured npm run test:e2e passed 3/3: live before provisioning, secret-only bootstrap created, and ready after commit."
+    },
+    {
+      "sequence": 11,
+      "type": "validation_completed",
+      "evidence": "Focused security unit and PostgreSQL/API suites passed 61/61 each. Full unit passed 30 files/421 tests; full PostgreSQL integration passed 17 files/320 tests; E2E passed 3/3; lint, type-check and git diff --check passed. Default Turbopack build failed in sandbox and approved external execution with its recorded worker-port EPERM; webpack production build passed. Nine bundle canaries and all nine server-only variable names were absent from .next/static. npm run check:secrets accurately failed because pinned gitleaks was not installed."
+    },
+    {
+      "sequence": 12,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit 0c20dc0f98a681f97b2cd822b6a9889ea11f5bcf with its refreshed complete worktree and wrote _temp/visual-diff.html: 24 changed files and 322 unchanged."
+    },
+    {
+      "sequence": 13,
+      "type": "grade_requested",
+      "evidence": "Requirements, chronological red/green/validation results, external-baseline visual diff and evidence manifest are complete for separated semantic self-audit and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Plaintext passwords and session tokens are absent from persistence, logs and response bodies wherever forbidden.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/registration-acceptance.test.ts proves Argon2id persistence and response exclusion.",
+        "tests/integration/identity/session-repository.test.ts proves only the SHA-256 token hash is stored.",
+        "tests/integration/api/auth/auth-journey.test.ts proves the session token appears only in the required cookie, not response bodies.",
+        "tests/unit/audit/security-log.test.ts projects only D-47 fields."
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Bootstrap credentials and secret are absent from database audit metadata, logs, responses and client assets.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/bootstrap-route.test.ts proves safe bodies and log calls.",
+        "tests/integration/identity/admin-bootstrap.test.ts proves Argon2id storage and metadata limited to role/status.",
+        "The synthetic canary webpack build reported none of 9 canaries in .next/static."
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Normalized emails and raw client IPs never enter rate-limit persistence or security logs, and rotating RATE_LIMIT_KEY_SECRET changes their HMAC keys.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/rate-limit/rate-limit-keys.test.ts independently verifies D-44 HMACs and secret rotation.",
+        "tests/integration/rate-limit/rate-limiter.test.ts verifies distinct rotated keys and no raw email/IP in PostgreSQL.",
+        "tests/support/contracts/security-log.contract.ts proves extra email/IP fields are discarded."
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "The production build and client-bundle inspection execute with accurate environment limitations.",
+      "verdict": "PASS",
+      "evidence": [
+        "Default npm run build failed twice with the known managed Turbopack worker-port EPERM and is not reported as passing.",
+        "npm run build -- --webpack passed; the nine-value canary checker and explicit nine-name scan both reported no client-asset findings.",
+        "npm run check:secrets was attempted and is recorded unavailable because gitleaks v8.30.1 is not on PATH."
+      ]
+    },
+    {
+      "id": "AC-5",
+      "description": "All locally configured S-04 unit, PostgreSQL/API and E2E checks pass.",
+      "verdict": "PASS",
+      "evidence": [
+        "npm run test:unit: 30 files/421 tests passed.",
+        "Configured npm run test:integration: 17 files/320 tests passed.",
+        "Configured npm run test:e2e: 3 tests passed against next start and a disposable PostgreSQL database."
+      ]
+    },
+    {
+      "id": "AC-6",
+      "description": "Every S-04 acceptance row has a concrete repository test/result mapping without falsely closing deferred or operator work.",
+      "verdict": "PASS",
+      "evidence": [
+        "workflow/handoffs/s04-release-evidence.md maps S04-AC-01 through S04-AC-08.",
+        "tests/unit/ci/s04-release-traceability.test.ts enforces all mappings plus partial FR-01/AT-01 and operator-required states."
+      ]
+    },
+    {
+      "id": "AC-7",
+      "description": "Gate-B, public auth UI and live deployment/operator evidence remain explicitly outstanding.",
+      "verdict": "PASS",
+      "evidence": [
+        "workflow/handoffs/s04-release-evidence.md and spec/verification.md leave U-03/R-02, public auth pages, Preview/Production isolation, live bootstrap/removal, deployed health and Vercel variable configuration open."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- --run tests/unit/ci/s04-release-traceability.test.ts tests/unit/rate-limit/rate-limit-keys.test.ts tests/unit/audit/security-log.test.ts tests/unit/auth/bootstrap-route.test.ts tests/unit/identity/account-service.test.ts tests/unit/ci/check-bundle-canary.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "6 files, 61 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration -- --run S-04 sensitive-data suites",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "5 files, 61 tests passed"
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "30 files, 421 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "17 files, 320 tests passed"
+    },
+    {
+      "command": "npm run build",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "Attempted in sandbox and approved external execution; Next 16.4.0 Turbopack cannot create its CSS worker/bind its local port in this managed environment (EPERM)."
+    },
+    {
+      "command": "npm run build -- --webpack with nine synthetic server-only canaries",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "Production build compiled, type-checked, generated 23 pages and emitted all Identity routes as dynamic."
+    },
+    {
+      "command": "node scripts/check-bundle-canary.mjs and explicit server-only variable-name scan of .next/static",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "No nine canary values and no nine server-only variable names found."
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:e2e",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "3 Playwright Chromium tests passed against next start and a disposable migrated database."
+    },
+    {
+      "command": "npm run check:secrets",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "Attempted; gitleaks v8.30.1 is not installed on PATH. No install or download was authorized."
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Increment changes are limited to S-04 security evidence, D-41 canary coverage, production request-boundary repair proven by E2E, disposable bootstrap E2E setup, verification traceability, disclosure and ignored evidence artifacts. No U-03/R-02, public auth UI, live deployment or dependency work was added."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Actual counts and failures are recorded. Turbopack and gitleaks are not reported as passing; webpack/canary and local E2E evidence are not presented as live operator or Vercel evidence."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-final-increment-10-baseline",
+    "baseline_digest": "0c20dc0f98a681f97b2cd822b6a9889ea11f5bcf",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "0c20dc0f98a681f97b2cd822b6a9889ea11f5bcf"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}
