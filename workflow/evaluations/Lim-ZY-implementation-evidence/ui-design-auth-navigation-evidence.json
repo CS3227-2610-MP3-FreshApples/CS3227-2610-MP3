@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "ui-design-auth-navigation-refinement",
+  "iteration_number": 3,
+  "approved_plan_item": "Ensure authenticated public navigation redirects Users home and identifies the signed-in User",
+  "events": [
+    { "sequence": 1, "type": "plan_approved", "evidence": "User explicitly requested this refinement before the next iteration; checklist item was recorded before application edits." },
+    { "sequence": 2, "type": "continuation_approved", "evidence": "User explicitly requested the auth-navigation refinement before the next iteration." },
+    { "sequence": 3, "type": "baseline_captured", "evidence": "/tmp/ui-design-auth-nav-baseline-hUGsBY; commit 5404e043b52f37ad39d58634451adbae194ca358" },
+    { "sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/auth/auth-client.test.ts tests/unit/auth/public-auth-pages.test.ts; exit 1 with the old /app destination and missing authenticated navigation helper" },
+    { "sequence": 5, "type": "implementation_started", "evidence": "First production edit was src/components/auth-client.ts after the red test." },
+    { "sequence": 6, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/auth/auth-client.test.ts tests/unit/auth/public-auth-pages.test.ts; exit 0; 2 files and 8 tests passed" },
+    { "sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit exit 0 (66 files, 1442 tests); npm run lint exit 0; npx tsc --noEmit exit 0; build skipped at user request" },
+    { "sequence": 8, "type": "visual_diff_created", "evidence": "_temp/ui-design-auth-navigation-diff.html compared against 5404e043b52f37ad39d58634451adbae194ca358" },
+    { "sequence": 9, "type": "grade_requested", "evidence": "Bundle complete; deterministic grader requested." }
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "description": "Active USER login redirects to the public home page.", "verdict": "PASS", "evidence": ["tests/unit/auth/auth-client.test.ts", "src/components/auth-client.ts"] },
+    { "id": "AC-2", "description": "Authenticated public navigation replaces Sign in/Register with the display name and account link.", "verdict": "PASS", "evidence": ["tests/unit/auth/public-auth-pages.test.ts", "src/components/route-navigation.tsx"] },
+    { "id": "AC-3", "description": "Email remains private and Admin routing is preserved.", "verdict": "PASS", "evidence": ["src/components/route-navigation.tsx", "src/components/auth-client.ts", "spec/security.md"] }
+  ],
+  "checks": [
+    { "command": "npm run test:unit -- tests/unit/auth/auth-client.test.ts tests/unit/auth/public-auth-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User explicitly allowed skipping the Turbopack check for remaining iterations." }
+  ],
+  "scope_review": { "verdict": "PASS", "evidence": "Only auth destination, public navigation, public layout wiring, focused tests, and workflow evidence changed." },
+  "claims_review": { "verdict": "PASS", "evidence": "Handoff and session log match the recorded commands, results, skipped build, and no-commit status." },
+  "artifacts": {
+    "baseline_path": "/tmp/ui-design-auth-nav-baseline-hUGsBY",
+    "baseline_digest": "5404e043b52f37ad39d58634451adbae194ca358",
+    "visual_diff_path": "../_temp/ui-design-auth-navigation-diff.html",
+    "visual_diff_baseline_digest": "5404e043b52f37ad39d58634451adbae194ca358"
+  },
+  "git": { "commit_authorized": false, "commit_created": false },
+  "checklist_item_completed": true
+}

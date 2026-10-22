@@ -1,0 +1,26 @@
+{
+  "u01_status": "implementation complete; final deterministic aggregate re-grade unverifiable",
+  "validation_baseline": {
+    "path": "/tmp/u01-iteration-5-baseline-qLwDFW",
+    "digest": "6aa640cea47304b49c3c926071d9c5150fae5430"
+  },
+  "checks": [
+    {"command": "npm run test:unit", "status": "PASS", "exit_code": 0, "evidence": "48 files, 716 tests"},
+    {"command": "npm run test:integration", "status": "PASS", "exit_code": 0, "evidence": "22 files, 449 tests using disposable loopback PostgreSQL"},
+    {"command": "npx tsc --noEmit", "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "status": "SKIPPED", "reason": "Human-approved Turbopack permission exception"},
+    {"command": "npm run test:e2e", "status": "SKIPPED", "reason": "Requires a successful build first"},
+    {"command": "npm run check:secrets", "status": "SKIPPED", "reason": "Requires a successful build first; gitleaks unavailable"}
+  ],
+  "visual_diff": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-iteration-5-visual-diff.html",
+  "historical_regrade": {
+    "status": "UNVERIFIABLE",
+    "reason": "The external temporary baselines referenced by the four per-increment manifests no longer exist. No chronology was reconstructed."
+  },
+  "commit": {
+    "created": false,
+    "proposed_subject": "feat(catalogue): add public catalogue and announcement reads (FR-02, FR-07)"
+  }
+}

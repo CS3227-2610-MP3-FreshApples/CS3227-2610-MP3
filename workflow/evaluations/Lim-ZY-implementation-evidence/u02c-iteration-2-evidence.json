@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02c-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — K9 review-write hook verification and remediation",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The U-02c iterative-TDD checklist was approved before application edits in the preceding planning exchange."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "User explicitly approved proceeding with the next iteration after the Increment 1 handoff and authorized skipping the Turbopack check from this iteration onward."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "Complete external working-tree snapshot captured before Increment 2 edits at /home/klzy/.codex/visualizations/2026/10/21/01a15e19-5093-7892-a727-0897be9b4be1/u02c-iteration-2-baseline, commit ca8f44161c15c902c4d41dd9eaa9e177d0d2ac4b."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/reviews/review-write.test.ts exited 1: the new contract-order test observed [marker, enqueue] but required [enqueue, marker]."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Production edit began after the intended red result by moving durable moderation enqueue before the public review revision marker in src/server/services/reviews/review-write.ts."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/reviews/review-write.test.ts exited 0 with 1 file and 6 tests passing, including enqueue ordering, rating-only non-enqueue, deletion cancellation, rollback, and post-commit failure behavior."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit passed with 73 files / 1,474 tests; TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration passed with 32 files / 596 tests; npx tsc --noEmit, npm run lint, and git diff --check passed. The authorized Turbopack build was omitted; npx next build --webpack was attempted and failed before compilation while parsing TypeScript --showConfig."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "Generated /home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u02c-iteration-2-visual-diff.html from external baseline commit ca8f44161c15c902c4d41dd9eaa9e177d0d2ac4b; final generator refresh reported 9 changed files and 658 unchanged."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Evidence manifest contains continuation approval, external baseline, intended red/green test trace, validation results, iteration-scoped visual diff, and no real repository commit."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Changed review bodies enqueue durable moderation work before any public review revision marker is advanced.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-write.test.ts", "The focused contract-order test passes with event order enqueue then marker."]
+    },
+    {
+      "id": "AC-2",
+      "description": "Transactional enqueue failure prevents post-commit dispatch while preserving the transaction rollback result.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-write.test.ts", "The transactional enqueue failure test passes and asserts no dispatcher call."]
+    },
+    {
+      "id": "AC-3",
+      "description": "Post-commit dispatcher failure does not discard the saved Review or durable work result.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-write.test.ts", "The post-commit failure test passes and retains the saved Review."]
+    },
+    {
+      "id": "AC-4",
+      "description": "Rating-only edits do not enqueue or dispatch moderation work.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-write.test.ts", "The rating-only edit test passes with both queue and dispatcher untouched."]
+    },
+    {
+      "id": "AC-5",
+      "description": "Deleting a Review cancels outstanding moderation work inside the write transaction and does not dispatch new work.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-write.test.ts", "The deletion test passes with cancellation called and dispatcher untouched; full PostgreSQL integration also passes."]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/reviews/review-write.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (Turbopack)", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping the Turbopack check from this iteration onward due to permissions."},
+    {"command": "npx next build --webpack", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted; Next.js failed before compilation while parsing TypeScript --showConfig in this environment. This alternate build check is not treated as a pass."}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The Increment 2 diff contains only the approved review-write service ordering fix and its focused behavioral tests; no migrations, dependencies, dispatcher implementation, or unrelated files were changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "The manifest records the actual red failure, green results, full test results, explicit build limitation, baseline digest, visual diff, and absence of an authorized commit."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/21/01a15e19-5093-7892-a727-0897be9b4be1/u02c-iteration-2-baseline",
+    "baseline_digest": "ca8f44161c15c902c4d41dd9eaa9e177d0d2ac4b",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u02c-iteration-2-visual-diff.html",
+    "visual_diff_baseline_digest": "ca8f44161c15c902c4d41dd9eaa9e177d0d2ac4b"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": false
+}

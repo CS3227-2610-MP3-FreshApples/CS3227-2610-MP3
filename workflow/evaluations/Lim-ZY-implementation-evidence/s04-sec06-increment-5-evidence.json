@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-sec06-increment-5",
+  "iteration_number": 5,
+  "approved_plan_item": "Increment 5 -- prove SEC-06 through the real HTTP/database boundary",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human approved the S-04 remediation checklist before implementation began."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "On 2026-10-19, after the Increment 4 handoff named Increment 5 as next, the human said: Great proceed with the next iteration."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "Complete working tree copied outside the repository to /tmp/s04-increment5-sec06-baseline, excluding only the real root .git; temporary baseline commit e26029c34885253cce483d5d543df0a447767342."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/identity/auth-service.test.ts -t 'records the rejected rate limit' exited 1: expected the D-47 rate_limit.rejected event before auth.login_throttled, but only auth.login_throttled was recorded. The earlier integration harness/config mismatch was corrected and is not claimed as red evidence."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Updated src/server/services/identity/auth.ts so a pre-throttled login records D-47 rate_limit.rejected followed by auth.login_throttled for the actual rejecting limit."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/identity/auth-service.test.ts exited 0 (1 file, 9 tests); TEST_DATABASE_URL=<redacted-loopback> npx vitest run --project integration tests/integration/api/auth/login-throttling.test.ts tests/integration/rate-limit/rate-limiter.test.ts exited 0 (2 files, 58 tests)."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Full unit suite exited 0 (29 files, 411 tests); full PostgreSQL integration suite exited 0 (16 files, 316 tests); npx tsc --noEmit, npm run lint, and git diff --check each exited 0."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared baseline e26029c34885253cce483d5d543df0a447767342 with the refreshed external worktree and wrote _temp/visual-diff.html; generator summary: 4 changed files, 324 unchanged. The temp repository mirrors the real repository's /_temp/ exclusion so evidence artifacts are not presented as product changes."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "The requirement, raw red/green outputs, complete validation results, scoped iteration diff, and manifest were assembled for a separated semantic self-audit and deterministic grade."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Five failures are admitted, the next request is rejected with 429 and an integer database-clock Retry-After, and rejection does not increment either counter.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/login-throttling.test.ts: admits five failures, then returns 429 with a database-clock Retry-After without another increment",
+        "Focused PostgreSQL result: 2 files, 58 tests passed"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Normalized email variants share a limit, real client IPs are isolated, and spoofed x-forwarded-for does not select the IP subject.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/login-throttling.test.ts: shares the email counter across D-50 normalization variants",
+        "tests/integration/api/auth/login-throttling.test.ts: isolates real client IPs and ignores spoofed x-forwarded-for values"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Unknown email, invalid password, and correct-password suspended account failures have the same safe response, charge both limits, and never create a suspended-account session.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/login-throttling.test.ts: makes unknown, wrong-password, and correct-password suspended failures indistinguishable and charges both limits",
+        "Database assertion: six counter rows at count 1 and zero sessions"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "Pre-throttled requests do not verify credentials or increment counters, while successful active login consumes no failure counter.",
+      "verdict": "PASS",
+      "evidence": [
+        "The pre-throttled test installs an invalid stored hash after reaching both limits; 429 instead of a verifier error proves credential verification was skipped, counts remain 5, and no session exists.",
+        "The successful active-login test returns 200 with one session and no RateLimitWindow rows."
+      ]
+    },
+    {
+      "id": "AC-5",
+      "description": "Counters persist through suspension and reinstatement, expire by their fixed window, and do not prevent a later valid active login.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/login-throttling.test.ts: keeps counters through suspension and reinstatement, then admits again after the fixed window expires",
+        "The test observes both counters at 5, a throttled correct login with zero sessions, then a 200 and one session after the stored fixed window becomes old."
+      ]
+    },
+    {
+      "id": "AC-6",
+      "description": "A limiter database failure fails closed with a safe 503 and no database detail.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/login-throttling.test.ts: fails closed with a safe 503 when the limiter table is unavailable",
+        "The response code is service_unavailable and the body excludes relation, table, SQL, and PostgreSQL detail."
+      ]
+    },
+    {
+      "id": "AC-7",
+      "description": "A rejected login limit records both D-47 rate_limit.rejected and auth.login_throttled events for the actual rejecting limit.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/identity/auth-service.test.ts: records the rejected rate limit and auth throttle against the actual pre-throttled limit",
+        "src/server/services/identity/auth.ts records both projected security events without email, IP, password, or key data."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npx vitest run --project unit tests/unit/identity/auth-service.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "1 file, 9 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npx vitest run --project integration tests/integration/api/auth/login-throttling.test.ts tests/integration/rate-limit/rate-limiter.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "2 files, 58 tests passed"
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "29 files, 411 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "evidence": "16 files, 316 tests passed"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Iteration diff is limited to the Identity throttle log, its focused unit expectation, one SEC-06 route/PostgreSQL acceptance file, the required disclosure log, and ignored evidence/visual artifacts. No bootstrap migration, Increment 6 behavior, dependency, or unrelated service was changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "All claimed test counts and outcomes above come from captured command output; no build, commit, push, PR, or unavailable check is claimed."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s04-increment5-sec06-baseline",
+    "baseline_digest": "e26029c34885253cce483d5d543df0a447767342",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "e26029c34885253cce483d5d543df0a447767342"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "grades": {
+    "semantic": {
+      "verdict": "PASS",
+      "artifact": "_temp/s04-sec06-increment-5-semantic-grade.json",
+      "note": "Separated self-audit; no independent evaluator was used."
+    },
+    "deterministic": {
+      "verdict": "PASS",
+      "artifact": "_temp/s04-sec06-increment-5-deterministic-grade.json"
+    }
+  },
+  "checklist_item_completed": true
+}

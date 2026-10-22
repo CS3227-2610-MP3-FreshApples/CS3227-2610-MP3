@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02a-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — Create/resubmit own Review API and transaction.",
+  "events": [
+    {"sequence": 1, "type": "continuation_approved", "evidence": "User explicitly approved proceeding with the next iteration on 2026-10-21 after the Increment 1 handoff."},
+    {"sequence": 2, "type": "plan_approved", "evidence": "The approved iterative-TDD plan identifies Increment 2 as Create/resubmit own Review API and transaction; the user approved proceeding with the next iteration."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "Copied the complete worktree excluding .git to /tmp/u02a-iteration-2-baseline and committed baseline 65b3d63072793cd5937e6eb7db11255ff6a2dd26."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "TEST_DATABASE_URL=loopback npx vitest run tests/integration/api/reviews/review-create.test.ts exited 1 because the new review Route Handler does not yet exist; 0 tests ran."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implemented the Review repository write primitives, Review create service, composition wiring, POST /api/v1/movies/:id/reviews Route Handler, and focused integration test."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused API/database test passed: tests/integration/api/reviews/review-create.test.ts, 1 test."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Unit tests passed (57 files, 980 tests), integration tests passed (25 files, 530 tests), lint passed, and TypeScript passed. Canonical npm run build hit an environment-only Turbopack process/permission failure; npx next build --webpack completed successfully."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "Generated _temp/visual-diff.html against the external baseline."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "The deterministic iterative-TDD grader was run after updating this evidence artifact."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "verdict": "PASS", "evidence": ["Active authenticated User can create a valid Review for an active Movie; response is 201 with pending moderation state, safe own projection, content revision 1, and ETag \"1\".", "tests/integration/api/reviews/review-create.test.ts"]},
+    {"id": "AC-2", "verdict": "PASS", "evidence": ["Review creation and pending K9 ModerationWork enqueue occur in one database transaction; focused integration test verifies durable pending work and no premature Movie revision/summary marker.", "src/server/services/reviews/review-write.ts"]},
+    {"id": "AC-3", "verdict": "PASS", "evidence": ["Duplicate active Review creation is rejected with the API conflict response; the pair lock and unique invariant are exercised by the focused integration test.", "tests/integration/api/reviews/review-create.test.ts"]},
+    {"id": "AC-4", "verdict": "PASS", "evidence": ["Post-commit dispatcher invocation is outside the transaction and dispatcher failure is contained after the durable transaction commits.", "src/server/services/reviews/review-write.ts"]}
+  ],
+  "checks": [
+    {"command": "focused integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "tests/integration/api/reviews/review-create.test.ts: 1 test"},
+    {"command": "npm run test:unit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "57 files, 980 tests"},
+    {"command": "npm run test:integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "25 files, 530 tests"},
+    {"command": "npm run lint", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed without warnings"},
+    {"command": "npx tsc --noEmit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed successfully"},
+    {"command": "npx next build --webpack", "status": "PASS", "required": true, "exit_code": 0, "evidence": "production build completed successfully; canonical npm run build was separately attempted and environment-blocked by Turbopack."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changed files are limited to the Review repository/service/composition/Route Handler, focused integration test, iterative checklist, evidence, visual diff, and required session log."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are supported by the focused integration test, full validation checks, source diff, and webpack build fallback; canonical Turbopack build failure is disclosed."},
+  "artifacts": {
+    "baseline_path": "/tmp/u02a-iteration-2-baseline",
+    "baseline_digest": "65b3d63072793cd5937e6eb7db11255ff6a2dd26",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "65b3d63072793cd5937e6eb7db11255ff6a2dd26"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

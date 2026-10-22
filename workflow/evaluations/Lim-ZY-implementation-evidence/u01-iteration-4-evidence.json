@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-iteration-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Replace public placeholders with Server Component pages using the read services; add rendering tests for loading, empty, error and success states",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved _temp/u01-plan.md earlier in this conversation."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human explicitly requested proceeding with the next iteration after the Increment 3 handoff."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/u01-iteration-4-baseline-izhagq; commit cb622dfd45b3285d3ebeb7194bd1837596bb8814"},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-pages.test.ts exited 1 because src/app/(public)/announcements/error did not exist."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Added route-level read states and replaced the three public placeholder pages."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused public-page rendering tests exited 0; 1 file and 4 tests passed."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Full unit: 48 files/716 tests passed; type-check, lint and diff checks passed; build skipped under human-approved Turbopack permission exception."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-iteration-4-visual-diff.html; 11 changed files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence bundle complete."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Movie browsing is a Server Component direct read with accessible text search, supported sorting, empty state and no image fields.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/page.tsx", "tests/unit/catalogue/public-pages.test.ts"]},
+    {"id": "AC-2", "description": "Movie detail displays U-01 metadata and aggregates without U-02's visible Review listing, including the explicit no-ratings state.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/[id]/page.tsx", "tests/unit/catalogue/public-pages.test.ts"]},
+    {"id": "AC-3", "description": "Published Announcements render title, body and only an active Movie reference through the U-01 read service.", "verdict": "PASS", "evidence": ["src/app/(public)/announcements/page.tsx", "tests/unit/catalogue/public-pages.test.ts"]},
+    {"id": "AC-4", "description": "Each public route supplies text-only loading and safe error states.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/loading.tsx", "src/app/(public)/movies/error.tsx", "src/app/(public)/movies/[id]/loading.tsx", "src/app/(public)/movies/[id]/error.tsx", "src/app/(public)/announcements/loading.tsx", "src/app/(public)/announcements/error.tsx", "tests/unit/catalogue/public-pages.test.ts"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/catalogue/public-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Human-approved recurring Turbopack permission restriction; not reported as successful."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only U-01 public pages, route read states, focused tests and required evidence/disclosure changed."},
+  "claims_review": {"verdict": "PASS", "evidence": "Handoff matches actual red/green and validation outputs and accurately records the skipped build."},
+  "artifacts": {
+    "baseline_path": "/tmp/u01-iteration-4-baseline-izhagq",
+    "baseline_digest": "cb622dfd45b3285d3ebeb7194bd1837596bb8814",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u01-iteration-4-visual-diff.html",
+    "visual_diff_baseline_digest": "cb622dfd45b3285d3ebeb7194bd1837596bb8814"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "iteration_id": "user-logout-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Add the normal-user sign-out control and client behavior",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "User explicitly approved the user-logout checklist and the proposed / post-logout destination in the next turn."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/user-logout-baseline.9AH4OU; temporary repository commit 0e5760b135c2ba8e7dffcc40c356e6f304dde1c2"},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/auth/logout-client.test.ts; 3 tests failed because submitLogout was absent and the User shell did not render Sign out."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added the logout client helper, UserAccountControl, User-shell header slot, and focused/compatibility test coverage."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/auth/logout-client.test.ts; 1 file and 3 tests passed."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "Full unit suite, lint, type-check, and diff check passed. npm run build was attempted normally and with elevated permission but remained unavailable due Turbopack worker port permission failure; user approved skipping it."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "_temp/visual-diff.html; generated from temporary baseline commit 0e5760b135c2ba8e7dffcc40c356e6f304dde1c2 and refreshed WORKTREE; 10 changed files."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence bundle complete; deterministic iterative-TDD grader requested."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "A normal User sees only their display name and an accessible Sign out control in the authenticated User shell.", "verdict": "PASS", "evidence": ["tests/unit/auth/logout-client.test.ts: User shell renders Sign out, Your account, and no session/email strings", "src/components/user-account-control.tsx: displayName projection only"]},
+    {"id": "AC-2", "description": "Sign out obtains a session-bound CSRF token, submits same-origin logout, prevents duplicate submissions, and navigates to / only after a successful 204 response.", "verdict": "PASS", "evidence": ["tests/unit/auth/logout-client.test.ts: two-request CSRF/logout sequence and 204 success", "src/components/user-account-control.tsx: busy guard, disabled control, router.push('/') only on ok"]},
+    {"id": "AC-3", "description": "Logout failures do not expose sensitive account/session details and leave the user informed without claiming success.", "verdict": "PASS", "evidence": ["tests/unit/auth/logout-client.test.ts: safe failure message", "src/components/auth-client.ts: generic failure mapping"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/auth/logout-client.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User approved skipping after normal and elevated attempts failed at Turbopack worker creation with Operation not permitted."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Application and focused test changes are limited to auth-client, UserAccountControl, User-shell header composition, and the required compatibility/focused tests; unrelated worktree changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "This manifest records the actual red failure, green results, validation outcomes, build limitation, and visual-diff count."},
+  "artifacts": {"baseline_path": "/tmp/user-logout-baseline.9AH4OU", "baseline_digest": "0e5760b135c2ba8e7dffcc40c356e6f304dde1c2", "visual_diff_path": "visual-diff.html", "visual_diff_baseline_digest": "0e5760b135c2ba8e7dffcc40c356e6f304dde1c2"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

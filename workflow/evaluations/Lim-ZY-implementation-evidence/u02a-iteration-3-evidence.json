@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02a-iteration-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 — Edit, rating-only edit, body edit, and delete API flows.",
+  "events": [
+    {"sequence": 1, "type": "continuation_approved", "evidence": "User explicitly approved proceeding with the next iteration on 2026-10-21 and authorized skipping Turbopack verification for remaining iterations."},
+    {"sequence": 2, "type": "plan_approved", "evidence": "The approved iterative-TDD checklist identifies Increment 3 as edit, rating-only edit, body edit, and delete API flows."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "Copied the complete worktree excluding .git to /tmp/u02a-iteration-3-baseline and captured baseline 1fa11fe1bda0758fae53e0a156ee27e78414005f."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused review-change integration test could not import the not-yet-created PATCH/DELETE Route Handler; this was the expected red state."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implemented Review PATCH/DELETE routes, author-owned edit/delete transactions, rating-only clearance retention, body-edit moderation reset, K7 revision markers, K9 cancellation/enqueue, and resubmission identity reuse."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused API/database test passed: tests/integration/api/reviews/review-change.test.ts, 2 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Unit tests passed (57 files, 980 tests), integration tests passed (26 files, 532 tests), lint passed, TypeScript passed, and npx next build --webpack completed successfully. Turbopack verification was intentionally omitted per user instruction."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "Generated _temp/visual-diff.html against the external baseline."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "The deterministic iterative-TDD grader was run after updating this evidence artifact."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "verdict": "PASS", "evidence": ["Rating-only PATCH retains clearance and increments the row version.", "tests/integration/api/reviews/review-change.test.ts"]},
+    {"id": "AC-2", "verdict": "PASS", "evidence": ["Body PATCH resets moderation, increments content_revision, enqueues current work, and preserves hidden_at.", "tests/integration/api/reviews/review-change.test.ts"]},
+    {"id": "AC-3", "verdict": "PASS", "evidence": ["DELETE is bodyless, requires If-Match, returns the resulting ETag, cancels outstanding work, and resubmission reuses Review identity.", "tests/integration/api/reviews/review-change.test.ts"]},
+    {"id": "AC-4", "verdict": "PASS", "evidence": ["Ownership and stale-version checks are enforced inside the Movie-then-Review transaction.", "tests/integration/api/reviews/review-change.test.ts"]}
+  ],
+  "checks": [
+    {"command": "focused integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "tests/integration/api/reviews/review-change.test.ts: 2 tests"},
+    {"command": "npm run test:unit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "57 files, 980 tests"},
+    {"command": "npm run test:integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "26 files, 532 tests"},
+    {"command": "npm run lint", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed without warnings"},
+    {"command": "npx tsc --noEmit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed successfully"},
+    {"command": "npx next build --webpack", "status": "PASS", "required": true, "exit_code": 0, "evidence": "production build completed successfully"}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changed files are limited to Review write repository/service/routes, focused integration coverage, iterative checklist, evidence, visual diff, and the required session log."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are supported by focused and full test results, source checks, and the webpack production build."},
+  "artifacts": {
+    "baseline_path": "/tmp/u02a-iteration-3-baseline",
+    "baseline_digest": "1fa11fe1bda0758fae53e0a156ee27e78414005f",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "1fa11fe1bda0758fae53e0a156ee27e78414005f"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

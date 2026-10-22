@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s07-ui-shell-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — K12 form, table, pagination, status, live-region and rating primitives",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human-approved _temp/s07-ui-shell-plan.md from the preceding Increment 1 workflow; the plan explicitly defines Increment 2 behavior and validation."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "Human explicitly approved continuation to S-07 Increment 2 in the task request after the Increment 1 handoff."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/tmp/s07-ui-shell-iteration-2-baseline.K7wBEE/repo at f5ee1f3a2d51a613f44a5082dd741b2f32494200; complete working tree copied excluding only the real .git directory; 188 tracked files."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/ui-shell/k12-primitives.test.ts exited 1: Cannot find module '../../../src/components/form-primitives', the intended missing K12 primitive behavior."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "First production edit added form, table-state, pagination, status, live-region, and rating primitives under src/components/."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/ui-shell/k12-primitives.test.ts exited 0: 1 test file and 5 tests passed."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Focused K12 tests, preserved route-shell tests, npm run test:unit, npm run lint, and npx tsc --noEmit all exited 0; full unit suite reported 10 files and 190 tests passed."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "present-changes-visually generator exited 0 and wrote the final _temp/visual-diff.html (1,929 KB), comparing baseline commit f5ee1f3a2d51a613f44a5082dd741b2f32494200 with the refreshed temporary worktree."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Evidence bundle contains continuation approval, fresh external baseline, intended red test, green tests, validation, visual diff, scope audit, and no real Git commit."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Form primitives render labelled controls with associated validation errors and keyboard-reachable focusable controls.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused K12 test passed: TextField renders label/for, input id, aria-describedby error, and focus-visible classes; RatingInput renders labelled 1–10 control.",
+        "tests/unit/ui-shell/k12-primitives.test.ts"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Table primitives expose empty, loading, and error states with semantic status text.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused K12 test passed for loading, empty, and error table states with explicit text and state attributes.",
+        "src/components/table-state.tsx"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Pagination is bounded, status is understandable without colour, async announcements use a polite live region, and ratings render 8/10 and one-decimal aggregates.",
+      "verdict": "PASS",
+      "evidence": [
+        "Focused K12 test passed for first/last bounded pagination, text-based status, aria-live polite announcement, 8/10, and 8.3/10 formatting.",
+        "src/components/pagination.tsx, src/components/status-primitives.tsx, and src/components/form-primitives.tsx"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npx vitest run --project unit tests/unit/ui-shell/k12-primitives.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx vitest run --project unit tests/unit/ui-shell/route-shells.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "scope/import audit for changed UI paths",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Production changes are limited to new reusable files in src/components/; the focused test is in tests/unit/ui-shell/. Existing Increment 1, governance, workflow, and logs were preserved, with one required Increment 2 disclosure log added. No server/API/database/dependency/migration/spec/workflow production files were changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Handoff will report the intended red module failure, green focused/full tests, lint/type-check, visual diff, deterministic grade, no commit, and the remaining Increment 3 work."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s07-ui-shell-iteration-2-baseline.K7wBEE/repo",
+    "baseline_digest": "f5ee1f3a2d51a613f44a5082dd741b2f32494200",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "f5ee1f3a2d51a613f44a5082dd741b2f32494200"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

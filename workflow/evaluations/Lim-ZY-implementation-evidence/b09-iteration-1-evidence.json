@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "iteration_id": "b09-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — approved A-05 contract and Admin report read models",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved the B#9 iterative-TDD checklist in chat on 2026-10-22."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/b09-iteration-1-baseline.O2oscc; digest 5377e7e76863320cad55351a77cc393a42d5fc8a"},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npx vitest run tests/unit/moderation/admin-report-input.test.ts exited 1 because admin-report-input.ts did not exist."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Created src/server/services/moderation/admin-report-input.ts after the intended red test."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npx vitest run tests/unit/moderation/admin-report-input.test.ts tests/unit/moderation/admin-report-routes.test.ts passed: 2 files, 4 tests."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npx tsc --noEmit, npm run lint, and npm run test:unit passed. PostgreSQL integration was skipped because TEST_DATABASE_URL is unset and no local disposable database is available. npm run build was skipped after the documented Turbopack permission failure."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "Generated _temp/visual-diff.html from /tmp/b09-iteration-1-baseline.O2oscc HEAD against WORKTREE; 18 changed files and 813 unchanged files."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Deterministic iterative-TDD grader requested after evidence and visual diff were recorded."}
+  ],
+  "acceptance_criteria": [
+    {"id": "A-05-read-filter-parser", "verdict": "PASS", "evidence": ["tests/unit/moderation/admin-report-input.test.ts", "focused Vitest run"]},
+    {"id": "A-05-admin-read-routes", "verdict": "PASS", "evidence": ["tests/unit/moderation/admin-report-routes.test.ts", "focused Vitest run", "src/app/api/v1/admin/reports/route.ts", "src/app/api/v1/admin/reports/[id]/route.ts"]},
+    {"id": "A-05-postgres-read-model", "verdict": "UNVERIFIABLE", "evidence": ["tests/integration/api/admin/admin-reports.test.ts", "integration command could not run without TEST_DATABASE_URL"]}
+  ],
+  "checks": [
+    {"command": "npx vitest run tests/unit/moderation/admin-report-input.test.ts tests/unit/moderation/admin-report-routes.test.ts", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "npm run test:unit", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "npx tsc --noEmit", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "npm run lint", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "npm run test:integration -- tests/integration/api/admin/admin-reports.test.ts", "status": "SKIPPED", "reason": "TEST_DATABASE_URL is unset; the repository requires a disposable loopback PostgreSQL instance.", "required": false},
+    {"command": "npm run build", "status": "SKIPPED", "reason": "Next.js Turbopack failed with Operation not permitted while binding during CSS processing; user authorized skipping this check.", "required": false}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "The implementation diff is limited to D-104 specs/contracts, Admin report read repositories/services/routes, composition exports, tests, workflow state, and iteration evidence."},
+  "claims_review": {"verdict": "PASS", "evidence": "The passing claims are supported by focused/full unit tests, type-check, lint, and source inspection; the PostgreSQL read model remains explicitly unverified."},
+  "artifacts": {"baseline_path": "/tmp/b09-iteration-1-baseline.O2oscc", "baseline_digest": "5377e7e76863320cad55351a77cc393a42d5fc8a", "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html", "visual_diff_baseline_digest": "5377e7e76863320cad55351a77cc393a42d5fc8a", "grader_report_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/b09-iteration-1-grade.json"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

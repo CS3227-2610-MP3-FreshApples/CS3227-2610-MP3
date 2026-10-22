@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-increment-1",
+  "iteration_number": 1,
+  "approved_plan_item": "S-04 Increment 1 — Identity primitives and account service",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "User assigned the human-approved S-04 Increment 1 plan in this chat and explicitly limited work to Increment 1."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/s04-increment1-baseline.WWOfe5, commit 1ae091d73297233fc24458147c0dff97346deb21; complete working-tree copy excluding only the real .git directory."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "Initial red run: npx vitest run --project unit tests/unit/identity/account-service.test.ts exited 1 before production edits because the identity module was absent. Correction red run: after the human-added complexity cases were added, the same focused test exited 1 because the existing validator accepted a password without a number or special character."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "First production edits added src/server/repositories/identity/ and src/server/services/identity/ after the red test."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "The focused test exited 0 with 4 tests passed after the initial implementation and again after the password-complexity correction."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "After correction, npm run test:unit exited 0 (19 files, 337 tests); npx tsc --noEmit exited 0; npm run lint exited 0."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html refreshed against baseline commit 1ae091d73297233fc24458147c0dff97346deb21; generator reported 14 changed files and 242 unchanged."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "The manifest includes the password-policy correction evidence, required checks, scope/claims review, baseline digest, and refreshed visual diff path."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "FreshApples normalization trims only ASCII edge whitespace, applies NFC/lowercase local-part and IDNA lowercase ASCII/Punycode domain, and rejects malformed forms.", "verdict": "PASS", "evidence": ["tests/unit/identity/account-service.test.ts: normalizes FreshApples emails without provider-specific rewrites", "src/server/services/identity/account.ts: normalizeEmail"]},
+    {"id": "AC-2", "description": "Registration accepts only email, password, and displayName; role/status injection is rejected before repository write.", "verdict": "PASS", "evidence": ["tests/unit/identity/account-service.test.ts: rejects role injection without calling the repository", "src/server/services/identity/account.ts: strict zod schema and invalid_fields result"]},
+    {"id": "AC-3", "description": "Passwords are 12–128 Unicode characters, contain at least one number and one special character, are not truncated, and use Argon2id for hashing and verification.", "verdict": "PASS", "evidence": ["tests/unit/identity/account-service.test.ts: enforces length, number and special-character boundaries and verifies the complete password", "src/server/services/identity/account.ts: validatePassword, hashPassword and verifyPassword"]},
+    {"id": "AC-4", "description": "Account creation persists normalized identity data through a repository, forces USER/active in SQL, and maps duplicate normalized email to conflict.", "verdict": "PASS", "evidence": ["src/server/repositories/identity/account-repository.ts: parameterized INSERT with literal USER/active and unique-violation mapping", "src/server/services/identity/account.ts: transactional registration service"]},
+    {"id": "AC-5", "description": "Returned account data is a safe projection with no email or password hash.", "verdict": "PASS", "evidence": ["tests/unit/identity/account-service.test.ts: stores normalized identity and returns only a safe account projection", "src/server/services/identity/account.ts: safeAccountProjection"]}
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/identity/account-service.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "The implementation diff is limited to the new identity repository/service and focused unit test; existing modified spec/workflow/log files were preserved unchanged."},
+  "claims_review": {"verdict": "PASS", "evidence": "All reported checks and test counts match the command output recorded during this iteration; no commit was created."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-increment1-baseline.WWOfe5",
+    "baseline_digest": "1ae091d73297233fc24458147c0dff97346deb21",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "1ae091d73297233fc24458147c0dff97346deb21"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

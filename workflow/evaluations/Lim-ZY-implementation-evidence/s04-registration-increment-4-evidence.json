@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-registration-increment-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Increment 4 -- close registration and normalization acceptance gaps",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved checklist is _temp/s04-review-remediation-plan.md."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "On 20 October 2026, after the Increment 3 handoff, the human said: Great proceed with the next iteration."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-increment4-registration-baseline at f5bccd1a63a5707fad1dcc9abd3ae147653f67d4; 23,838 files; complete working tree excluding only the real .git directory."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "After the disposable PostgreSQL server was available, `npm run test:integration -- tests/integration/api/auth/registration-acceptance.test.ts` exited 1: the real registration route returned 201 instead of 422 for person@example_com and wrote the Account. `npm run test:unit -- tests/unit/identity/account-service.test.ts` also exited 1 because normalizeEmail returned user@example_com instead of null. These are the intended missing malformed-domain behaviors. Earlier EPERM/ECONNREFUSED setup attempts did not reach tests and are not claimed as red evidence."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "After the recorded red failures, src/server/services/identity/account.ts was changed so every post-IDNA ASCII domain label must use only letters, digits and interior hyphens."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "Focused unit exited 0 with 1 file/4 tests; focused PostgreSQL registration and auth journey exited 0 with 2 files/5 tests."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Full unit exited 0 (29 files/411 tests); full PostgreSQL integration exited 0 (15 files/308 tests); npx tsc --noEmit, npm run lint and git diff --check exited 0."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit f5bccd1a63a5707fad1dcc9abd3ae147653f67d4 with its refreshed worktree and wrote _temp/visual-diff.html; generator summary: 4 changed files and 320 unchanged files."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "The approved FR-01/AT-01, D-22, D-50, API and password requirements; red/green trace; checks; baseline-derived visual diff; scope review and claims review are complete for grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "REGISTRATION-UNKNOWN-FIELDS",
+      "description": "Client-supplied role and status each return 422 validation_failed through the real route and create no Account.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/registration-acceptance.test.ts exercises role and status separately through the Route Handler with real CSRF and PostgreSQL.",
+        "Each case compares the Account count before and after and passed in the focused and full integration runs."
+      ]
+    },
+    {
+      "id": "NORMALIZED-IDENTITY-CONFLICT",
+      "description": "Two source addresses that normalize to one identity produce one active USER and a safe 409 without address or database-error leakage.",
+      "verdict": "PASS",
+      "evidence": [
+        "The PostgreSQL acceptance test registers a decomposed mixed-case Unicode/IDN address, retries its NFC/Punycode equivalent, observes 201 then 409 conflict, and queries exactly one active USER.",
+        "The test rejects either original address and raw 23505, duplicate-key, table and normalized-column details in the conflict response."
+      ]
+    },
+    {
+      "id": "D50-EMAIL-BOUNDARIES",
+      "description": "Email normalization covers ASCII-only outer trimming, NFC and lowercase local parts, IDNA/Punycode domains, controls/internal whitespace and malformed domains.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/identity/account-service.test.ts covers each D-50 boundary and provider-specific non-rewrites.",
+        "The malformed underscore domain is also rejected with no write through the real route/PostgreSQL test."
+      ]
+    },
+    {
+      "id": "PASSWORD-BOUNDARIES",
+      "description": "Passwords of 12 and 128 code points are accepted, 11 and 129 are rejected, and complete valid passwords are verified without truncation.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/identity/account-service.test.ts asserts exact 11/12/128/129 inputs through validatePassword and parseRegistrationInput.",
+        "Argon2 verification passes the full 128-code-point password and rejects a different valid 128-code-point suffix and a 129-code-point extension."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/identity/account-service.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "1 file, 4 tests passed."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration -- tests/integration/api/auth/registration-acceptance.test.ts tests/integration/api/auth/auth-journey.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "2 files, 5 tests passed against disposable loopback PostgreSQL."
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "29 files, 411 tests passed."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "15 files, 308 tests passed against disposable loopback PostgreSQL."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The baseline-derived visual diff contains one minimal Identity normalization edit, directly matching unit and PostgreSQL acceptance tests, and the existing session disclosure log. No bootstrap code or migration, dependency, lockfile, later increment or unrelated service changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "All pass counts match raw command output. The initial sandbox/network and stopped-database attempts are disclosed and not claimed as red or validation passes."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-increment4-registration-baseline",
+    "baseline_digest": "f5bccd1a63a5707fad1dcc9abd3ae147653f67d4",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "f5bccd1a63a5707fad1dcc9abd3ae147653f67d4"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}
