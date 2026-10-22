@@ -2,7 +2,7 @@
 
 FreshApples is a text-only movie-review community with public discovery, authenticated User contributions and a separate Admin interface. This guide explains the system design, development process and operation. The authoritative behaviour is recorded in the [specifications](https://github.com/CS3227-2610-MP3-FreshApples/CS3227-2610-MP3/tree/master/spec).
 
-**Status: incomplete project, inspected 22 October 2026.** Implementation descriptions mean code exists in the inspected checkout, not that release acceptance has passed. Test files are not passing results. Production deployment, complete journeys, live-model evaluation and operational evidence remain incomplete.
+**Implementation snapshot: 22 October 2026, revision `34d416a`.** Public browsing/authentication, User review submission/editing and report history, Admin catalogue/announcements/reviews/reports/user management, AI pipelines and local release tooling are implemented. This guide describes the inspected code; it does not certify release acceptance. Hosted deployment, complete acceptance journeys, live-model evaluation and operational evidence still require verification.
 
 ## 1. Architecture
 
@@ -88,7 +88,7 @@ Moderation coordinates Review transitions, work updates and audit in one transac
 
 **Archiving and restoring a Movie.** Archive retains Reviews/history while changing public eligibility and invalidating summaries. Public reads return 404. Restore preserves Review moderation states and never publishes unchecked content; it marks the Movie for a scheduled summary update. Existing durable screening work can be considered by later recovery once the Movie is active; Movie restore does not itself reactivate cancelled Review work. This is a coordinated domain transition, not row deletion.
 
-**Reporting another Review.** Submission validates category/explanation, rejects self-reporting and duplicate open reports, and stores an evidence snapshot. The reporter reads only their submitted receipts/history. Later edits/deletion do not rewrite evidence. Received-report counts, reporter identity, private reasons and strike history never enter target-facing projections. **Incomplete:** the separate Admin decision/strike workflow is unfinished in this checkout.
+**Reporting another Review.** Submission validates category/explanation, rejects self-reporting and duplicate open reports, and stores an evidence snapshot. The reporter reads only their submitted receipts/history. Later edits/deletion do not rewrite evidence. Received-report counts, reporter identity, private reasons and strike history never enter target-facing projections. Admins inspect the retained evidence and decide through the separate Report workflow described in section 2.6.
 
 ### 2.5 Safe errors and client recovery
 
@@ -108,6 +108,52 @@ Errors have `{ error: { code, message, fieldErrors?, requestId } }`. Responses c
 | 500 / 503 | Unexpected fault / unavailable dependency | Keep input and use request ID for investigation |
 
 Review writes can await the 75-second AI deadline, an explicit exception to ordinary write latency. Clients allow longer and recover via own-review reads after interruption rather than blindly resubmitting. A saved pending Review is a successful save even when screening cannot run.
+
+### 2.6 Admin Reports and decisions (A-05, FR-06, D-104)
+
+![Human Report decision: acceptance locks Account, Movie, Review and Report, then records a distinct strike, optional hiding, threshold suspension, session revocation and audit in one transaction. Dismissal closes without a strike.](assets/developer-guide/report-decision.svg)
+
+The browser queue is at `/admin/reports`; evidence and decisions are at `/admin/reports/:id`. All API paths below are under `/api/v1` and require an active Admin.
+
+| Operation | Contract and implementation |
+| --- | --- |
+| `GET /admin/reports` | Defaults to open; status accepts open/accepted/dismissed/all, category filters combine with status, standard pagination, `created_at DESC, id ASC` |
+| `GET /admin/reports/:id` | Immutable evidence and explanation, current live Review state, current-cycle strike count/threshold, projected acceptance effect and recorded Decision; detail ETag |
+| `POST /admin/reports/:id/decision` | Strict `{ disposition, actions, reason }`, CSRF/Origin and quoted Report `If-Match`; reason is trimmed and 10–1,000 Unicode code points |
+
+Dismissal uses `disposition=dismissed` and empty actions. Acceptance uses `accepted` with empty actions or `["hide_review"]`. The UI offers dismiss, accept, or accept-and-hide with a reason and confirmation. Projected effects help the Admin review intent; the server recomputes effects under locks rather than trusting the browser.
+
+Acceptance locks Account → Movie → Review → Report, checks the open state/version, records the Decision and adds at most one lifetime strike for that target User/Review incident. Multiple reporters and edited versions cannot manufacture extra strikes. Optional hiding uses the owning Review transition and cancels outstanding screening work. Reaching the configured current-cycle threshold (default three) suspends an active account and revokes its sessions through Identity. Closure, effects and audit commit together; audit failure rolls them back. Dismissal closes and audits without adding a strike. Already-hidden/deleted Reviews remain decidable; hiding them again is a no-op.
+
+Success returns the updated Report, Decision, computed `strikeAdded`, computed account status and new Report ETag. Invalid fields return 422, missing/malformed preconditions 428, unknown IDs 404, and stale/already-closed Reports 409. Implementation is in `src/server/services/moderation/admin-reports.ts` and the query/mutation repositories under `src/server/repositories/moderation/`. Evidence is private Admin data; it is never sent to the AI provider or exposed to the target User.
+
+### 2.7 Admin user management (A-06, FR-06, AT-25)
+
+`/admin/users` lists USER accounts with literal case-insensitive display-name search and active/suspended filtering. `GET /api/v1/admin/users` orders by `lower(display_name) ASC, id ASC`; `GET /api/v1/admin/users/:id` returns the same minimal account projection: id, displayName, status and version. Emails, sessions, received Reports and strike details are excluded.
+
+`PATCH /api/v1/admin/users/:id/status` accepts only `{ status: "active" | "suspended", reason }`, with a trimmed 10–1,000-code-point reason, CSRF/Origin and current quoted Account `If-Match`. Manual suspension needs no Report and revokes existing sessions atomically with status and audit. Reinstatement advances the strike cycle only on an actual suspended-to-active transition; history remains and old sessions stay revoked, requiring fresh login. A current-version same-status request is an audited no-op. ADMIN targets are forbidden; stale versions return 409.
+
+The status dialog explains revocation/fresh-login consequences. Services are `src/server/services/identity/admin-users.ts` and `account-status.ts`; the repository applies USER-only filtering and escapes SQL search wildcard characters. Both manual status changes and accepted Reports lock the same Account row to serialize competing writes.
+
+### 2.8 Browser routes and implementation map
+
+| Area | Routes and implementation entry points |
+| --- | --- |
+| Public discovery | `/`, `/movies`, `/movies/:id`, `/announcements`; Server Components call public read services, with Client Components for paginated Reviews and stored summaries |
+| Identity | `/register`, `/sign-in`; `/api/v1/auth/*` handles registration/login/logout, current account and CSRF |
+| User workspace | `/app`, `/app/reviews`, `/app/reports`; own Review status and submitted Report history use User-only APIs |
+| Review authoring | Movie detail’s `review-submission-form.tsx` and `review-submit-client.ts`; POST movie Reviews and PATCH the current Review |
+| Admin workspace | `/admin` links to Movies, Announcements, Reviews, Reports and Users; entity detail/edit pages live beneath their area |
+| Shared UI | `src/components/` supplies route shells, account controls, forms, status messages, tables, pagination and confirmation dialogs |
+| Admin clients | `src/app/admin/_lib/` checks response projections, gets CSRF, sends version preconditions and maps safe errors |
+
+Movie detail checks the current active USER and preloads an existing own Review into the form. Rating is a whole number 1–10 and body is 10–2,000 characters. Creation expects 201; edits send PATCH with the known quoted version and expect 200. The form disables submission while saving, preserves entered text on failure and renders the server’s saved moderation message. Body edits re-enter screening; rating-only edits retain clearance. A stale edit asks the User to reload. `/app/reviews` is a status/history table linking back to movie detail for editing.
+
+Current client limits matter when debugging: existing-Review lookup searches only the first 100 own Reviews, and submission/edit transport failures display safe failure messages without automatic read-back reconciliation. Do not infer that text was unsaved after an interrupted response; reload own state before retrying. A complete User browser journey and these edge paths still need acceptance evidence. Review deletion and reporting APIs exist, while this movie-detail authoring form implements create/edit only.
+
+Public navigation resolves the current account: Users get their workspace link; Admins get the Admin dashboard and account control. Admin subpages include a dashboard back link; the header exposes Home, Movies and Announcements plus Admin identity/sign-out. Header links do not authorize operations: handlers/services enforce access. Anonymous protected-page navigation settles at sign-in; unavailable core dependencies show a safe unavailable state.
+
+Admin catalogue and announcement updates distinguish uncertain post-dispatch failures from definite validation/access/conflict failures. After an uncertain edit/archive/restore/publish response, the client reads the resource with no-store and accepts success only for the same ID, a newer version and all requested normalized fields/state. It never replays the mutation. Lost create responses, unchanged-version no-ops, mismatches and failed verification reads remain uncertain. Account-status clients also verify uncertain results by reading current state. Confirmation dialogs, live status feedback and failure messages keep actions reviewable; browser presentation regressions are under `tests/ui/`.
 
 ## 3. Runtime AI
 
@@ -159,7 +205,7 @@ Initially each daily sweep attempts at most one Movie or Review. Leases, pending
 
 Prompt delimiters alone do not prevent injection. Containment depends on no model action tools, validation, authorization and guarded writes. Schema-valid text can still be inaccurate and requires human quality evaluation. Free text can contain personal data; replacing identifiers does not establish anonymity.
 
-Only human Admin acceptance can produce report-based strikes. Acceptance, distinct-incident accounting, threshold suspension and session revocation must be atomic. **Incomplete:** Admin Report-decision and user-management endpoints/journeys are absent from this inspected checkout; shared account-status primitives alone do not complete them.
+Only human Admin acceptance produces report-based strikes. The implemented Report-decision transaction combines distinct-incident accounting, optional hiding, threshold suspension, session revocation and audit. Manual account-status mutations reuse Identity’s account locks and status services and serialize with Report acceptance. Admin-only projections keep received-report details out of User views. See sections 2.6–2.7 for contracts and section 4.3 for the limits of current coverage.
 
 ### 4.2 Development-process security
 
@@ -183,11 +229,12 @@ Run at the repository root unless indicated; use synthetic fixtures only.
 | E2E | Build first; `npx playwright install chromium`; with loopback `TEST_DATABASE_URL`, `npm run test:e2e` |
 | Secret scan | Build first; gitleaks on PATH; `npm run check:secrets` scans `origin/master..HEAD` and `.next/static` |
 | Dependency audit | `node scripts/check-audit.mjs` |
+| Presentation regression tests | Build first; install Chromium; `npx playwright test --config tests/ui/playwright.config.ts` (synthetic intercepted responses, port 3112) |
 | Documentation | In `docs/`: `npm ci`, `npm run build`; `npm run serve` for preview |
 
 Integration refuses non-loopback hosts, creates a throwaway migrated database and synthetic roles, truncates tables between files and drops the database afterward. Its test-only server login needs database/role creation privileges. E2E creates its own database, runtime login and secrets, serves the built app at `127.0.0.1:3100`, then cleans up. The E2E wrapper does not build.
 
-AI tests live under `tests/unit/ai/`, `tests/integration/ai/` and `tests/integration/api/cron/`. Existing E2E files cover health, Admin catalogue and Admin Reviews; they do not establish the complete User/Admin acceptance matrix.
+AI tests live under `tests/unit/ai/`, `tests/integration/ai/` and `tests/integration/api/cron/`. Existing E2E files cover health, Admin catalogue, Admin Reviews and the Admin Report presentation flow. The Report browser test intercepts synthetic API responses; it does not establish a database-backed acceptance/strike journey. These files do not establish the complete User/Admin acceptance matrix.
 
 **Incomplete release checks:** `spec/verification.md` records a proposed release bar of at least 10 benign and 10 adversarial cases per AI feature, all hard security checks passing and at least 90% benign grounding/usefulness under a recorded human rubric. Complete controlled SoC smoke runs for both features, User/Admin success and failure journeys, keyboard/focus/errors/responsive checks, performance/load and backlog measurements, direct Supabase access checks, and deployed isolation/restore/rollback evidence. Fakes prove orchestration, not model quality.
 
@@ -367,6 +414,14 @@ npm.cmd run test:e2e -- tests/e2e/admin-reviews.spec.ts
 
 Plain `playwright test` bypasses wrapper setup and is not an equivalent command. Do not point tests at Supabase: remote connections are intentionally rejected. If cleanup fails, identify the exact generated resource and follow repository permission rules before manual deletion.
 
+Presentation-only regression tests use a separate configuration and no database. After building and installing Chromium, run:
+
+```powershell
+npx.cmd playwright test --config tests/ui/playwright.config.ts
+```
+
+This starts its own server on port 3112 with blank application settings and intercepted synthetic API responses. It covers Admin header/account controls, feedback dialogs and catalogue/announcement committed-write recovery. It is separate from the real-database E2E wrapper above and cannot establish service authorization or transaction correctness.
+
 ### 5.7 Explore public APIs
 
 From a second terminal while Next.js runs:
@@ -533,12 +588,28 @@ Diagrams are local SVG files in `docs/assets/developer-guide/`, embedded as ordi
 
 ## 8. Completion and maintenance checklist
 
+### 8.1 Verification map for recent implementation
+
+These paths identify reproducible checks and historical evidence, not results from this documentation update. Run the applicable suites against the release revision and retain the actual command/result.
+
+| Feature | Automated coverage and recorded handoff |
+| --- | --- |
+| Admin Report projection/decision | `tests/unit/moderation/admin-report-*.test.ts`, `tests/integration/api/admin/admin-reports.test.ts`, `tests/e2e/admin-reports.spec.ts` (intercepted presentation); `workflow/handoffs/B-09/2026-10-22-review-remediation.md` |
+| User status and competing decisions | `tests/unit/identity/admin-user-*.test.ts`, `tests/integration/identity/admin-user-repository.test.ts`, `tests/integration/api/admin/admin-user-status-concurrency.test.ts`; `workflow/handoffs/B-10/2026-10-22-review-remediation.md` |
+| Review authoring/editing | `tests/unit/user-ui/review-submission.test.ts`, `review-client.test.ts`, Review API/database suites under `tests/integration/`; source form described in section 2.8 |
+| Navigation, confirmations and uncertain writes | `tests/unit/admin-ui/`, `tests/ui/`; `workflow/handoffs/2026-10-22-catalogue-mutation-recovery.md`, `2026-10-22-persistent-admin-header.md` |
+| Operator tooling | `tests/unit/deployment/`, `tests/integration/deployment/`; `workflow/handoffs/B-11/2026-10-22-release-tooling.md` records local backup/restore and suite results, leaving hosted operation pending |
+
+The B#10 and B#11 handoffs and UI recovery handoff record passing local checks for their respective source revisions. Counts differ as suites evolved; do not combine them into a claim that the current merged release passed. Mocked/intercepted UI checks establish presentation behavior, PostgreSQL tests establish local transactional behavior, and neither proves live hosting or provider quality.
+
+### 8.2 Remaining release work
+
 | Area | Remaining work |
 | --- | --- |
 | Catalogue, Identity, Reviews, report submission/history, announcements, AI pipelines, Admin review queue | Implementation exists; verify current acceptance evidence |
-| Admin Report decisions/strikes/threshold suspension and user management | Incomplete feature integration and browser/API coverage |
+| Admin Report decisions/strikes/threshold suspension and user management | Implemented services, APIs and UI; integration/concurrency tests exist; complete authenticated browser acceptance remains to be verified |
 | Live AI/security evaluation | Incomplete controlled provider runs and consolidated human rubric |
-| E2E and accessibility | Incomplete complete User/Admin journeys, failure UI and manual evidence |
+| E2E and accessibility | Partial Admin real-API and synthetic presentation coverage; complete User/Admin journeys, AI failure paths and manual accessibility evidence remain pending |
 | Deployment and operations | Incomplete application URLs, isolation, crons, capacity, restore/rollback evidence |
 | Workflow/submission | Incomplete verified logs, final traceability, reflections and cross-review |
 | Optional watchlist | Not scheduled; requires a recorded human scope decision |
