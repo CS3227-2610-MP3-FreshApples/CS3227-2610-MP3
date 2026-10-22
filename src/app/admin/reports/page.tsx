@@ -1,5 +1,5 @@
-import { PagePlaceholder } from "../../../components/page-placeholder";
+import { AdminUnavailableState } from "../_components/admin-unavailable-state";
 
 export default function AdminReportsPage() {
-  return <PagePlaceholder title="Reports" description="Inspect submitted reports." />;
+  return <AdminUnavailableState description="Report details will appear here only after the approved report read model is connected." title="Reports" workspace="Reports" />;
 }

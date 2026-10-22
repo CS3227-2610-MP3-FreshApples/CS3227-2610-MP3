@@ -53,10 +53,13 @@ export function MovieList({ page }: MovieListProps) {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold">Manage movies</h1>
-        <p>Archived movies stay here and can be restored. They are hidden from public pages.</p>
-        <Link className={primaryButtonClass} href="/admin/movies/new">Create movie</Link>
+      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-blue-700">Catalogue</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-950">Manage movies</h1>
+          <p className="max-w-2xl text-sm leading-6 text-slate-600">Archived movies stay here and can be restored. They are hidden from public pages.</p>
+        </div>
+        <Link className={`${primaryButtonClass} inline-flex min-h-11 items-center justify-center whitespace-nowrap`} href="/admin/movies/new">Create movie</Link>
       </header>
 
       <LiveRegion message={announcement} />
