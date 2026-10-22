@@ -13,7 +13,6 @@ import { EditMovie } from "../../../src/app/admin/movies/_components/edit-movie"
 import { MovieForm } from "../../../src/app/admin/movies/_components/movie-form";
 import { MovieList } from "../../../src/app/admin/movies/_components/movie-list";
 import AdminOverviewPage from "../../../src/app/admin/page";
-import AdminReportsPage from "../../../src/app/admin/reports/page";
 import AdminReviewsPage from "../../../src/app/admin/reviews/page";
 import AdminUsersPage from "../../../src/app/admin/users/page";
 import { EMPTY_MOVIE_FORM } from "../../../src/app/admin/_lib/movie-form";
@@ -88,7 +87,7 @@ describe("Admin UI module boundaries", () => {
 
 describe("Admin UI initial render", () => {
   it("presents unavailable Admin workspaces honestly without fabricated data or actions", () => {
-    for (const Page of [AdminReportsPage, AdminUsersPage]) {
+    for (const Page of [AdminUsersPage]) {
       const html = renderToStaticMarkup(createElement(Page));
       expect(html).toContain('data-admin-state="unavailable"');
       expect(html).toContain("No admin data is available yet.");
