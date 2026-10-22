@@ -39,3 +39,10 @@ Human verification: pending. The requester asked to show the Admin display name 
 Latest focused unit checks passed 16 files / 202 tests; production build with TypeScript and lint passed. Exact browser evidence and changed files are recorded in workflow/handoffs/2026-10-22-persistent-admin-header.md. No dependencies, migrations, Git writes or deployments. Generated build/test artifacts remain local. Human summary verification and live preview checks remain pending.
 
 Final persistent-header checks: all six synthetic Chromium regression journeys passed (21.7 seconds), including eight headers, client navigation, mobile layout, logout failure/retry and successful identity removal, plus anonymous public access. Browser execution used the approved unrestricted mode for Windows test-server cleanup. Final whitespace check passed. No commit or PR was created.
+
+
+## Continued request: report E2E CI selector failure
+
+Human verification: pending. The requester supplied a CI failure where the acceptance announcement and loading message both matched getByRole(status). The agent scoped the success assertion by its text and added a deterministic gated reload so the regression always exercises both live regions concurrently. Other E2E status selectors already filter by text or row. No application behavior or specification change was needed.
+
+The exact original report E2E file passed in Chromium (1 test, 10.4 seconds) with its existing synthetic API intercepts; an ignored generated config reused the isolated UI harness to avoid unnecessary database setup. Type checking and whitespace checks passed. Separate quality and reviewer agents found no blocking findings. Full database-backed E2E was not rerun; CI must confirm the suite. Changed files and generated artifacts are recorded in workflow/handoffs/2026-10-22-report-e2e-status-selector.md. No dependencies, Git writes, deployments or file deletions.
