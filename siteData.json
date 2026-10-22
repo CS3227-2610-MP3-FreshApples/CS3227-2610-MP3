@@ -15,7 +15,8 @@
       "src": "UserGuide.md",
       "title": "User Guide",
       "headings": {
-        "user-guide": "User Guide"
+        "user-guide": "User Guide",
+        "admin-review-moderation": "Admin review moderation"
       },
       "headingKeywords": {}
     },
@@ -24,6 +25,7 @@
       "title": "Developer Guide",
       "headings": {
         "developer-guide": "Developer Guide",
+        "admin-review-api-a-04": "Admin Review API (A-04)",
         "database-roles-operator-step": "Database roles (operator step)"
       },
       "headingKeywords": {}
