@@ -44,7 +44,7 @@ export function AdminAccountControl() {
     <div aria-label="Admin account controls" className="flex flex-wrap items-center justify-end gap-3" data-account-control="admin">
       <span aria-live="polite" className="text-sm font-medium text-slate-700">{account?.displayName ?? "Loading account…"}</span>
       <button
-        className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-800 transition-colors hover:border-blue-700 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex min-h-11 items-center rounded-md border border-red-700 bg-red-700 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:border-red-800 hover:bg-red-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={busy}
         onClick={() => { void signOut(); }}
         type="button"
