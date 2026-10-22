@@ -119,7 +119,7 @@ test("real API journey: hide and restore retain pending state, then human approv
       await expect(page.getByRole("dialog")).toContainText("Review UI Author");
       await expect(page.getByRole("dialog")).toContainText(movie.title);
       await page.getByRole("dialog").getByRole("button", { name: action, exact: true }).click();
-      await expect(page.locator('[aria-live="polite"]')).toContainText("decision saved");
+      await expect(page.locator('[data-moderation-status] [aria-live="polite"]')).toContainText("decision saved");
       if (action === "Restore review") {
         await expect(page.getByText("Pending", { exact: true })).toBeVisible();
         expect((await (await api.get(`/api/v1/movies/${movie.id}/reviews`)).json()).items).toHaveLength(0);

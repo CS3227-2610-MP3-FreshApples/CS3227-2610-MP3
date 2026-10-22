@@ -88,7 +88,7 @@ describe("Admin UI module boundaries", () => {
 
 describe("Admin UI initial render", () => {
   it("presents unavailable Admin workspaces honestly without fabricated data or actions", () => {
-    for (const Page of [AdminReviewsPage, AdminReportsPage, AdminUsersPage]) {
+    for (const Page of [AdminReportsPage, AdminUsersPage]) {
       const html = renderToStaticMarkup(createElement(Page));
       expect(html).toContain('data-admin-state="unavailable"');
       expect(html).toContain("No admin data is available yet.");
@@ -96,6 +96,11 @@ describe("Admin UI initial render", () => {
       expect(html).not.toContain("Suspend");
       expect(html).not.toContain("Close report");
     }
+  });
+
+  it("renders the Reviews route loading state with its query contract", () => {
+    const html = renderToStaticMarkup(createElement(AdminReviewsPage, { searchParams: Promise.resolve({}) }));
+    expect(html).toContain("Loading reviews…");
   });
 
   it("presents the Admin overview as an actionable operations hub", () => {

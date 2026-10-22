@@ -89,7 +89,7 @@ export function ReviewDetail({ reviewId }: Readonly<{ reviewId: string }>) {
   return <section className="space-y-6">
     <p><Link className={linkClass} href="/admin/reviews">All reviews</Link></p>
     <h1 className="text-2xl font-semibold">Review detail</h1>
-    <LiveRegion message={announcement} />
+    <div data-moderation-status="true"><LiveRegion message={announcement} /></div>
     {state.status === "loading" ? <StatusMessage status="info">Loading review…</StatusMessage> : null}
     {state.status === "error" ? <StatusMessage status="error">{state.failure.message}</StatusMessage> : null}
     {error !== "" ? <StatusMessage status="error">{error}</StatusMessage> : null}
