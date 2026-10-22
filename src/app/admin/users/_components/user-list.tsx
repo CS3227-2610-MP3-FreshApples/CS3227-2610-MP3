@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 
+import { activateModal, containModalFocus } from "../../../../components/confirmation-dialog";
 import { FormField } from "../../../../components/form-primitives";
 import { Pagination } from "../../../../components/pagination";
 import { LiveRegion, StatusBadge, StatusMessage } from "../../../../components/status-primitives";
@@ -32,7 +33,7 @@ export function UserList({ page, status, q }: UserListProps) {
   }
 
   async function submit() {
-    if (target === null) return;
+    if (target === null || busyId !== null) return;
     const validation = validateUserReason(reason);
     if (validation !== "") {
       setReasonError(validation);
@@ -49,7 +50,7 @@ export function UserList({ page, status, q }: UserListProps) {
       reload();
     } else {
       setError(result.message);
-      if (result.kind === "stale" || result.kind === "not_found") reload();
+      if (result.kind === "stale" || result.kind === "not_found" || result.kind === "unavailable") reload();
     }
   }
 
@@ -69,6 +70,6 @@ export function UserList({ page, status, q }: UserListProps) {
         columns={[{ header: "Display name", cell: (user) => <span>{user.displayName}</span> }, { header: "Status", cell: (user) => user.status === "active" ? <StatusBadge label="Active" tone="success" /> : <StatusBadge label="Suspended" tone="danger" /> }, { header: "Version", cell: (user) => <span>{user.version}</span> }, { header: "Actions", cell: (user) => <button aria-label={`${user.status === "active" ? "Suspend" : "Reinstate"} ${user.displayName}`} className={secondaryButtonClass} disabled={busyId !== null} onClick={() => begin(user)} type="button">{user.status === "active" ? "Suspend" : "Reinstate"}</button> }]} />
       <Pagination hrefForPage={(targetPage) => userQueueHref(targetPage, filters)} page={state.value.page} pageSize={state.value.pageSize} total={state.value.total} />
     </> : null}
-    {target !== null ? <dialog aria-describedby="user-status-dialog-description" aria-labelledby="user-status-dialog-title" aria-modal="true" className="fixed inset-0 z-20 m-auto w-[min(92vw,36rem)] rounded-xl border border-slate-200 bg-white p-6 shadow-xl backdrop:bg-slate-950/50" onCancel={(event) => { event.preventDefault(); setTarget(null); }} open role="dialog"><form className="space-y-5" onSubmit={(event) => { event.preventDefault(); void submit(); }}><h2 className="text-xl font-semibold" id="user-status-dialog-title">{target.status === "active" ? "Suspend" : "Reinstate"} {target.displayName}?</h2><p id="user-status-dialog-description" className="text-slate-600">{target.status === "active" ? "This revokes the user’s existing sessions." : "This permits a fresh login without restoring old sessions."}</p><FormField label="Reason" name="user-status-reason" hint="10–1,000 characters after trimming." error={reasonError}><textarea autoFocus disabled={busyId !== null} maxLength={1000} minLength={10} onChange={(event) => setReason(event.target.value)} required rows={4} value={reason} /></FormField><div className="flex justify-end gap-3"><button className={secondaryButtonClass} onClick={() => setTarget(null)} type="button">Cancel</button><button className={primaryButtonClass} disabled={busyId !== null} type="submit">{busyId === target.id ? "Saving…" : "Confirm"}</button></div></form></dialog> : null}
+    {target !== null ? <dialog ref={activateModal} onKeyDown={containModalFocus} aria-describedby="user-status-dialog-description" aria-labelledby="user-status-dialog-title" aria-modal="true" className="fixed inset-0 z-20 m-auto max-h-[85dvh] w-[min(92vw,36rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 shadow-xl backdrop:bg-slate-950/50" onCancel={(event) => { event.preventDefault(); if (busyId === null) setTarget(null); }} open role="dialog"><form className="space-y-5" onSubmit={(event) => { event.preventDefault(); void submit(); }}><h2 className="text-xl font-semibold" id="user-status-dialog-title">{target.status === "active" ? "Suspend" : "Reinstate"} {target.displayName}?</h2><p id="user-status-dialog-description" className="text-slate-600">{target.status === "active" ? "This revokes the user’s existing sessions." : "This permits a fresh login without restoring old sessions."}</p><FormField label="Reason" name="user-status-reason" hint="10–1,000 characters after trimming." error={reasonError}><textarea disabled={busyId !== null} maxLength={1000} minLength={10} onChange={(event) => setReason(event.target.value)} required rows={4} value={reason} /></FormField><div className="flex justify-end gap-3"><button className={secondaryButtonClass} disabled={busyId !== null} onClick={() => setTarget(null)} type="button">Cancel</button><button className={primaryButtonClass} disabled={busyId !== null} type="submit">{busyId === target.id ? "Saving…" : "Confirm"}</button></div></form></dialog> : null}
   </section>;
 }

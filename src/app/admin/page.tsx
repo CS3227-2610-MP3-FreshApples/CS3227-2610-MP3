@@ -19,8 +19,22 @@ const adminDestinations = [
     href: "/admin/reviews",
     eyebrow: "Moderation",
     title: "Moderation workspace",
-    description: "Review moderation work when the approved read model is available.",
+    description: "Inspect automatic assessments and approve, hide, or restore reviews.",
     action: "Open reviews",
+  },
+  {
+    href: "/admin/reports",
+    eyebrow: "Reports",
+    title: "Manage reports",
+    description: "Inspect reported evidence and record human moderation decisions.",
+    action: "Open reports",
+  },
+  {
+    href: "/admin/users",
+    eyebrow: "Accounts",
+    title: "Manage users",
+    description: "Find users and suspend or reinstate accounts with a recorded reason.",
+    action: "Open users",
   },
 ] as const;
 

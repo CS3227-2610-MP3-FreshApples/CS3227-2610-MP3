@@ -40,6 +40,80 @@ describe("A-06 Admin user client", () => {
     expect(validateUserReason("A sufficiently detailed reason")).toBe("");
   });
 
+  it.each(["active", "suspended"] as const)("recovers committed %s status after a lost response without repeating the mutation", async (status) => {
+    let stored: { id: string; displayName: string; status: "active" | "suspended"; version: number } = { ...user };
+    let writes = 0;
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/csrf")) return response({ csrfToken: "csrf.synthetic" });
+      if (init?.method === "PATCH") {
+        writes += 1;
+        stored = { ...user, status, version: user.version + 1 };
+        throw new TypeError("Synthetic response lost after commit");
+      }
+      expect(String(input)).toBe(`/api/v1/admin/users/${user.id}`);
+      expect(init?.cache).toBe("no-store");
+      return response(stored);
+    };
+    await expect(updateUserStatus(user.id, user.version, { status, reason: "A detailed reason" }, fetcher))
+      .resolves.toEqual({ ok: true, value: { ...user, status, version: user.version + 1 } });
+    expect(writes).toBe(1);
+  });
+
+  it("recovers a committed status after malformed success JSON", async () => {
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/csrf")) return response({ csrfToken: "csrf.synthetic" });
+      if (init?.method === "PATCH") return new Response("invalid JSON", { status: 200 });
+      return response({ ...user, status: "suspended", version: user.version + 1 });
+    };
+    await expect(updateUserStatus(user.id, user.version, { status: "suspended", reason: "A detailed reason" }, fetcher))
+      .resolves.toMatchObject({ ok: true, value: { status: "suspended", version: 4 } });
+  });
+
+  it.each(["active", "suspended"] as const)("recovers %s after Vercel PRECONDITION_FAILED replaces the committed response", async (status) => {
+    let writes = 0;
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/csrf")) return response({ csrfToken: "csrf.synthetic" });
+      if (init?.method === "PATCH") {
+        writes += 1;
+        return new Response("An error occurred\nPRECONDITION_FAILED\nsin1::synthetic", { status: 412 });
+      }
+      return response({ ...user, status, version: user.version + 1 });
+    };
+    await expect(updateUserStatus(user.id, user.version, { status, reason: "A detailed reason" }, fetcher))
+      .resolves.toMatchObject({ ok: true, value: { status, version: user.version + 1 } });
+    expect(writes).toBe(1);
+  });
+
+  it.each([
+    { ...user, status: "suspended", version: user.version },
+    { ...user, status: "active", version: user.version + 1 },
+    { ...user, id: "another-user", status: "suspended", version: user.version + 1 },
+  ])("does not report success from an unverified read-back %j", async (current) => {
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/csrf")) return response({ csrfToken: "csrf.synthetic" });
+      return init?.method === "PATCH" ? response({}, 503) : response(current);
+    };
+    const result = await updateUserStatus(user.id, user.version, { status: "suspended", reason: "A detailed reason" }, fetcher);
+    expect(result).toMatchObject({ ok: false, kind: "unavailable" });
+    if (!result.ok) expect(result.message).not.toContain("Nothing was saved");
+  });
+
+  it.each(["network", "forbidden", "malformed"])("keeps an uncertain mutation uncertain when read-back is %s", async (mode) => {
+    let writes = 0;
+    const fetcher = async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith("/csrf")) return response({ csrfToken: "csrf.synthetic" });
+      if (init?.method === "PATCH") {
+        writes += 1;
+        return new Response("PRECONDITION_FAILED", { status: 412 });
+      }
+      if (mode === "network") throw new TypeError("Synthetic read-back outage");
+      return mode === "forbidden" ? response({}, 403) : response({ ...user, version: "invalid" });
+    };
+    await expect(updateUserStatus(user.id, user.version, { status: "suspended", reason: "A detailed reason" }, fetcher))
+      .resolves.toMatchObject({ ok: false, kind: "unavailable" });
+    expect(writes).toBe(1);
+  });
+
   it("maps stale and malformed mutation responses to safe retryable failures", async () => {
     const staleFetcher = async (input: RequestInfo | URL) => String(input).endsWith("/csrf")
       ? response({ csrfToken: "csrf.synthetic" })

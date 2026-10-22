@@ -35,7 +35,7 @@ export function MovieList({ page }: MovieListProps) {
         setActionError(result.message);
       }
       // Success changes the order; a stale or missing row means the list is out of date.
-      if (result.ok || result.kind === "stale" || result.kind === "not_found") reload();
+      if (result.ok || result.kind === "stale" || result.kind === "not_found" || result.kind === "unavailable") reload();
     } finally {
       setBusyId(null);
     }

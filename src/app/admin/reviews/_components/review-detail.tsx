@@ -66,7 +66,7 @@ export function ReviewDetail({ reviewId }: Readonly<{ reviewId: string }>) {
         setError(result.message);
         setAnnouncement("Moderation decision could not be completed.");
         setReasonError(result.fieldErrors?.reason?.join(" ") ?? "");
-        setStale(result.kind === "stale" || result.kind === "conflict");
+        setStale(result.kind === "stale" || result.kind === "conflict" || result.kind === "unavailable");
         return;
       }
       const saved = result.value;
