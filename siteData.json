@@ -15,8 +15,23 @@
       "src": "UserGuide.md",
       "title": "User Guide",
       "headings": {
-        "user-guide": "User Guide",
-        "admin-review-moderation": "Admin review moderation"
+        "freshapples-user-guide": "FreshApples User Guide",
+        "quick-start": "Quick start",
+        "features": "Features",
+        "1-navigation": "1. Navigation",
+        "2-discovering-movies": "2. Discovering movies",
+        "3-accounts": "3. Accounts",
+        "4-user-reviews": "4. User reviews",
+        "5-report-a-published-review": "5. Report a published review",
+        "6-review-summaries": "6. Review summaries",
+        "7-announcements": "7. Announcements",
+        "8-admin-workspace": "8. Admin workspace",
+        "input-rules-and-constraints": "Input rules and constraints",
+        "registration": "Registration",
+        "reviews-and-reports": "Reviews and reports",
+        "admin-catalogue-and-announcements": "Admin catalogue and announcements",
+        "faq": "FAQ",
+        "feature-summary": "Feature summary"
       },
       "headingKeywords": {}
     },
