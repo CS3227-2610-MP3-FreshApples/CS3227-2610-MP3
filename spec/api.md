@@ -43,7 +43,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /movies/:id/reviews | User | rating, body → own Review; restores author-deleted row when allowed |
 | PATCH /reviews/:id | Owning User | rating and/or body → updated Review |
 | DELETE /reviews/:id | Owning User | soft delete |
-| GET /me/reviews | User | own non-deleted, non-hidden Reviews including pending/flagged, page, pageSize; safe moderation state only |
+| GET /me/reviews | User | own non-deleted, non-hidden Reviews including pending/flagged, page, pageSize; safe moderation state and current integer version only |
 | POST /reports | User | reviewId, category, explanation → own Report receipt |
 | GET /me/reports | User | Reports submitted by caller only, page, pageSize |
 | GET /me/reports/:id | Owning User | submitted report status/disposition; never reports received; no private evidence history or notes |
