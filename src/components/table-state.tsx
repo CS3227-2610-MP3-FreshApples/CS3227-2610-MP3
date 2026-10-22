@@ -15,20 +15,22 @@ type DataTableProps<R> = Readonly<{
 
 export function DataTable<R>({ caption, columns, emptyMessage, rowKey, rows }: DataTableProps<R>) {
   return (
-    <table>
-      <caption>{caption}</caption>
-      <thead>
-        <tr>{columns.map((column) => <th key={column.header} scope="col">{column.header}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.length === 0 ? (
-          <tr><td colSpan={Math.max(columns.length, 1)} role="status">{emptyMessage}</td></tr>
-        ) : rows.map((row) => {
-          const key = rowKey(row);
-          return <tr data-row-key={key} key={key}>{columns.map((column) => <td key={column.header}>{column.cell(row)}</td>)}</tr>;
-        })}
-      </tbody>
-    </table>
+    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm" data-table-shell="admin">
+      <table className="min-w-full text-left text-sm">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-[0.12em] text-slate-600">
+          <tr>{columns.map((column) => <th className="whitespace-nowrap px-4 py-3 font-semibold" key={column.header} scope="col">{column.header}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {rows.length === 0 ? (
+            <tr><td className="px-4 py-8 text-center text-slate-600" colSpan={Math.max(columns.length, 1)} role="status">{emptyMessage}</td></tr>
+          ) : rows.map((row) => {
+            const key = rowKey(row);
+            return <tr className="transition-colors hover:bg-slate-50" data-row-key={key} key={key}>{columns.map((column) => <td className="px-4 py-4 align-middle text-slate-700" key={column.header}>{column.cell(row)}</td>)}</tr>;
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

@@ -7,7 +7,7 @@ type AdminLayoutProps = Readonly<{
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <RouteShell headerAction={<AdminAccountControl />} links={adminNavigation} title="Admin dashboard">
+    <RouteShell authAware headerAction={<AdminAccountControl />} links={adminNavigation} title="Admin dashboard">
       {children}
     </RouteShell>
   );
