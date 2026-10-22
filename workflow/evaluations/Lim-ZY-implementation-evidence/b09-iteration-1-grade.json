@@ -1,0 +1,19 @@
+{
+  "missing_evidence": [
+    "acceptance criterion A-05-postgres-read-model is unverifiable"
+  ],
+  "output_correctness": {
+    "findings": [
+      "acceptance criterion A-05-postgres-read-model is unverifiable"
+    ],
+    "verdict": "UNVERIFIABLE"
+  },
+  "overall_verdict": "UNVERIFIABLE",
+  "process_compliance": {
+    "findings": [],
+    "verdict": "PASS"
+  },
+  "required_remediation": [
+    "acceptance criterion A-05-postgres-read-model is unverifiable"
+  ]
+}

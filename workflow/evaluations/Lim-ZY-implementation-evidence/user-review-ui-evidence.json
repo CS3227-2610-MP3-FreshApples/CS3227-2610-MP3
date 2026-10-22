@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "user-review-ui-increment-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Review submission client, form, movie-page integration, and tests",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved _temp/user-review-ui-plan.md by saying: Great. Proceed to implement it."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/user-review-ui-baseline-rwgYxA at commit ec9afdedec3466eb2f2f05a90c8d286b0edff914; node_modules and .next were excluded because the temporary filesystem had generated artifacts."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/user-ui/review-submission.test.ts; suite failed before production edits because review-submit-client did not exist."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added the CSRF-aware submission client and authenticated ReviewSubmissionForm, then mounted it on the public movie detail page."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/user-ui/review-submission.test.ts tests/unit/catalogue/public-pages.test.ts tests/unit/catalogue/public-pages-unavailable.test.ts; 10 passed."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npm run test:unit: 1,709 passed; npm run lint: exit 0; npx next typegen: exit 0; npx tsc --noEmit: exit 0 after type generation; source-only TypeScript check: exit 0; git diff --check: exit 0. Build was skipped under the standing Turbopack instruction; E2E was not run because no disposable TEST_DATABASE_URL was configured."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "_temp/user-review-ui-visual-diff.html; 5 changed files against the captured baseline."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence manifest, session log, handoff, and visual diff are present."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "A normal authenticated User can access an accessible rating and plain-text review form from a public movie details page.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/[id]/_components/review-submission-form.tsx", "src/app/(public)/movies/[id]/page.tsx", "tests/unit/user-ui/review-submission.test.ts"]},
+    {"id": "AC-2", "description": "Submission uses the existing CSRF-aware review API and displays the API moderation message without exposing raw errors.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/[id]/_lib/review-submit-client.ts", "tests/unit/user-ui/review-submission.test.ts"]},
+    {"id": "AC-3", "description": "Unauthenticated visitors receive a sign-in path, while validation and failure states preserve safe feedback and existing input.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/[id]/_components/review-submission-form.tsx", "npm run test:unit"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/user-ui/review-submission.test.ts tests/unit/catalogue/public-pages.test.ts tests/unit/catalogue/public-pages-unavailable.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx next typegen && npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User previously authorized skipping remaining Turbopack checks."},
+    {"command": "npm run test:e2e -- tests/e2e/review-submission.spec.ts", "required": false, "status": "SKIPPED", "reason": "No disposable local PostgreSQL TEST_DATABASE_URL was configured in the environment."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only the review submission client/form, public movie page integration, focused tests, and required handoff/log files changed; no API, database, auth, or moderation contract changed."},
+  "claims_review": {"verdict": "PASS", "evidence": "The manifest records the red test, green tests, generated type refresh, full checks, skipped build/E2E reasons, baseline limitation, and visual diff accurately."},
+  "artifacts": {
+    "baseline_path": "/tmp/user-review-ui-baseline-rwgYxA",
+    "baseline_digest": "ec9afdedec3466eb2f2f05a90c8d286b0edff914",
+    "visual_diff_path": "user-review-ui-visual-diff.html",
+    "visual_diff_baseline_digest": "ec9afdedec3466eb2f2f05a90c8d286b0edff914"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

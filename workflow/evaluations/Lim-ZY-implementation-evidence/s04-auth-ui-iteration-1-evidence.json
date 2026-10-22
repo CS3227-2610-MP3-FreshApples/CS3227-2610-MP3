@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-auth-ui-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — shared public auth shell and sign-in/registration structure",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approval in the current conversation: 'Great. Proceed to implement it'."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/s04-auth-ui-iter1-baseline.ufxyqw at commit 3d8a038477dfea587cd705be5cfd44f40d9995c9, captured before production edits."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npx vitest run --project unit tests/unit/auth/public-auth-pages.test.ts failed because src/app/(public)/register/page was missing."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Implementation agent began the approved Increment 1 scope after the intended red test; production changes are limited to auth pages, shared shell/form primitive support, and the focused test."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "Focused test passed after implementation and the display-name/password-guidance correction: 1 file, 3 tests passed. The correction also had a recorded red run before the final production fix."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npm run test:unit: 42 files and 687 tests passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html generated from the captured external baseline; generator reported 7 changed files."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence manifest completed for deterministic iterative-TDD grading."}
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Sign-in page renders a labelled email/password structure, correct autocomplete values, submit control, and registration link.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/public-auth-pages.test.ts", "src/app/(public)/sign-in/page.tsx"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Registration page renders display name, email, password-policy guidance, correct autocomplete values, submit control, and sign-in link without role/status controls.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/public-auth-pages.test.ts", "src/app/(public)/register/page.tsx"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Public shell exposes authentication links and one keyboard-visible skip link targeting the single main landmark.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/public-auth-pages.test.ts", "src/components/route-shell.tsx"]
+    },
+    {
+      "id": "AC-4",
+      "description": "Increment remains structural: no auth API, session, CSRF submission, role-routing, or server-domain behavior is added.",
+      "verdict": "PASS",
+      "evidence": ["Iteration diff", "logs/2026-10-20-s04-auth-ui-increment-1.md"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/public-auth-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Diff is limited to the approved auth pages, public shell/form primitive support, focused test, and required session log; pre-existing .codex changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "Implementation log accurately records structural-only behavior and explicitly lists API, CSRF, session, role-routing, browser, and manual-accessibility gaps."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-auth-ui-iter1-baseline.ufxyqw",
+    "baseline_digest": "3d8a038477dfea587cd705be5cfd44f40d9995c9",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "3d8a038477dfea587cd705be5cfd44f40d9995c9"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

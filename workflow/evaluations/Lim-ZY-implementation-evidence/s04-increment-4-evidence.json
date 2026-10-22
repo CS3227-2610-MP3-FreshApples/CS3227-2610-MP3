@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-increment-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Increment 4 — Authorization guards and status enforcement",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "_temp/s04-identity-implementation-plan.md was approved before S-04 implementation."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human explicitly approved continuation after the Increment 3 handoff and requested only the unfinished Increment 4 handoff."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/home/klzy/.codex/visualizations/2026/10/17/01a14800-a9ea-75e2-a6a5-7d9e3b4d3142/s04-increment-4-baseline.ZryKVZ/repo at commit dada4721bf8e9794d9078a61442d5bf093a171fc; complete 276-file external snapshot before Increment 4 edits."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- --run tests/unit/identity/authorization-and-status.test.ts initially failed because the new guards module did not exist; no tests ran."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Increment 4 production edits began in src/server/services/identity/guards.ts, src/server/services/identity/account-status.ts, src/server/repositories/identity/account-repository.ts, and src/server/services/identity/index.ts."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused test command passed: 1 file, 3 tests passed, exit 0."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Focused tests, full unit tests, type-check, lint, and a subsequent authorized loopback integration run passed; build failed with the documented Turbopack Operation not permitted process-bind error."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/visual-diff.html generated against baseline dada4721bf8e9794d9078a61442d5bf093a171fc; 6 changed files and 274 unchanged files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest completed with failed/unavailable required checks accurately recorded; no commit created."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Authenticated, active-user, and active-admin guards deny missing sessions, suspended accounts, and wrong roles; mutation guards require exact Origin and session-bound CSRF.", "verdict": "PASS", "evidence": ["tests/unit/identity/authorization-and-status.test.ts", "src/server/services/identity/guards.ts"]},
+    {"id": "AC-2", "description": "Guard resolution rechecks current account status on every request.", "verdict": "PASS", "evidence": ["authorization-and-status.test.ts: reuses one request and observes active then suspended resolveSession results", "src/server/services/identity/guards.ts"]},
+    {"id": "AC-3", "description": "Identity account-status transitions update status/version/strike cycle and revoke all sessions on suspension within the caller transaction.", "verdict": "PASS", "evidence": ["tests/unit/identity/authorization-and-status.test.ts", "src/server/services/identity/account-status.ts", "src/server/repositories/identity/account-repository.ts"]},
+    {"id": "AC-4", "description": "Concurrent PostgreSQL transaction behavior and release-level validation are verified.", "verdict": "UNVERIFIABLE", "evidence": ["Authorized loopback integration suite passed with 282 tests, but no Increment 4-specific concurrent status test is present", "Next build failed before completion due Turbopack process binding"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- --run tests/unit/identity/authorization-and-status.test.ts", "required": true, "status": "PASS", "exit_code": 0, "result": "1 file, 3 tests passed"},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0, "result": "24 files, 355 tests passed"},
+    {"command": "set -a; . ./.env; set +a; npm run test:integration", "required": true, "status": "PASS", "exit_code": 0, "result": "8 files, 282 tests passed against disposable loopback PostgreSQL."},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": true, "status": "FAIL", "exit_code": 1, "reason": "Next/Turbopack failed while processing src/app/globals.css.css: creating a new process and binding to a port returned Operation not permitted in the sandbox."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Increment 4 identity guards, status service/repository support, focused tests, continuation log, evidence, and visual diff only; no Increment 5 or commit."},
+  "claims_review": {"verdict": "PASS", "evidence": "Integration unavailability and build failure are explicitly recorded; Increment 4 is not marked complete."},
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a14800-a9ea-75e2-a6a5-7d9e3b4d3142/s04-increment-4-baseline.ZryKVZ/repo",
+    "baseline_digest": "dada4721bf8e9794d9078a61442d5bf093a171fc",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "dada4721bf8e9794d9078a61442d5bf093a171fc"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

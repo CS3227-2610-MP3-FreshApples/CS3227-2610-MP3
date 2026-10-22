@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02a-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — Review domain validation, projections, and repository primitives.",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "User explicitly approved proceeding with the first iteration on 2026-10-21."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "Copied the complete worktree excluding .git to /tmp/u02a-iteration-1-baseline and committed baseline 0df850461bcc9a9f4182efdaf9cde2de97532f03."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npx vitest run tests/unit/reviews/review-input-and-projections.test.ts exited 1 because the new Review modules do not yet exist; 0 tests ran."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added the first production Review modules under src/server/repositories/reviews/ and src/server/services/reviews/ after the red test."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npx vitest run tests/unit/reviews/review-input-and-projections.test.ts passed: 1 file and 12 tests."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npm run test:unit passed 57 files/980 tests; TEST_DATABASE_URL=loopback npm run test:integration passed 24 files/529 tests; npm run lint and npx tsc --noEmit exited 0."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "Generated _temp/visual-diff.html from baseline commit 0df850461bcc9a9f4182efdaf9cde2de97532f03 against the refreshed temporary worktree; final generator run reported 10 changed files."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence manifest contains red, green, validation, baseline, visual-diff and scope records for deterministic grading."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Review mutation inputs trim body text, enforce rating 1–10 and body 10–2,000 code points, require a nonempty strict patch, and reject client-controlled fields.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-input-and-projections.test.ts: Review mutation input"]},
+    {"id": "AC-2", "description": "Public Review projection exposes the approved fields and owning User projection adds only safe moderationState.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-input-and-projections.test.ts: Review safe projections", "src/server/services/reviews/review-read.ts"]},
+    {"id": "AC-3", "description": "Review repository maps database naming to typed domain fields without leaking storage names.", "verdict": "PASS", "evidence": ["tests/unit/reviews/review-input-and-projections.test.ts: Review repository mapping", "src/server/repositories/reviews/review-repository.ts", "PostgreSQL integration suite passed"]}
+  ],
+  "checks": [
+    {"command": "npx vitest run tests/unit/reviews/review-input-and-projections.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://...@127.0.0.1:5433/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changed production files are limited to src/server/repositories/reviews and src/server/services/reviews, with one focused unit test file; no route, schema, K8, dispatcher, or UI work was added."},
+  "claims_review": {"verdict": "PASS", "evidence": "Reported commands and counts match the recorded terminal results; integration used a disposable local PostgreSQL 17 container and the container was stopped afterward."},
+  "artifacts": {
+    "baseline_path": "/tmp/u02a-iteration-1-baseline",
+    "baseline_digest": "0df850461bcc9a9f4182efdaf9cde2de97532f03",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "0df850461bcc9a9f4182efdaf9cde2de97532f03"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

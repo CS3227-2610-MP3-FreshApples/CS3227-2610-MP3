@@ -1,0 +1,38 @@
+{
+  "overall_verdict": "PASS",
+  "output_correctness": {
+    "verdict": "PASS",
+    "findings": [
+      "The real Route Handler and PostgreSQL acceptance suite covers every approved SEC-06 observable, while the actual D-44 hosted resolver is injected only at the composition seam because repository rules require non-TLS loopback PostgreSQL in tests and hosted configuration requires TLS.",
+      "The minimum production diff closes the D-47 omission found by the genuine red test: a rejected login limit now produces rate_limit.rejected before auth.login_throttled, with only the approved safe fields.",
+      "The iteration diff stays within Identity login throttling, directly matching tests, the session disclosure, and ignored evidence artifacts."
+    ],
+    "evidence": [
+      "spec/security.md SEC-06 and its D-43/D-44/D-47 login-throttle paragraph",
+      "workflow/contracts.md AM-08 and AM-10",
+      "tests/integration/api/auth/login-throttling.test.ts",
+      "tests/unit/identity/auth-service.test.ts",
+      "Focused green: 9 unit tests and 58 PostgreSQL tests",
+      "Full green: 411 unit tests and 316 integration tests; type-check, lint, and diff check passed",
+      "_temp/visual-diff.html generated from baseline e26029c34885253cce483d5d543df0a447767342"
+    ]
+  },
+  "process_compliance": {
+    "verdict": "PASS",
+    "findings": [
+      "Human continuation approval followed the Increment 4 handoff and preceded the baseline.",
+      "A complete external working-tree snapshot excluding only the real root .git was committed before test or production edits.",
+      "The first database run exposed a test-environment mismatch and was explicitly not claimed as red; the corrected D-47 behavioral test then failed for the intended missing event before the production edit.",
+      "Red preceded the minimal production edit, focused green, full validation, and the iteration-scoped visual diff.",
+      "No real-repository commit, push, PR, bootstrap-migration edit, or Increment 6 work occurred. This semantic review is a separated self-audit, not an independent evaluator."
+    ],
+    "evidence": [
+      "_temp/s04-sec06-increment-5-evidence.json event sequence 1-9",
+      "/tmp/s04-increment5-sec06-baseline commit e26029c34885253cce483d5d543df0a447767342",
+      "Red command: npx vitest run --project unit tests/unit/identity/auth-service.test.ts -t 'records the rejected rate limit'",
+      "Present-changes-visually summary: 4 changed files, 324 unchanged"
+    ]
+  },
+  "missing_evidence": [],
+  "required_remediation": []
+}

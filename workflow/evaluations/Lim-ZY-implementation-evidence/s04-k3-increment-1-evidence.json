@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-k3-increment-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Implement the K3 ActingAccountLocks.lockActiveUserShared contract",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human approved the S-04 remediation plan and requested an implementation agent to start the remaining iterations; parent assigned exactly Increment 1."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/s04-k3-increment-1.TiLOQT at commit 2c4448c4241273670e5fcaae00ccad528c47b6b9, captured from the complete current working tree excluding only the real .git directory before test or production edits. The directory retains ignored content; the temporary Git commit records repository-visible content for the visual comparison."
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "TEST_DATABASE_URL=<loopback synthetic database> npm run test:integration -- tests/integration/identity/acting-account-locks.test.ts exited 1: TypeError createActingAccountLocks is not a function at the test's K3 provider construction. This is the intended missing provider behavior. An earlier sandboxed attempt failed with loopback EPERM and is not treated as the red result."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "Added the Identity repository's parameterized active-USER FOR SHARE query, the K3 ActingAccountLocks service, and the Identity public export after the expected red result."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "TEST_DATABASE_URL=<loopback synthetic database> npm run test:integration -- tests/integration/identity/acting-account-locks.test.ts exited 0: 1 file and 5 tests passed."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "Full integration: 13 files/301 tests passed; full unit: 28 files/400 tests passed; npx tsc --noEmit passed; npm run lint passed; git diff --check passed."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit 2c4448c4241273670e5fcaae00ccad528c47b6b9 with its refreshed WORKTREE and wrote _temp/visual-diff.html: 6 changed files and 265 unchanged files. One shown file, .codex/agents/implementation.toml, was changed concurrently by the parent agent after baseline capture and was preserved, not edited by this implementation agent."
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Behavioral results, full validation, exact scoped diff, concurrent-change disclosure, and artifacts are complete for semantic and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "An active USER receives a transaction-scoped AccountShareLock.",
+      "verdict": "PASS",
+      "evidence": [
+        "acting-account-locks.test.ts: returns a transaction-scoped share lock for an active User",
+        "Focused PostgreSQL run passed 5 tests"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Missing, suspended, and ADMIN accounts are all rejected as forbidden.",
+      "verdict": "PASS",
+      "evidence": [
+        "acting-account-locks.test.ts parameterized missing/suspended/ADMIN denial cases",
+        "Focused PostgreSQL run passed 5 tests"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "The lock uses the caller's transaction and holds Account FOR SHARE against a competing status write.",
+      "verdict": "PASS",
+      "evidence": [
+        "acting-account-locks.test.ts observes SQLSTATE 55P03 for the competing update while the caller transaction is held, then observes success after release",
+        "account-repository.ts parameterized SELECT ... FOR SHARE at Account lock position 1"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "The provider is exposed through the Identity service boundary without duplicating account-status mutation logic.",
+      "verdict": "PASS",
+      "evidence": [
+        "services/identity/acting-account-locks.ts contains only the shared-lock contract and forbidden mapping",
+        "services/identity/index.ts exports createActingAccountLocks and ActingAccountLocks"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "TEST_DATABASE_URL=<loopback synthetic database> npm run test:integration -- tests/integration/identity/acting-account-locks.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "TEST_DATABASE_URL=<loopback synthetic database> npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Implementation changes are limited to the approved Identity repository/service/export, one directly matching PostgreSQL integration test, and the existing session disclosure log. The bootstrap migration was untouched. The visual diff also displays a parent-agent change to .codex/agents/implementation.toml made after baseline capture; this agent did not edit or revert it."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Recorded commands, counts, limitations, concurrent change, and no-commit status match the raw outputs and current working tree."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s04-k3-increment-1.TiLOQT",
+    "baseline_digest": "2c4448c4241273670e5fcaae00ccad528c47b6b9",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "2c4448c4241273670e5fcaae00ccad528c47b6b9"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

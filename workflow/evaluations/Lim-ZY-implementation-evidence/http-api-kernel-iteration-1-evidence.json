@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "iteration_id": "http-api-kernel-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — response/request identity and error mapping",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human explicitly instructed implementation to proceed after approving the K2 request-ID alternative and the S-02 checklist."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/http-api-kernel-baseline.JYm3yS; commit 5ecebee77aea05e52dbe0acc5ec10f9ae731849a"
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/http/errors.test.ts failed because src/server/http did not exist; after correcting the server-only test mock, Vitest reported Cannot find module '/src/server/http'."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "Added src/server/http/index.ts after the intended red test."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "npx vitest run --project unit tests/unit/http/errors.test.ts: 1 file, 3 tests passed."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit: 4 files, 131 tests passed; npm run lint: passed; npx tsc --noEmit: passed. npm run build failed in Next.js Turbopack with an internal process-port restriction; npm run build -- --webpack also failed with TypeScript --showConfig parsing."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "_temp/visual-diff.html; generated against baseline commit 5ecebee77aea05e52dbe0acc5ec10f9ae731849a"
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Iteration evidence manifest complete; no real Git commit created."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Domain errors map to the documented statuses and codes, with safe envelopes and no-store headers.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/errors.test.ts", "src/server/http/index.ts"]
+    },
+    {
+      "id": "AC-2",
+      "description": "runRoute generates a server-side request ID, ignores inbound IDs, and applies X-Request-Id and no-store to successful responses.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/errors.test.ts", "src/server/http/index.ts", "workflow/contracts.md §5 and §19"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Transaction conflicts map to 409 and unexpected faults do not expose raw error details.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/http/errors.test.ts", "src/server/http/index.ts"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/http/errors.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Attempted but blocked by a Next.js Turbopack internal process-port failure; the webpack fallback also failed before application compilation while parsing TypeScript showConfig."}
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "Application changes are limited to src/server/http/ and tests/unit/http/; the contract clarification is in workflow/contracts.md and the pre-existing human tracker changes are preserved."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "This manifest records the successful tests and both build failures without treating the build as successful."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/http-api-kernel-baseline.JYm3yS",
+    "baseline_digest": "5ecebee77aea05e52dbe0acc5ec10f9ae731849a",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "5ecebee77aea05e52dbe0acc5ec10f9ae731849a"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

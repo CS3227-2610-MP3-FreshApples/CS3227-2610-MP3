@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s07-ui-shell-remediation-iteration-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Bohr remediation — K12 API, shell isolation, independent behavioral tests, and accessibility evidence",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human-approved remediation scope in the task request, grounded in workflow/contracts.md K12 and product §§5.2–5.3."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human explicitly requested continuation for Bohr reviewer_tester findings on the current feat/ui-shell branch."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s07-ui-shell-remediation-baseline.r24yG8/repo at 03905724a2f895b1e2ee4227736a409532bbbfb8; complete working tree copied excluding only the real .git directory; 200 tracked files."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npx vitest run --project unit tests/unit/ui-shell/bohr-remediation.test.ts exited 1 before production edits: Cannot find module '../../../src/components/rating-primitives'."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implemented only the approved K12 primitives, client confirmation behavior, public route group, root shell isolation, and independent remediation tests."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused remediation tests passed: 6 tests; focused compatibility tests passed: 13 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Full unit suite 12 files/198 tests passed; lint, type-check, and scope/import audit passed. Build was attempted but failed with an environment-restricted Turbopack process/port error and is recorded as unverified."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/visual-diff.html generated against baseline 03905724a2f895b1e2ee4227736a409532bbbfb8; 14 changed files reported."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Deterministic grader run requested after evidence completion."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Approved K12 primitive APIs and semantics are implemented and independently tested.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/bohr-remediation.test.ts", "src/components/table-state.tsx", "src/components/status-primitives.tsx", "src/components/rating-primitives.tsx", "src/components/form-primitives.tsx", "src/components/pagination.tsx"]},
+    {"id": "AC-2", "description": "Public, User, and Admin shells are isolated with exactly one main landmark per rendered route and no layout authorization logic.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/bohr-remediation.test.tsx", "src/app/layout.tsx", "src/app/(public)/layout.tsx", "src/app/app/layout.tsx", "src/app/admin/layout.tsx"]},
+    {"id": "AC-3", "description": "Confirmation callbacks/open state/keyboard behavior and manual accessibility evidence are recorded accurately.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/bohr-remediation.test.tsx", "src/components/confirmation-dialog.tsx", "_temp/s07-ui-shell-remediation-accessibility-checklist.md"]}
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/ui-shell/bohr-remediation.test.ts", "status": "PASS", "exit_code": 0, "required": true, "result": "6 tests passed"},
+    {"command": "npx vitest run --project unit tests/unit/ui-shell/bohr-remediation.test.ts tests/unit/ui-shell/k12-primitives.test.ts tests/unit/ui-shell/confirmation-dialog.test.ts", "status": "PASS", "exit_code": 0, "required": true, "result": "3 files, 13 tests passed"},
+    {"command": "npm run test:unit", "status": "PASS", "exit_code": 0, "required": true, "result": "12 files, 198 tests passed"},
+    {"command": "npm run lint", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "npx tsc --noEmit", "status": "PASS", "exit_code": 0, "required": true},
+    {"command": "scope/import audit", "status": "PASS", "exit_code": 0, "required": true, "result": "No src/server, @/server, or server/ imports in src/components"},
+    {"command": "npm run build", "status": "SKIPPED", "exit_code": 1, "required": false, "reason": "Attempted with timeout 60s; Next/Turbopack failed immediately while processing globals.css with Operation not permitted (os error 1) while creating a process/binding to a port. Build is unverified, not a pass."},
+    {"command": "visual diff", "status": "PASS", "exit_code": 0, "required": true, "result": "_temp/visual-diff.html generated"},
+    {"command": "python3 /home/klzy/.codex/skills/iterative-tdd/scripts/grade_iteration.py _temp/s07-ui-shell-remediation-iteration-4-evidence.json", "status": "PASS", "exit_code": 0, "required": true, "result": "Final two-dimension grade PASS"}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Worktree review found remediation changes limited to approved UI route/component paths plus tests, _temp evidence, and the required per-session log; no server/API/database/dependency/spec/workflow production edits were made by this remediation."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are limited to passing unit/lint/type/scope checks and source-level accessibility evidence; build and browser runtime checks are explicitly recorded as unverified."},
+  "artifacts": {"baseline_path": "/tmp/s07-ui-shell-remediation-baseline.r24yG8/repo", "baseline_digest": "03905724a2f895b1e2ee4227736a409532bbbfb8", "visual_diff_path": "visual-diff.html", "visual_diff_baseline_digest": "03905724a2f895b1e2ee4227736a409532bbbfb8"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

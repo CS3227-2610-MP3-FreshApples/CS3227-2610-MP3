@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "iteration_id": "admin-ui-increment-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Admin shell, overview, and shared state polish",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "User approved the linked Developer B Admin UI implementation plan by saying: Great. Proceed to implement it."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/admin-ui-baseline-8IMoVR at commit 4580bff3d0fe9df9ecffd26e16bb4c2588af57b3; node_modules and .next were excluded because the /tmp quota could not hold a byte-for-byte copy."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/admin-ui/admin-pages.test.ts; 1 failed, 93 passed because AdminOverviewPage did not contain the expected operations hub content."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Edited src/app/admin/page.tsx, src/app/admin/layout.tsx, and src/app/admin/_components/admin-account-control.tsx after the red test."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/admin-ui/admin-pages.test.ts tests/unit/ui-shell/route-shells.test.ts; 98 passed."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npm run test:unit: 1,582 passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0. npm run build was skipped under the user's standing instruction to skip remaining Turbopack checks."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "_temp/admin-ui-increment-1-visual-diff.html; 5 changed files against the captured baseline commit."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence manifest, scoped handoff, session log, and visual diff are present."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Admin overview provides a coherent operations hub with destination cards for catalogue, announcements, and moderation.", "verdict": "PASS", "evidence": ["tests/unit/admin-ui/admin-pages.test.ts", "src/app/admin/page.tsx"]},
+    {"id": "AC-2", "description": "Admin shell preserves existing navigation and adds auth-aware public navigation behavior without changing API or authorization contracts.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/route-shells.test.ts", "src/app/admin/layout.tsx"]},
+    {"id": "AC-3", "description": "Account control has an accessible loading label while the existing account request and logout behavior remain intact.", "verdict": "PASS", "evidence": ["src/app/admin/_components/admin-account-control.tsx", "npm run test:unit"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/admin-ui/admin-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping remaining Turbopack checks."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only Admin overview/shell/account-control presentation and its focused test changed; pre-existing workflow and handoff files were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "This manifest records the failed red test, green tests, skipped build, and baseline limitation exactly."},
+  "artifacts": {
+    "baseline_path": "/tmp/admin-ui-baseline-8IMoVR",
+    "baseline_digest": "4580bff3d0fe9df9ecffd26e16bb4c2588af57b3",
+    "visual_diff_path": "admin-ui-increment-1-visual-diff.html",
+    "visual_diff_baseline_digest": "4580bff3d0fe9df9ecffd26e16bb4c2588af57b3"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

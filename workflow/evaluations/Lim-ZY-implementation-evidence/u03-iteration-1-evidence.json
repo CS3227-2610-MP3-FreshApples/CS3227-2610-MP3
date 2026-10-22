@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u03-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — report evidence/receipt types, repository and submission service",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approved proceeding with the first iteration in the conversation on 2026-10-21."},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-1-baseline at commit cd14e70eedb909652c238f5789cd5c80a2f7cec4."},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/moderation/report-submission.test.ts failed before production edits because src/server/services/moderation was missing (0 tests)."},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added the U-03 report input/evidence types, report repository, submission service, exports, composition wiring, and focused tests."},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "Focused unit suite passed: 1 file, 7 tests. Focused PostgreSQL repository suite passed: 1 file, 1 test."},
+    {"sequence": 6, "type": "validation_completed", "evidence": "Full unit suite passed: 79 files, 1,557 tests. Full integration suite passed: 37 files, 647 tests. Lint and git diff --check passed. Type-check failed on the pre-existing generated U-02c page type; the human approved skipping the Turbopack check because of permissions; webpack build failed parsing TypeScript --showConfig."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "_temp/u03-iteration-1-visual-diff.html; generator reported 10 changed files and 707 unchanged files against baseline cd14e70eedb909652c238f5789cd5c80a2f7cec4."},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence bundle complete for deterministic iteration grading."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "Valid report input is normalized and invalid or client-controlled fields are rejected.", "verdict": "PASS", "evidence": ["tests/unit/moderation/report-submission.test.ts: report input tests"]},
+    {"id": "AC-2", "description": "Submission derives the target from the locked Review and writes the immutable K11 evidence snapshot.", "verdict": "PASS", "evidence": ["tests/unit/moderation/report-submission.test.ts: derives the target and stores an immutable evidence snapshot", "tests/integration/moderation/report-repository.test.ts"]},
+    {"id": "AC-3", "description": "Self-reports are rejected without inserting a Report.", "verdict": "PASS", "evidence": ["tests/unit/moderation/report-submission.test.ts: rejects self-reports without inserting a Report"]},
+    {"id": "AC-4", "description": "Repository reads and writes use the approved Review/Movie relationship and JSON evidence representation under PostgreSQL.", "verdict": "PASS", "evidence": ["tests/integration/moderation/report-repository.test.ts"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/moderation/report-submission.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration -- tests/integration/moderation/report-repository.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:local-password@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "FAIL", "exit_code": 2, "reason": "Pre-existing generated Next.js page-type error in .next/types/app/app/reviews/page.ts; no new U-03 type errors."},
+    {"command": "npm run build", "required": false, "status": "SKIPPED", "reason": "Human-approved exception: Turbopack CSS worker cannot bind a port because of environment permissions (EPERM)."},
+    {"command": "npx next build --webpack", "required": false, "status": "SKIPPED", "reason": "Attempted; unavailable because Next.js could not parse TypeScript --showConfig."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Iteration diff contains only the U-03 moderation service/repository, composition wiring, focused unit/integration tests, and evidence artifacts; prior unrelated worktree changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "Manifest records the actual red/green tests, full-suite results, failed type/build checks, visual diff and uncommitted state."},
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/21/01a15e8f-7d3a-72b3-a48c-37acc9b73c6a/u03-iteration-1-baseline",
+    "baseline_digest": "cd14e70eedb909652c238f5789cd5c80a2f7cec4",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/u03-iteration-1-visual-diff.html",
+    "visual_diff_baseline_digest": "cd14e70eedb909652c238f5789cd5c80a2f7cec4"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

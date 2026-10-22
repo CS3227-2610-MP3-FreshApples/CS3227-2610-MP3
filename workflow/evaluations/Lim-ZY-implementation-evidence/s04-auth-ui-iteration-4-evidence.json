@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-auth-ui-iteration-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Increment 4 — registration confirmation and outlined auth controls; journey/accessibility evidence remains pending environment support",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "The human explicitly approved the next iteration and requested repeat-password validation plus outlined controls."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human approval in the current conversation: 'Proceed with the next iteration. Also add a repeat password field ... ensure that the field boxes ... are outlined.'"},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s04-auth-ui-iter4-baseline.r6uOSk at commit 86840911271d1db0304be5cac7878090af53a683, captured before Increment 4 production edits."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused repeat-password and public-page tests failed because confirmation validation, the repeat-password control, and outlined input styling were absent."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implementation agent began after the intended red test; scope was limited to shared input styling, registration confirmation behavior, and related tests."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused tests passed: 2 files, 7 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit: 44 files and 694 tests passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0. npm run build failed because Turbopack could not create a worker process (Operation not permitted); npx next build --webpack also failed to parse TypeScript --showConfig; npm run test:e2e refused because TEST_DATABASE_URL was not configured."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html generated from the captured external baseline; generator reported 6 changed files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest records passing code checks and the environment-blocked build/E2E checks without claiming them complete."}
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Registration renders a repeat-password field and rejects mismatches before any CSRF or network request.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/components/auth-client.ts", "src/app/(public)/register/page.tsx"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Confirmation password is excluded from the registration API payload, while existing registration success/error behavior remains intact.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/components/auth-client.ts"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Registration and sign-in input boxes have visible border outlines and retain visible focus styling.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/public-auth-pages.test.ts", "src/components/form-primitives.tsx"]
+    },
+    {
+      "id": "AC-4",
+      "description": "Browser journey, production build, and manual keyboard/focus/zoom evidence are complete.",
+      "verdict": "UNVERIFIABLE",
+      "evidence": ["npm run build was blocked by the environment", "npm run test:e2e requires TEST_DATABASE_URL", "No browser/manual evidence was fabricated"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/register-client.test.ts tests/unit/auth/public-auth-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build", "required": true, "status": "FAIL", "exit_code": 1},
+    {"command": "npx next build --webpack", "required": true, "status": "FAIL", "exit_code": 1},
+    {"command": "npm run test:e2e", "required": true, "status": "FAIL", "exit_code": 1}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Production changes are limited to the auth client, registration page, shared form primitive styling, focused tests, and the required session log; no server/auth API or dependency changes were made."},
+  "claims_review": {"verdict": "PASS", "evidence": "The implementation log and this manifest distinguish passing code checks from unavailable build/browser/manual evidence."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-auth-ui-iter4-baseline.r6uOSk",
+    "baseline_digest": "86840911271d1db0304be5cac7878090af53a683",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "86840911271d1db0304be5cac7878090af53a683"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": false
+}

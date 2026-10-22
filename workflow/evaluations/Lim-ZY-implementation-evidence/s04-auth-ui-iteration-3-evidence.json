@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-auth-ui-iteration-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 — registration behavior and success/error states",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "The Increment 3 item was part of the human-approved S-04 auth UI plan."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human approval in the current conversation: 'Proceed with the next iteration'."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s04-auth-ui-iter3-baseline.HwDIds at commit 0d2e53e111ba4979183b57e1823b9c8d590af8b9, captured before Increment 3 production edits."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npx vitest run --project unit tests/unit/auth/register-client.test.ts failed because submitRegistration was not implemented; all 3 focused tests failed."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implementation agent began after the intended red test; scope was limited to registration client behavior and registration page wiring."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused registration test passed: 1 file, 3 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit: 44 files and 693 tests passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html generated from the captured external baseline; generator reported 7 changed files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest completed for deterministic iterative-TDD grading."}
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Registration obtains CSRF with no-store/same-origin credentials and posts only displayName, email, and password with the required CSRF header.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/components/auth-client.ts"]
+    },
+    {
+      "id": "AC-2",
+      "description": "HTTP 422 field errors are preserved and attached to the corresponding registration fields, while entered values remain available after failure.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/app/(public)/register/page.tsx"]
+    },
+    {
+      "id": "AC-3",
+      "description": "HTTP 409 produces safe duplicate-email guidance linking the user to sign-in.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/app/(public)/register/page.tsx"]
+    },
+    {
+      "id": "AC-4",
+      "description": "HTTP 201 clears password state and shows an account-created sign-in success state without creating a session or routing to /app.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/register-client.test.ts", "src/app/(public)/register/page.tsx", "logs/2026-10-20-s04-auth-ui-increment-3.md"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/register-client.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Increment 3 changes are limited to the shared client helper, registration page, focused registration tests, and the required session log; sign-in and server/auth API code were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The implementation log records the exact registration behavior and does not claim browser/E2E or manual accessibility verification."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-auth-ui-iter3-baseline.HwDIds",
+    "baseline_digest": "0d2e53e111ba4979183b57e1823b9c8d590af8b9",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "0d2e53e111ba4979183b57e1823b9c8d590af8b9"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

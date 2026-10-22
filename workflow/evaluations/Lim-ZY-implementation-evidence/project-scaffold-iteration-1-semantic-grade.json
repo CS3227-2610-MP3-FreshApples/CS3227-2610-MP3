@@ -1,0 +1,33 @@
+{
+  "overall_verdict": "FAIL",
+  "output_correctness": {
+    "verdict": "FAIL",
+    "findings": [
+      "The required npm dependency audit reports five high-severity findings in the generated eslint-config-next development dependency chain.",
+      "The production build could not be verified in the managed sandbox because the generated Turbopack path requires denied internal worker port binding; this is disclosed as unavailable rather than passed."
+    ],
+    "evidence": [
+      "The focused structure assertion passed after implementation.",
+      "npm ci, npm run lint, npx next typegen, npx tsc --noEmit, scope assertions, and whitespace checks exited 0.",
+      "npm audit --audit-level=high exited 1 and named GHSA-vfj7-8cjw-p6xm through the lint dependency chain.",
+      "The iteration visual diff uses external baseline e7e57cdcc090c9d857e9a5d1d6cd5368c9f30f75."
+    ]
+  },
+  "process_compliance": {
+    "verdict": "PASS",
+    "findings": [],
+    "evidence": [
+      "Human approval preceded the external baseline and application edits.",
+      "The structure assertion failed before production work and passed afterward.",
+      "Validation and an iteration-scoped visual diff were completed against the captured external baseline.",
+      "No real repository staging, commit, push, or later increment occurred."
+    ]
+  },
+  "missing_evidence": [
+    "A successful production build from an environment that permits the generated framework workers."
+  ],
+  "required_remediation": [
+    "Have a human decide how to handle the current upstream dependency advisory; do not apply npm audit fix --force without a separately approved compatibility test.",
+    "Run npm run build in a normal local or CI environment and record the result before treating the scaffold as release-ready."
+  ]
+}

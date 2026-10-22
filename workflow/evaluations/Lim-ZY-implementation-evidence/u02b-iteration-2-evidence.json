@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02b-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — automatic transitions",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved U-02b iterative-TDD checklist covers Increment 2 automatic transitions."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "User explicitly approved continuation to the next iteration after Increment 1's PASS handoff."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/tmp/u02b-iteration-2-baseline-2VN6hg; temporary Git baseline commit 8b37d0077a596ed41da6ad306114c8078f7ee915"
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/reviews/review-transitions-automatic.test.ts exited 1 with 8 failures because createAutomaticReviewTransitions was not implemented."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Production edits added the guarded applyAutomatic repository operation and automatic transition service."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "Focused automatic-transition tests passed: 1 file / 8 tests."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit passed (61 files / 996 tests); PostgreSQL integration passed (28 files / 536 tests); npx tsc --noEmit, npm run lint, git diff --check and npx next build --webpack exited 0. Turbopack remains skipped under explicit user authorization."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "_temp/u02b-iteration-2-visual-diff.html generated from baseline 8b37d0077a596ed41da6ad306114c8078f7ee915."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Evidence manifest is complete for the second approved increment; no real repository commit was authorized or created."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Matching pending automatic clearance applies AI clearance, increments the Review version, and marks Movie eligibility changed atomically through the caller transaction.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions-automatic.test.ts: clearance and marker assertions", "review-repository.ts guarded UPDATE"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Matching pending automatic flagging applies AI flagging without advancing Movie eligibility revision.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions-automatic.test.ts: flagging without marker assertion"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Archived, stale-content, stale-row, non-pending, hidden, deleted, and failed guarded updates are rejected without writes or marker calls.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions-automatic.test.ts: 6 rejection cases", "repository WHERE guards version/content/state/visibility"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/reviews/review-transitions-automatic.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:[redacted]@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx next build --webpack", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (Turbopack)", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping the Turbopack check."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changes are limited to the Reviews repository/service automatic-transition boundary and its focused tests; unrelated worktree changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The manifest records continuation approval, external baseline, red/green tests, actual validation, visual diff, and no commit creation."},
+  "artifacts": {
+    "baseline_path": "/tmp/u02b-iteration-2-baseline-2VN6hg",
+    "baseline_digest": "8b37d0077a596ed41da6ad306114c8078f7ee915",
+    "visual_diff_path": "u02b-iteration-2-visual-diff.html",
+    "visual_diff_baseline_digest": "8b37d0077a596ed41da6ad306114c8078f7ee915"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

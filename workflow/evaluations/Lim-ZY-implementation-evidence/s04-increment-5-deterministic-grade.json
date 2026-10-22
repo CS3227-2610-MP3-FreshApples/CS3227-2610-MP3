@@ -1,0 +1,19 @@
+{
+  "missing_evidence": [],
+  "output_correctness": {
+    "findings": [
+      "required check did not pass: npm run build",
+      "required check did not pass: npm run check:secrets"
+    ],
+    "verdict": "FAIL"
+  },
+  "overall_verdict": "FAIL",
+  "process_compliance": {
+    "findings": [],
+    "verdict": "PASS"
+  },
+  "required_remediation": [
+    "required check did not pass: npm run build",
+    "required check did not pass: npm run check:secrets"
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-operator-verifier",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 8 — add the operator-only first-Admin verifier",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "Human approved the proposed operator verification mechanism and authorized implementation in the 17 October 2026 conversation."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_capture_attempt_failed",
+      "evidence": "Two /tmp copy attempts were incomplete due disk quota; neither is accepted as the iteration baseline and neither changed repository files."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-operator-verifier-baseline at commit 5ec9daf7c176ca958841690ae285fe9c6fa1af71"
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_environment_failure",
+      "evidence": "Initial focused run failed before discovery with filesystem quota error -122; it is not accepted as red evidence."
+    },
+    {
+      "sequence": 5,
+      "type": "red_test_failed",
+      "evidence": "TMPDIR=<visualization test-tmp> npx vitest run --project unit tests/unit/ci/verify-first-admin.test.ts exited 1 because scripts/verify-first-admin.mjs did not exist, the intended missing behavior."
+    },
+    {
+      "sequence": 6,
+      "type": "implementation_started",
+      "evidence": "Added scripts/verify-first-admin.mjs after the accepted red result."
+    },
+    {
+      "sequence": 7,
+      "type": "green_test_passed",
+      "evidence": "TMPDIR=<visualization test-tmp> npx vitest run --project unit tests/unit/ci/verify-first-admin.test.ts exited 0; 1 file and 9 tests passed after implementation and again after test typing cleanup."
+    },
+    {
+      "sequence": 8,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit: PASS 28 files/400 tests; npx tsc --noEmit: PASS; npm run lint: PASS; git diff --check: PASS. Integration unavailable because TEST_DATABASE_URL is unset."
+    },
+    {
+      "sequence": 9,
+      "type": "visual_diff_created",
+      "evidence": "present-changes-visually compared baseline commit 5ec9daf7c176ca958841690ae285fe9c6fa1af71 to the refreshed external worktree; 8 changed files, 299 unchanged; output _temp/visual-diff.html."
+    },
+    {
+      "sequence": 10,
+      "type": "grade_requested",
+      "evidence": "Evidence bundle completed for semantic second-pass audit and deterministic grading."
+    },
+    {
+      "sequence": 11,
+      "type": "grade_passed",
+      "evidence": "Semantic second-pass audit and deterministic grade both returned PASS for output correctness and process compliance."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Print only admin_count=<n> and exit zero exactly when one Admin exists.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ci/verify-first-admin.test.ts: parameterized zero/one/two count cases",
+        "scripts/verify-first-admin.mjs: aggregate output and exit-code branch"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "Use a bounded read-only transaction and aggregate-only Account query.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ci/verify-first-admin.test.ts: exact BEGIN READ ONLY, SET LOCAL timeout, SELECT count and COMMIT sequence",
+        "scripts/verify-first-admin.mjs"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "Read operator credentials only from environment configuration with CA-verified TLS outside local/test and reject URL TLS overrides.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ci/verify-first-admin.test.ts: missing URL, missing production CA and sslmode rejection",
+        "package.json: db:verify-first-admin passes no credential arguments"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "Never print connection details, raw driver errors, account rows or emails.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/ci/verify-first-admin.test.ts: sanitized query failure and invalid-row cases",
+        "scripts/verify-first-admin.mjs: fixed failure output"
+      ]
+    },
+    {
+      "id": "AC-5",
+      "description": "Name the exact command and safe evidence boundary in deployment and release guidance.",
+      "verdict": "PASS",
+      "evidence": [
+        "spec/deployment.md D-51 operator step 2",
+        "docs/releases.md D-51 evidence table"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "TMPDIR=<visualization test-tmp> npx vitest run --project unit tests/unit/ci/verify-first-admin.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "TMPDIR=<visualization test-tmp> npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "TMPDIR=<visualization test-tmp> npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "TMPDIR=<visualization test-tmp> npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run test:integration",
+      "required": false,
+      "status": "SKIPPED",
+      "reason": "TEST_DATABASE_URL is unset; a live operator/database smoke check remains required before release."
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The iteration changes only the approved verifier command/script/test, D-51 release guidance, Gate C planning record and the session disclosure; the table-free bootstrap refactor and migration deletion were not started."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "All executed, failed and unavailable checks are recorded with their actual outcomes; no live database or production verification is claimed."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-operator-verifier-baseline",
+    "baseline_digest": "5ec9daf7c176ca958841690ae285fe9c6fa1af71",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "5ec9daf7c176ca958841690ae285fe9c6fa1af71"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

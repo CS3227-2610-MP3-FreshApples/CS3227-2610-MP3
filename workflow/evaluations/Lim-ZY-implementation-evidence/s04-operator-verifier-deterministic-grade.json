@@ -1,0 +1,13 @@
+{
+  "missing_evidence": [],
+  "output_correctness": {
+    "findings": [],
+    "verdict": "PASS"
+  },
+  "overall_verdict": "PASS",
+  "process_compliance": {
+    "findings": [],
+    "verdict": "PASS"
+  },
+  "required_remediation": []
+}
