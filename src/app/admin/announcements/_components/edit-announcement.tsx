@@ -42,7 +42,7 @@ export function EditAnnouncement({ announcementId }: EditAnnouncementProps) {
         setSaved("");
         const result = await updateAnnouncement(announcementId, current.version, { ...content, ...extra });
         if (!result.ok) {
-          setStale(result.kind === "stale");
+          setStale(result.kind === "stale" || result.kind === "unavailable");
           return result;
         }
         setStale(false);

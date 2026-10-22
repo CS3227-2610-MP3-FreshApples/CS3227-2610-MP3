@@ -4,7 +4,9 @@ import {
   isListPage,
   isRecord,
   jsonBody,
+  matchesSavedFields,
   noContentVersion,
+  recoverAdminWrite,
   pageQuery,
   type AdminResult,
   type Fetcher,
@@ -80,20 +82,31 @@ export function createMovie(input: MovieWrite, fetcher: Fetcher = fetch): Promis
   return adminWrite({ path: BASE, method: "POST", body: input }, jsonBody(isAdminMovie), fetcher);
 }
 
-export function updateMovie(
+export async function updateMovie(
   movieId: string,
   version: number,
   changes: Partial<MovieWrite>,
   fetcher: Fetcher = fetch,
 ): Promise<AdminResult<AdminMovieView>> {
-  return adminWrite({ path: moviePath(movieId), method: "PATCH", body: changes, version }, jsonBody(isAdminMovie), fetcher);
+  const result = await adminWrite({ path: moviePath(movieId), method: "PATCH", body: changes, version }, jsonBody(isAdminMovie), fetcher);
+  return recoverAdminWrite(result, movieId, version, () => getMovie(movieId, fetcher),
+    (current) => matchesSavedFields({
+      title: current.title, synopsis: current.synopsis, director: current.director,
+      genres: current.genres, cast: current.cast, releaseDate: current.releaseDate, runtimeMinutes: current.runtimeMinutes,
+    }, changes, ["title", "synopsis", "director"]));
 }
 
 /** Archive (DELETE); the result is the Movie's resulting version (D-79, D-81). */
-export function archiveMovie(movieId: string, version: number, fetcher: Fetcher = fetch): Promise<AdminResult<number>> {
-  return adminWrite({ path: moviePath(movieId), method: "DELETE", version }, noContentVersion, fetcher);
+export async function archiveMovie(movieId: string, version: number, fetcher: Fetcher = fetch): Promise<AdminResult<number>> {
+  const result = await adminWrite({ path: moviePath(movieId), method: "DELETE", version }, noContentVersion, fetcher);
+  if (result.ok || result.kind !== "unavailable" || !result.outcomeUnknown) return result;
+  const current = await getMovie(movieId, fetcher);
+  return current.ok && current.value.id === movieId && current.value.version > version && current.value.archivedAt !== null
+    ? { ok: true, value: current.value.version }
+    : result;
 }
 
-export function restoreMovie(movieId: string, version: number, fetcher: Fetcher = fetch): Promise<AdminResult<AdminMovieView>> {
-  return adminWrite({ path: `${moviePath(movieId)}/restore`, method: "POST", version }, jsonBody(isAdminMovie), fetcher);
+export async function restoreMovie(movieId: string, version: number, fetcher: Fetcher = fetch): Promise<AdminResult<AdminMovieView>> {
+  const result = await adminWrite({ path: `${moviePath(movieId)}/restore`, method: "POST", version }, jsonBody(isAdminMovie), fetcher);
+  return recoverAdminWrite(result, movieId, version, () => getMovie(movieId, fetcher), (current) => current.archivedAt === null);
 }

@@ -12,6 +12,9 @@ import { CreateMovie } from "../../../src/app/admin/movies/_components/create-mo
 import { EditMovie } from "../../../src/app/admin/movies/_components/edit-movie";
 import { MovieForm } from "../../../src/app/admin/movies/_components/movie-form";
 import { MovieList } from "../../../src/app/admin/movies/_components/movie-list";
+import AdminOverviewPage from "../../../src/app/admin/page";
+import AdminReviewsPage from "../../../src/app/admin/reviews/page";
+import AdminUsersPage from "../../../src/app/admin/users/page";
 import { EMPTY_MOVIE_FORM } from "../../../src/app/admin/_lib/movie-form";
 
 // B#6 commit 3 (A-01/A-02 UI): structural checks that hold without a browser. Interaction (submit, the
@@ -19,6 +22,7 @@ import { EMPTY_MOVIE_FORM } from "../../../src/app/admin/_lib/movie-form";
 
 const ADMIN_DIR = resolve(process.cwd(), "src/app/admin");
 const K12_MODULES = new Set([
+  "admin-header-account-control",
   "confirmation-dialog",
   "form-primitives",
   "page-placeholder",
@@ -83,6 +87,30 @@ describe("Admin UI module boundaries", () => {
 });
 
 describe("Admin UI initial render", () => {
+  it("presents the Admin users workspace with guarded loading state and no private fields", () => {
+    for (const Page of [AdminUsersPage]) {
+      const html = renderToStaticMarkup(createElement(Page));
+      expect(html).toContain("Loading users…");
+      expect(html).not.toContain("email");
+      expect(html).not.toContain("strike");
+      expect(html).not.toContain("Close report");
+    }
+  });
+
+  it("renders the Reviews route loading state with its query contract", () => {
+    const html = renderToStaticMarkup(createElement(AdminReviewsPage, { searchParams: Promise.resolve({}) }));
+    expect(html).toContain("Loading reviews…");
+  });
+
+  it("presents the Admin overview as an actionable operations hub", () => {
+    const html = renderToStaticMarkup(createElement(AdminOverviewPage));
+    expect(html).toContain("Operations at a glance");
+    expect(html).toContain("Manage catalogue");
+    expect(html).toContain('href="/admin/movies"');
+    expect(html).toContain("Moderation workspace");
+    expect(html).toContain('href="/admin/reviews"');
+  });
+
   it("shows the movie list loading state, the create link and no open dialog", () => {
     const html = renderToStaticMarkup(createElement(MovieList, { page: 1 }));
     expect(html).toContain("Loading movies…");

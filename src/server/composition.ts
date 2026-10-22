@@ -67,7 +67,7 @@ import { createAnnouncementRepository } from "./repositories/announcements";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAdminMovieRepository } from "./repositories/catalogue";
-import { createAccountRepository, createSessionRepository } from "./repositories/identity";
+import { createAccountRepository, createAdminUserRepository, createSessionRepository } from "./repositories/identity";
 import {
   createPublicSummaryReadRepository,
   createReviewSummaryRepository,
@@ -77,7 +77,7 @@ import {
 import { createPublicMovieReadRepository } from "./repositories/catalogue";
 import { createPublicAnnouncementReadRepository } from "./repositories/announcements";
 import { createReviewRepository } from "./repositories/reviews";
-import { createReportRepository } from "./repositories/moderation";
+import { createAdminReportMutationRepository, createAdminReportQueryRepository, createReportRepository } from "./repositories/moderation";
 import {
   createPublicCatalogueReadService,
   type PublicCatalogueReadService,
@@ -93,11 +93,13 @@ import {
   createCsrfService,
   createFirstAdminBootstrapService,
   createIdentityService,
+  createAdminUserService,
   createSessionService,
   type AuthService,
   type AuthGuards,
   type AccountStatusService,
   type FirstAdminBootstrapService,
+  type AdminUserService,
 } from "./services/identity";
 import {
   createReviewLocksAndReads,
@@ -109,7 +111,7 @@ import {
   type ReviewService,
   type ReviewTransitions,
 } from "./services/reviews";
-import { createReportReadService, createReportService, type ReportReadService, type ReportService } from "./services/moderation";
+import { createAdminReportService, createReportReadService, createReportService, type AdminReportService, type ReportReadService, type ReportService } from "./services/moderation";
 import { createAdminReviewService, type AdminReviewService } from "./services/moderation/admin-reviews";
 import { createAdminReviewQueryRepository } from "./repositories/moderation/admin-review-query-repository";
 import { createAdminReviewWorkRepository } from "./repositories/moderation/admin-review-work-repository";
@@ -425,6 +427,34 @@ export const accountStatusService: AccountStatusService | null =
     : createAccountStatusService({
         accountRepository: createAccountRepository({ sql: database }),
         sessionRepository: createSessionRepository({ sql: database }),
+      });
+
+/** A-06 Admin user reads and status mutations; K4/K5 own account transition and audit behavior. */
+export const adminUserService: AdminUserService | null =
+  database === null || accountStatusService === null || auditLog === null
+    ? null
+    : createAdminUserService({
+        database,
+        users: createAdminUserRepository({ sql: database }),
+        accountStatus: accountStatusService,
+        auditLog,
+      });
+
+/** A-05 Admin Report decisions (D-104); effects are atomic across K4/K8/K11/K5. */
+export const adminReportService: AdminReportService | null =
+  database === null || !config.core.valid || movieLocks === null || reviewLocks === null || reviewTransitions === null || accountStatusService === null || auditLog === null
+    ? null
+    : createAdminReportService({
+        database,
+        reports: createAdminReportQueryRepository({ sql: database, strikeThreshold: config.core.value.reportSuspensionThreshold }),
+        mutations: createAdminReportMutationRepository({ sql: database }),
+        accountStatus: accountStatusService,
+        movieLocks,
+        reviewLocks,
+        transitions: reviewTransitions,
+        work: createAdminReviewWorkRepository({ sql: database }),
+        auditLog,
+        strikeThreshold: config.core.value.reportSuspensionThreshold,
       });
 
 export const authService: AuthService | null =

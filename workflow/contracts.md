@@ -732,6 +732,19 @@ export interface ReportReceipt { // GET /me/reports, /me/reports/:id; reporter o
 - **Locks / Tx:** written in A's submission Tx (§3.3). Pure types and parser.
 - **Fake:** none needed. Contract tests share fixtures.
 
+**A-05 Admin Report projection and decision contract (D-104):**
+
+- Moderation owns the Admin Report query repository and its list/detail projections. List filters are status (`open`, `accepted`, `dismissed`, `all`) and category (`profanity`, `harassment`, `hate`, `spam`, `other`), combined with AND; default status is `open`; ordering is `created_at DESC, id ASC`; pagination and `no-store` follow K2.
+- List data contains only report identifiers/status/category/timestamps/version, minimal reporter and target identity/status, and a current Review summary. Detail adds the explanation, parsed immutable evidence, current Review state, current-cycle strike count/threshold, projected acceptance effect and recorded Decision. Target-facing projections never contain these fields.
+- The decision route requires K3 active-Admin plus CSRF/same-origin checks and a quoted integer Report `If-Match`. Strict input is `{ disposition, actions, reason }`; dismissal requires empty actions; acceptance allows empty actions or `hide_review`; reason is 10–1,000 trimmed Unicode code points. Errors map to K2 validation, precondition, conflict and not-found envelopes as specified in `spec/api.md`. Success returns the updated Report, Decision, `strikeAdded`, `accountStatus` and ETag.
+- Accepted-report hiding uses `hideReviewForAcceptedReport`; if the Review is already hidden or deleted, the requested hide is a no-op and the Report decision still proceeds. K4 owns account status and session revocation, K5 audit is in the same transaction, and AI has no decision/strike/account mutation path.
+
+**A-06 Admin User read contract (human-approved 22 October 2026):**
+
+- `GET /admin/users` accepts optional `status=active|suspended` and `q`; omitted status lists both statuses. `q` is trimmed, empty after trimming means no filter, and non-empty values perform case-insensitive substring matching over `display_name`, capped at 200 Unicode code points. Results use case-insensitive `display_name ASC, id ASC` ordering and K2 pagination.
+- List and detail projections contain only `id`, `displayName`, `status` and `version`; only USER accounts are visible. ADMIN accounts and missing IDs use the same not-found projection boundary.
+- The UI confirmation names the target display name but sends no extra confirmation field to the API. Status mutations remain `{ status, reason }` with the current `If-Match`; K4/K5 owns the atomic transition, audit and session rules described in §6.4.
+
 ## 15. K12 — Shared UI primitives
 
 **Provider → consumer:** A → B. **Spec basis:** product 5.2, 5.3; architecture 6.6.

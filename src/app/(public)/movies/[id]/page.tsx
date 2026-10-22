@@ -6,6 +6,7 @@ import { publicCatalogueReadService } from "../../../../server/composition";
 import { parseId } from "../../../../server/http";
 import { ReviewSummarySection } from "./_components/review-summary";
 import { PublicReviewList } from "./_components/public-review-list";
+import { ReviewSubmissionForm } from "./_components/review-submission-form";
 
 type MovieDetailsPageProps = Readonly<{
   params: Promise<{ readonly id: string }>;
@@ -44,6 +45,7 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
         <h2 className="text-xl font-semibold text-slate-950" id="community-reviews-title">Community reviews</h2>
         {movie.reviewCount === 0 ? <p className="mt-3 text-slate-600" role="status">No community ratings yet.</p> : null}
       </section>
+      <ReviewSubmissionForm movieId={movie.id} />
       <PublicReviewList movieId={movie.id} />
       <ReviewSummarySection movieId={movie.id} />
     </article>
