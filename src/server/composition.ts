@@ -67,7 +67,7 @@ import { createAnnouncementRepository } from "./repositories/announcements";
 import { assessReadiness, type Readiness, type ReadinessInput } from "./services/health";
 import { createRateLimiter, createRateLimitKeys, type RateLimiter, type RateLimitKeys } from "./services/rate-limit";
 import { createAdminMovieRepository } from "./repositories/catalogue";
-import { createAccountRepository, createSessionRepository } from "./repositories/identity";
+import { createAccountRepository, createAdminUserRepository, createSessionRepository } from "./repositories/identity";
 import {
   createPublicSummaryReadRepository,
   createReviewSummaryRepository,
@@ -93,11 +93,13 @@ import {
   createCsrfService,
   createFirstAdminBootstrapService,
   createIdentityService,
+  createAdminUserService,
   createSessionService,
   type AuthService,
   type AuthGuards,
   type AccountStatusService,
   type FirstAdminBootstrapService,
+  type AdminUserService,
 } from "./services/identity";
 import {
   createReviewLocksAndReads,
@@ -425,6 +427,17 @@ export const accountStatusService: AccountStatusService | null =
     : createAccountStatusService({
         accountRepository: createAccountRepository({ sql: database }),
         sessionRepository: createSessionRepository({ sql: database }),
+      });
+
+/** A-06 Admin user reads and status mutations; K4/K5 own account transition and audit behavior. */
+export const adminUserService: AdminUserService | null =
+  database === null || accountStatusService === null || auditLog === null
+    ? null
+    : createAdminUserService({
+        database,
+        users: createAdminUserRepository({ sql: database }),
+        accountStatus: accountStatusService,
+        auditLog,
       });
 
 /** A-05 Admin Report decisions (D-104); effects are atomic across K4/K8/K11/K5. */

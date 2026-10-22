@@ -11,3 +11,4 @@ export {
   type SessionRecord,
   type SessionRepository,
 } from "./session-repository";
+export { createAdminUserRepository, type AdminUserRecord, type AdminUserRepository } from "./admin-user-repository";

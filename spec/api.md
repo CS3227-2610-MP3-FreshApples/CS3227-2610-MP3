@@ -43,7 +43,7 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /movies/:id/reviews | User | rating, body → own Review; restores author-deleted row when allowed |
 | PATCH /reviews/:id | Owning User | rating and/or body → updated Review |
 | DELETE /reviews/:id | Owning User | soft delete |
-| GET /me/reviews | User | own non-deleted, non-hidden Reviews including pending/flagged, page, pageSize; safe moderation state only |
+| GET /me/reviews | User | own non-deleted, non-hidden Reviews including pending/flagged, page, pageSize; safe moderation state and current integer version only |
 | POST /reports | User | reviewId, category, explanation → own Report receipt |
 | GET /me/reports | User | Reports submitted by caller only, page, pageSize |
 | GET /me/reports/:id | Owning User | submitted report status/disposition; never reports received; no private evidence history or notes |
@@ -66,8 +66,8 @@ Versioned mutations require If-Match containing the current integer version; abs
 | POST /admin/reviews/:id/hide | Admin | reason; hide current Review with If-Match; no strike |
 | POST /admin/reports/:id/decision | Admin | disposition, actions, reason → Decision and updated Report |
 | POST /admin/reviews/:id/restore | Admin | reason → Review visibility state |
-| GET /admin/users | Admin | status?, q (display name, max 200), page, pageSize; USER accounts only; id, displayName, status, version |
-| GET /admin/users/:id | Admin | USER account id, displayName, status, version; no credentials/session secrets |
+| GET /admin/users | Admin | status=active\|suspended?, q (trimmed case-insensitive display-name substring, max 200), page, pageSize; USER accounts only; id, displayName, status, version; omitted status lists both; order displayName ASC (case-insensitive), id ASC |
+| GET /admin/users/:id | Admin | USER account id, displayName, status, version; no credentials/session secrets; ADMIN targets are not found |
 | PATCH /admin/users/:id/status | Admin | status active/suspended, reason (10-1,000), If-Match; manual suspend/unsuspend, no Report required; USER targets only |
 | GET /admin/announcements | Admin | drafts/published/deleted, page, pageSize; updated_at DESC, id ASC |
 | GET /admin/announcements/:id | Admin | full Announcement and version |
