@@ -25,6 +25,27 @@ function child(): React.ReactElement {
 }
 
 describe("K12 component contract", () => {
+  it("gives Admin catalogue tables and pagination a responsive presentation shell", () => {
+    const table = html(createElement(DataTable<{ id: string; title: string }>, {
+      caption: "Movies",
+      columns: [{ header: "Title", cell: (movie: { id: string; title: string }) => movie.title }],
+      emptyMessage: "No movies found",
+      rowKey: (movie: { id: string }) => movie.id,
+      rows: [{ id: "movie-1", title: "Arrival" }],
+    }));
+    const pagination = html(createElement(Pagination, {
+      hrefForPage: (page: number) => `/admin/movies?page=${page}`,
+      page: 1,
+      pageSize: 10,
+      total: 25,
+    }));
+
+    expect(table).toContain('data-table-shell="admin"');
+    expect(table).toContain("overflow-x-auto");
+    expect(pagination).toContain('data-pagination="admin"');
+    expect(pagination).toContain("justify-between");
+  });
+
   it("renders DataTable captions, columns, stable row keys, and an accessible empty state", () => {
     const populated = html(createElement(DataTable<{ id: string; title: string }>, {
       caption: "Movies",

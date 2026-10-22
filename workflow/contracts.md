@@ -732,6 +732,13 @@ export interface ReportReceipt { // GET /me/reports, /me/reports/:id; reporter o
 - **Locks / Tx:** written in A's submission Tx (§3.3). Pure types and parser.
 - **Fake:** none needed. Contract tests share fixtures.
 
+**A-05 Admin Report projection and decision contract (D-104):**
+
+- Moderation owns the Admin Report query repository and its list/detail projections. List filters are status (`open`, `accepted`, `dismissed`, `all`) and category (`profanity`, `harassment`, `hate`, `spam`, `other`), combined with AND; default status is `open`; ordering is `created_at DESC, id ASC`; pagination and `no-store` follow K2.
+- List data contains only report identifiers/status/category/timestamps/version, minimal reporter and target identity/status, and a current Review summary. Detail adds the explanation, parsed immutable evidence, current Review state, current-cycle strike count/threshold, projected acceptance effect and recorded Decision. Target-facing projections never contain these fields.
+- The decision route requires K3 active-Admin plus CSRF/same-origin checks and a quoted integer Report `If-Match`. Strict input is `{ disposition, actions, reason }`; dismissal requires empty actions; acceptance allows empty actions or `hide_review`; reason is 10–1,000 trimmed Unicode code points. Errors map to K2 validation, precondition, conflict and not-found envelopes as specified in `spec/api.md`. Success returns the updated Report, Decision, `strikeAdded`, `accountStatus` and ETag.
+- Accepted-report hiding uses `hideReviewForAcceptedReport`; if the Review is already hidden or deleted, the requested hide is a no-op and the Report decision still proceeds. K4 owns account status and session revocation, K5 audit is in the same transaction, and AI has no decision/strike/account mutation path.
+
 ## 15. K12 — Shared UI primitives
 
 **Provider → consumer:** A → B. **Spec basis:** product 5.2, 5.3; architecture 6.6.
@@ -959,3 +966,13 @@ This amendment came from the U-04b preflights. Developer B (thegrimbee) delegate
 | ID | Change | Spec basis |
 | --- | --- | --- |
 | AM-26 | K3 `requireCronCaller` returns `unauthenticated` for every request when its configured secret is empty, which the composition root passes exactly when `CRON_SECRET` is missing or invalid. It previously accepted a request with no credential in that case | D-28, D-98 |
+
+## 29. A-03 amendments (21 October 2026)
+
+These amendments came from the A-03 (B#7) decisions D-99–D-102, recorded by Developer B (thegrimbee) under delegated authority. **Status: underlying decisions D-99 through D-103 approved by Developer A (Lim-ZY), as confirmed by the human on 21 October 2026.** D-103 amends D-46: automatic `review.auto_clear` / `review.auto_flag` entries from K9 `attemptAfterCommit` use a random UUID per attempt, correlated through the Review `target_id` and `jobId` metadata; recovery-sweep entries use the cron request's ID. No K1–K12 signature changes.
+
+| ID | Change | Spec basis |
+| --- | --- | --- |
+| AM-27 | K9 `attemptAfterCommit` keeps its signature. The real dispatcher also implements a B-internal `ModerationRecovery.attemptFromSweep(reviewId, contentRevision, requestId)` used only by the review-moderation sweep; it is not part of K9 and no Developer A module consumes it | D-101 |
+| AM-28 | The K9 claim, publish and settlement transactions take K8 `lockReviewForTransition` and then the Review's ModerationWork rows of one content revision in ascending ID order, and never write K10 bookkeeping rows (§3.3, D-58). An expired `running` claim is recovered as one failed execution (D-77) | D-101 |
+| AM-29 | `GET /ai/jobs/:id` returns the D-102 projection only; summary jobs are 404 | D-102 |

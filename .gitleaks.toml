@@ -18,3 +18,13 @@ condition = "AND"
 paths = ['''^tests/integration/api/cron/summary-cron\.test\.ts$''']
 regexTarget = "secret"
 regexes = ['''^synthetic-cron-secret-0123456789abcdef0123$''']
+
+# D-29 / D-41: DEP-10 also injects this synthetic fixture through vi.stubEnv.
+# Human approved this exact-file/exact-value exception in the CI repair session.
+[[allowlists]]
+description = "Synthetic cron authentication fixture (DEP-10 integration test)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^tests/integration/api/cron/review-moderation-cron\.test\.ts$''']
+regexTarget = "secret"
+regexes = ['''^synthetic-cron-secret-0123456789abcdef0123$''']
