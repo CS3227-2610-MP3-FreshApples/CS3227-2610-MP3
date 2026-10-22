@@ -6,7 +6,7 @@ pageNav: 3
 
 # FreshApples User Guide
 
-FreshApples is a moderated movie-review community. Visitors can discover movies, read published reviews and announcements, and view scheduled review summaries. Users can submit reviews and report another User's published review. Admins manage the catalogue and make moderation decisions.
+FreshApples is a moderated movie-review community. Visitors can discover movies, read published reviews and announcements, and view scheduled review summaries. Users can submit and edit reviews and report another User's published review. Admins manage the catalogue, accounts, and moderation decisions.
 
 <page-nav-print />
 
@@ -19,7 +19,7 @@ FreshApples is a moderated movie-review community. Visitors can discover movies,
 3. Select a movie to read its details, reviews, review summary, and the review form.
 4. Select **Register** to create a User account, or **Sign in** if you already have one.
 5. After signing in, select your display name to open the User workspace. **My reviews** shows your review statuses and **My reports** shows reports you submitted.
-6. Admins can use the Admin dashboard to manage movies, announcements, reviews, and reports.
+6. Admins can use the Admin dashboard to manage movies, announcements, reviews, reports, and User account status.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -86,7 +86,7 @@ Admin accounts are provisioned through a controlled operator process and cannot 
 
 Your review is saved before automatic screening completes. The message identifies whether it is pending moderation, held for review, or published. A review must be cleared before it appears publicly or contributes to the movie's rating.
 
-Users can submit one review per movie. The current browser UI provides submission and status viewing; review editing and deletion controls are not exposed here.
+Each User can have one review per movie. When you return to a movie with an existing review, the form loads your saved rating and text. Edit either field and select **Save changes**. A body edit is checked again before becoming public; a rating-only edit retains the existing text clearance. Review deletion is not exposed in the current browser UI.
 
 #### 4.2 My reviews
 
@@ -99,6 +99,8 @@ Open **My reviews** from the User workspace. The list shows your review text, ra
 | **Held for review** | Not public and awaiting moderation. |
 
 Deleted and Admin-hidden reviews are not shown in the User list. Authors do not see private AI explanations or reports received about them.
+
+To edit a review from this list, open its movie link and use the review form on the movie details page. If the review changed elsewhere before you save, reload the latest version and submit your changes again.
 
 ### 5. Report a published review
 
@@ -197,7 +199,14 @@ Confirm the decision. Accepted reports may add one strike for the review inciden
 
 #### 8.5 Manage users
 
-**Admin > Users** is currently unavailable because its approved Admin read model has not been added. No user records or account-status controls are shown there yet.
+Open **Admin > Users** to view User accounts without exposing private credentials, sessions, reports, or other sensitive account details.
+
+1. Filter by **All users**, **Active**, or **Suspended**.
+2. Search by display-name substring with **Search users**.
+3. Select **Suspend** for an active User or **Reinstate** for a suspended User.
+4. Enter a reason of 10–1,000 characters and select **Confirm**.
+
+Suspending a User revokes the User's existing sessions immediately. Reinstating permits a fresh login but does not restore old sessions. These actions apply only to User accounts, not Admin accounts, and do not create or accept a Report.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -216,6 +225,7 @@ Confirm the decision. Accepted reports may add one strike for the review inciden
 * Review text is plain text of 10–2,000 characters.
 * Report explanations are plain text of 10–1,000 characters.
 * Report categories are profanity, harassment, hate, spam, and other.
+* Account suspension and reinstatement reasons are plain text of 10–1,000 characters.
 
 ### Admin catalogue and announcements
 
@@ -251,8 +261,8 @@ All user-generated text is treated as plain text. Do not paste HTML or scripts i
 **Q: Can I register as an Admin?**<br>
 **A:** No. Public registration always creates a User account.
 
-**Q: Why can an Admin not see user-management controls?**<br>
-**A:** The Users workspace is not available yet. The current Admin UI supports movie, announcement, review, and report workflows.
+**Q: What happens when an Admin suspends my account?**<br>
+**A:** Existing sessions are revoked and authenticated actions are blocked. Public browsing and sign-out remain available. Reinstatement permits a fresh login but does not restore old sessions.
 
 **Q: What should I do if a page cannot load?**<br>
 **A:** Use the page's retry control where provided, check your connection, and try again later. If a mutation result is unclear, check the relevant list before resubmitting.
@@ -274,5 +284,6 @@ All user-generated text is treated as plain text. Do not paste HTML or scripts i
 | Admin announcements | Create, edit, publish, and unpublish announcements | **Admin > Announcements** |
 | Admin review moderation | Filter, inspect, approve, hide, and restore reviews | **Admin > Reviews** |
 | Admin report moderation | Filter, inspect, accept, dismiss, and accept-and-hide reports | **Admin > Reports** |
+| Admin user management | Search, filter, suspend, and reinstate User accounts | **Admin > Users** |
 
 The application is a web interface; it does not require a command-line client or a local data file.
