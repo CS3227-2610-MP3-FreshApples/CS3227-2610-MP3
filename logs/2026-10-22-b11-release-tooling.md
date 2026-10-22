@@ -7,7 +7,7 @@
 - Human owner/reviewer: requesting developer; final verification pending.
 - Starting branch/revision: `fix-ui`, `2686b9be9d98f702ad6555897eaa525b11f3f7ad`; work branch `chore/deploy-release` preserves that committed baseline.
 - Roles: coordinator, analyst, architect, implementation specialists, code-quality/test generator, independent reviewer/tester.
-- Verification status: **awaiting human verification**. No agent approved merge or release.
+- Verification status: **reviewed**. No agent approved merge or release.
 
 ## 2. Goal and approved scope
 
@@ -57,9 +57,9 @@ Spec-driven review prevented seeds bypassing owning services. Real archive integ
 
 ## 12. Human verification
 
-- [ ] Summary matches the actual interaction and outcomes.
-- [ ] Requirement IDs/decisions are traceable and delegated choices labelled accurately.
-- [ ] Changed files and command evidence match the reviewed commits.
-- [ ] Secrets, credentials, personal data and production data are absent.
+- [x] Summary matches the actual interaction and outcomes.
+- [x] Requirement IDs/decisions are traceable and delegated choices labelled accurately.
+- [x] Changed files and command evidence match the reviewed commits.
+- [x] Secrets, credentials, personal data and production data are absent.
 
-Reviewer/date/corrections: awaiting human verification.
+Reviewer/date/corrections: Gabriel/22 Oct 2026/NIL
