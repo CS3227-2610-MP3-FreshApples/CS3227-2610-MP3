@@ -16,8 +16,11 @@ describe("Admin dashboard navigation", () => {
       { href: "/announcements", label: "Announcements" },
       { href: "/admin", label: "Admin Dashboard" },
     ]);
-    expect(publicNavigationForAccount({ displayName: "Member", role: "USER" }).at(-1))
-      .toEqual({ href: "/app", label: "Member" });
+    expect(publicNavigationForAccount({ displayName: "Member", role: "USER" })).toEqual([
+      { href: "/", label: "Home" },
+      { href: "/movies", label: "Movies" },
+      { href: "/announcements", label: "Announcements" },
+    ]);
   });
 
   it("offers all five management destinations", () => {

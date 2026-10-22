@@ -76,7 +76,7 @@ describe("U-01 public catalogue pages", () => {
         title: "Fresh Apples",
         releaseYear: 2026,
         genres: ["Drama"],
-        averageRating: 8.5,
+        averageRating: 8.567,
         reviewCount: 2,
       }],
       total: 1,
@@ -115,6 +115,7 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain("A plain synopsis.");
     expect(rendered).toContain("Director");
     expect(rendered).toContain("8.5/10 from 2 reviews");
+    expect(rendered).toContain('class="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800');
     expect(rendered).toContain('href="/movies"');
     expect(rendered).toContain("grid-cols-1");
     expect(rendered).toContain("Movie details");

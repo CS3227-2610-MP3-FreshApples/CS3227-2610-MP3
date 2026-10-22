@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
-import { useEffect, useState } from "react";
 
-import { publicNavigationForAccount, type NavigationLink, type PublicAccountIdentity } from "./navigation-data";
+import { useAuth } from "./auth-context";
+import { publicNavigationForAccount, type NavigationLink } from "./navigation-data";
 import { AdminHeaderAccountControl } from "./admin-header-account-control";
 
 type RouteNavigationProps = Readonly<{
   authAware?: boolean;
+  authLoadingLinks?: readonly NavigationLink[];
   links: readonly NavigationLink[];
   label: string;
   headerAction?: React.ReactNode;
@@ -17,32 +18,17 @@ type RouteNavigationProps = Readonly<{
 
 export function RouteNavigation(props: RouteNavigationProps) {
   return (
-    <Suspense fallback={<><RouteNavigationFallback label={props.label} links={props.links} />{props.headerAction}</>}>
+    <Suspense fallback={<><RouteNavigationFallback label={props.label} links={props.authLoadingLinks ?? props.links} />{props.headerAction}</>}>
       <RouteNavigationContent {...props} />
     </Suspense>
   );
 }
 
-function RouteNavigationContent({ authAware = false, links, label, headerAction }: RouteNavigationProps) {
+function RouteNavigationContent({ authAware = false, authLoadingLinks, links, label, headerAction }: RouteNavigationProps) {
   const pathname = usePathname();
-  const [account, setAccount] = useState<PublicAccountIdentity | null>(null);
-  useEffect(() => {
-    if (!authAware) return;
-    let active = true;
-    void fetch("/api/v1/auth/me", { cache: "no-store", credentials: "same-origin" })
-      .then(async (response) => response.ok ? response.json() as Promise<unknown> : null)
-      .then((value) => {
-        if (!active) return;
-        if (typeof value !== "object" || value === null) { setAccount(null); return; }
-        const candidate = value as Record<string, unknown>;
-        if (typeof candidate.displayName !== "string" || (candidate.role !== "USER" && candidate.role !== "ADMIN")) { setAccount(null); return; }
-        setAccount({ displayName: candidate.displayName, role: candidate.role });
-      })
-      .catch(() => { if (active) setAccount(null); });
-    return () => { active = false; };
-  }, [authAware, pathname]);
+  const { account, status, clearAccount } = useAuth();
 
-  const visibleLinks = authAware && account !== null ? publicNavigationForAccount(account) : links;
+  const visibleLinks = authAware && status === "loading" ? authLoadingLinks ?? links : authAware && account !== null ? publicNavigationForAccount(account) : links;
   const activeHref = pathname === null ? null : findActiveHref(pathname, visibleLinks);
 
   return (
@@ -69,7 +55,7 @@ function RouteNavigationContent({ authAware = false, links, label, headerAction 
         })}
       </ul>
     </nav>
-    {headerAction ?? (authAware && account?.role === "ADMIN" ? <AdminHeaderAccountControl displayName={account.displayName} onSignedOut={() => setAccount(null)} /> : null)}
+    {headerAction ?? (authAware && account?.role === "ADMIN" ? <AdminHeaderAccountControl displayName={account.displayName} onSignedOut={clearAccount} /> : null)}
     </>
   );
 }

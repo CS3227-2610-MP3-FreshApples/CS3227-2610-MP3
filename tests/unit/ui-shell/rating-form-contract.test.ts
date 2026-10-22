@@ -13,7 +13,7 @@ void missingFieldChild;
 describe("rating and form contracts", () => {
   it("exposes AggregateRating only through the approved rating primitive API", () => {
     const populated = renderToStaticMarkup(createElement(AggregateRating, {
-      average: 8.3,
+      average: 8.367,
       count: 12,
       emptyLabel: "No ratings yet",
     }));

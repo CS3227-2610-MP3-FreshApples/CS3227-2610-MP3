@@ -66,9 +66,9 @@ function fieldErrors(value: unknown): Readonly<Record<string, readonly string[]>
   return Object.keys(result).length > 0 ? result : undefined;
 }
 
-export function resolveAuthDestination(account: Pick<AuthAccount, "role" | "status">): "/" | "/admin" | null {
+export function resolveAuthDestination(account: Pick<AuthAccount, "role" | "status">): "/movies" | "/admin" | null {
   if (account.status !== "active") return null;
-  if (account.role === "USER") return "/";
+  if (account.role === "USER") return "/movies";
   if (account.role === "ADMIN") return "/admin";
   return null;
 }

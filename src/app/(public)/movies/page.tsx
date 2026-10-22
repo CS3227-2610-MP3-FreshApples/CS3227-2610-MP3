@@ -25,11 +25,7 @@ export default async function MoviesPage({ searchParams }: MoviesPageProps) {
   if (!query.ok) {
     return <InvalidMovieSearch />;
   }
-  if (publicCatalogueReadService === null) {
-    return <PublicReadUnavailable title="Movies" titleId="movies-title" />;
-  }
-
-  const result = await publicCatalogueReadService.listMovies(query.value);
+  const result = publicCatalogueReadService === null ? null : await publicCatalogueReadService.listMovies(query.value);
 
   return (
     <section className="space-y-8" aria-labelledby="movies-title">
@@ -53,6 +49,7 @@ export default async function MoviesPage({ searchParams }: MoviesPageProps) {
         <button className="inline-flex min-h-11 items-center justify-center rounded-md bg-blue-700 px-5 py-2.5 font-semibold text-white hover:bg-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2" type="submit">Search</button>
       </form>
 
+      {result === null ? <PublicReadUnavailable title="Movies" titleId="movies-unavailable-title" /> : <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm font-medium text-slate-600" role="status">{result.total} movie{result.total === 1 ? "" : "s"} found.</p>
         {query.value.q ? <Link className="text-sm font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2" href="/movies">Clear search</Link> : null}
@@ -79,6 +76,7 @@ export default async function MoviesPage({ searchParams }: MoviesPageProps) {
         </ul>
       )}
       <Pagination hrefForPage={(page) => moviePageHref(page, query.value.q, query.value.sort)} page={query.value.page} pageSize={PAGE_SIZE} total={result.total} />
+      </>}
     </section>
   );
 }
@@ -112,5 +110,5 @@ function readPage(value: string | readonly string[] | undefined): number {
 }
 
 function ratingLabel(averageRating: number | null, reviewCount: number): string {
-  return averageRating === null ? "No community ratings yet." : `${averageRating}/10 from ${reviewCount} reviews`;
+  return averageRating === null ? "No community ratings yet." : `${(Math.trunc(averageRating * 10) / 10).toFixed(1)}/10 from ${reviewCount} reviews`;
 }

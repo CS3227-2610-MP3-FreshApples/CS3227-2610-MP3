@@ -12,11 +12,12 @@ type RouteShellProps = Readonly<{
   authAware?: boolean;
   children: React.ReactNode;
   headerAction?: React.ReactNode;
+  authLoadingLinks?: readonly ShellLink[];
   links: readonly ShellLink[];
   title: string;
 }>;
 
-export function RouteShell({ authAware = false, children, headerAction, links, title }: RouteShellProps) {
+export function RouteShell({ authAware = false, authLoadingLinks, children, headerAction, links, title }: RouteShellProps) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950">
       <a
@@ -34,7 +35,7 @@ export function RouteShell({ authAware = false, children, headerAction, links, t
             {title}
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-4">
-            <RouteNavigation authAware={authAware} headerAction={headerAction} label={`${title} navigation`} links={links} />
+            <RouteNavigation authAware={authAware} authLoadingLinks={authLoadingLinks} headerAction={headerAction} label={`${title} navigation`} links={links} />
           </div>
         </div>
       </header>
