@@ -33,7 +33,7 @@ export function listUsers(page: number, filters: UserFilters, fetcher: Fetcher =
 
 export async function updateUserStatus(id: string, version: number, input: UserStatusInput, fetcher: Fetcher = fetch): Promise<AdminResult<AdminUser>> {
   const result = await adminWrite({ path: `${BASE}/${encodeURIComponent(id)}/status`, method: "PATCH", version, body: { status: input.status, reason: input.reason.trim() } }, jsonBody(isAdminUser), fetcher);
-  if (result.ok || result.kind !== "unavailable") return result;
+  if (result.ok || result.kind !== "unavailable" || !result.outcomeUnknown) return result;
 
   // A lost or malformed response does not undo a committed status change. Read back the safe
   // projection before suggesting a retry; never replay the mutation or accept stale/other-user data.

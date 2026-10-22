@@ -20,6 +20,7 @@ export type AdminFailure = Readonly<{
   kind: AdminFailureKind;
   message: string;
   fieldErrors?: FieldErrors;
+  outcomeUnknown?: true;
 }>;
 
 export type AdminResult<T> = Readonly<{ ok: true; value: T }> | AdminFailure;
@@ -192,12 +193,14 @@ export async function adminWrite<T>(
   accept: (response: Response) => Promise<T | null>,
   fetcher: Fetcher,
 ): Promise<AdminResult<T>> {
+  let dispatched = false;
   try {
     const token = await csrfToken(fetcher);
     if (token === null) return failure("unavailable");
     const headers: Record<string, string> = { "X-CSRF-Token": token };
     if (mutation.body !== undefined) headers["Content-Type"] = "application/json";
     if (mutation.version !== undefined) headers["If-Match"] = `"${mutation.version}"`;
+    dispatched = true;
     const response = await fetcher(mutation.path, {
       method: mutation.method,
       cache: "no-store",
@@ -205,12 +208,49 @@ export async function adminWrite<T>(
       headers,
       ...(mutation.body === undefined ? {} : { body: JSON.stringify(mutation.body) }),
     });
-    if (!response.ok) return failureFromResponse(response);
+    if (!response.ok) {
+      if (response.status === 412 || response.status >= 500) return uncertainWriteFailure();
+      return failureFromResponse(response);
+    }
     const value = await accept(response);
-    return value === null ? failure("unavailable") : { ok: true, value };
+    return value === null ? uncertainWriteFailure() : { ok: true, value };
   } catch {
-    return failure("unavailable");
+    return dispatched ? uncertainWriteFailure() : failure("unavailable");
   }
+}
+
+function uncertainWriteFailure(): AdminFailure {
+  return { ...failure("unavailable"), outcomeUnknown: true };
+}
+
+/** Verify an uncertain versioned write by reading current state, without replaying the mutation. */
+export async function recoverAdminWrite<T extends { readonly id: string; readonly version: number }>(
+  result: AdminResult<T>,
+  id: string,
+  version: number,
+  read: () => Promise<AdminResult<T>>,
+  matches: (current: T) => boolean,
+): Promise<AdminResult<T>> {
+  if (result.ok || result.kind !== "unavailable" || !result.outcomeUnknown) return result;
+  const current = await read();
+  return current.ok && current.value.id === id && current.value.version > version && matches(current.value)
+    ? current
+    : result;
+}
+
+/** Compare requested fields only, using the endpoint's explicit text-normalization rules. */
+export function matchesSavedFields(current: object, changes: object, trimmedFields: readonly string[]): boolean {
+  const requested = Object.entries(changes);
+  return requested.length > 0 && requested.every(([key, value]) => {
+    if (!Object.hasOwn(current, key)) return false;
+    const stored = (current as Record<string, unknown>)[key];
+    if (Array.isArray(value)) {
+      return Array.isArray(stored) && stored.length === value.length
+        && value.every((item, index) => stored[index] === (typeof item === "string" ? item.trim() : item));
+    }
+    const expected = typeof value === "string" && trimmedFields.includes(key) ? value.trim() : value;
+    return stored === expected;
+  });
 }
 
 /** Accepts a JSON body that matches `parse`. */
