@@ -87,7 +87,23 @@
     {
       "src": "Lim-ZY_Reflection.md",
       "title": "Zi Yang's Reflections",
-      "headings": {},
+      "headings": {
+        "zi-yang-s-reflection": "Zi Yang's Reflection",
+        "ai-security": "AI Security",
+        "what-attack-surfaces-did-i-consider": "What attack surfaces did I consider?",
+        "what-protections-did-i-implement-and-how-were-they-tested": "What protections did I implement, and how were they tested?",
+        "what-limits-and-human-oversight-did-i-use": "What limits and human oversight did I use?",
+        "spec-driven-development": "Spec-Driven Development",
+        "what-should-be-clear-before-implementation-starts": "What should be clear before implementation starts?",
+        "how-did-changes-flow-through-the-project": "How did changes flow through the project?",
+        "how-did-tests-check-intent-rather-than-wording": "How did tests check intent rather than wording?",
+        "basic-multi-agent-software-engineering": "Basic Multi-Agent Software Engineering",
+        "which-parts-benefited-from-specialised-agents": "Which parts benefited from specialised agents?",
+        "how-should-specialised-agents-be-built-and-tested": "How should specialised agents be built and tested?",
+        "what-information-must-pass-between-agents": "What information must pass between agents?",
+        "where-could-errors-or-malicious-instructions-slip-through": "Where could errors or malicious instructions slip through?",
+        "overall-reflection": "Overall reflection"
+      },
       "headingKeywords": {}
     },
     {
