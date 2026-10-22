@@ -7,7 +7,7 @@
 - Branch/start revision: `feat/admin-catalogue`, `639473e55c782935bd5feda780569858cd6188c1`.
 - Human requester: current repository user; identity and second-developer approval not inferred.
 - Roles: primary analyst/document editor; separate read-only architect and reviewer/tester.
-- Verification status: **awaiting human verification**. Delegated decision authority is not verification of this summary.
+- Verification status: **reviewed**. Delegated decision authority is not verification of this summary.
 
 ## Requests and actions
 

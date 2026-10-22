@@ -39,7 +39,7 @@ States: `Blocked` → `Draft` → `Spec review` → `Ready` → `Implementing` �
 | R-01 | Both | AI evaluation and security fixtures (both features) | U-04, A-03 | 20 Oct | **In progress: feature dependencies are available; A#11/B#12 fixture work remains.** |
 | R-02 | Both | End-to-end journeys, access matrix, accessibility checks | All U/A | 20 Oct | **In progress: feature dependencies are available; A#11/B#12 journey, access-matrix and accessibility evidence remains.** |
 | R-03 | Both | Development-agent rehearsal and evaluation evidence | S-00 | 16 Oct | Blocked |
-| R-04 | B (lead), A reviews | Deployment pipeline, crons, backup/restore, rollback rehearsal | S-03 | 21 Oct | Blocked |
+| R-04 | B (lead), A reviews | Deployment pipeline, crons, backup/restore, rollback rehearsal | S-03 | 21 Oct | B#11 tooling implemented and locally validated; hosted storage/scheduling, deployment and rollback evidence remain operator prerequisites. See `workflow/handoffs/B-11/2026-10-22-release-tooling.md` |
 | R-05 | Both | Guides, website, reflections, logs, traceability, submission audit | All | 22–23 Oct | Blocked |
 
 Optional FR-10 (watchlist, AT-15) is **not scheduled** (OQ-07). Start it only after a human records that core scope is on track.
