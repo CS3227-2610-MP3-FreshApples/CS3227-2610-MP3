@@ -90,7 +90,7 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain("grid-cols-1");
     expect(rendered).toContain('href="/movies"');
     expect(rendered).toContain("Clear search");
-    expect(rendered).toContain("8.56/10 from 2 reviews");
+    expect(rendered).toContain("8.5/10 from 2 reviews");
   });
 
   it("renders public movie metadata and aggregates without a review listing", async () => {
@@ -114,7 +114,8 @@ describe("U-01 public catalogue pages", () => {
     expect(rendered).toContain("Fresh Apples");
     expect(rendered).toContain("A plain synopsis.");
     expect(rendered).toContain("Director");
-    expect(rendered).toContain("8.50/10 from 2 reviews");
+    expect(rendered).toContain("8.5/10 from 2 reviews");
+    expect(rendered).toContain('class="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800');
     expect(rendered).toContain('href="/movies"');
     expect(rendered).toContain("grid-cols-1");
     expect(rendered).toContain("Movie details");

@@ -24,7 +24,7 @@ describe("rating and form contracts", () => {
     }));
 
     expect(formPrimitives).not.toHaveProperty("AggregateRating");
-    expect(populated).toContain("8.36/10");
+    expect(populated).toContain("8.3/10");
     expect(empty).toContain("No ratings yet");
   });
 });

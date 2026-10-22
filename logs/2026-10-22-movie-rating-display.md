@@ -1,23 +1,23 @@
 # Movie rating display session
 
 Date: 2026-10-22, Asia/Singapore  
-Task: Limit frontend movie rating averages to two decimal places.  
+Task: Limit frontend movie rating averages to one decimal place.
 Human owner/reviewer: awaiting assignment  
 Verification status: awaiting human verification
 
 ## Request and scope
 
-The human requested that movie rating scores be truncated to two decimal
-places in the frontend. The change is presentation-only; stored and API
-values remain unchanged.
+The human requested that movie rating scores be truncated to one decimal
+place in the frontend. The change is presentation-only; stored and API values
+remain unchanged.
 
 ## Changes
 
 - Formatted average ratings on the public movie list and movie details pages
-  by truncating to two decimal places and preserving two displayed digits.
-- Updated the shared aggregate-rating primitive to use the same two-decimal
+  by truncating to one decimal place.
+- Updated the shared aggregate-rating primitive to use the same one-decimal
   presentation.
-- Updated UI tests for the fixed two-decimal output, including trailing zeroes.
+- Updated UI tests for the fixed one-decimal output.
   Regression cases verify that values are truncated rather than rounded.
 
 ## Verification

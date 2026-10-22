@@ -17,6 +17,6 @@ export function AggregateRating({ average, count, emptyLabel }: AggregateRatingP
     return <span aria-label={emptyLabel}>{emptyLabel}</span>;
   }
 
-  const displayAverage = (Math.trunc(average * 100) / 100).toFixed(2);
+  const displayAverage = (Math.trunc(average * 10) / 10).toFixed(1);
   return <span aria-label={`Average rating ${displayAverage} out of 10 from ${count} ratings`}>{displayAverage}/10</span>;
 }

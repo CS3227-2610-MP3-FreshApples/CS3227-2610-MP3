@@ -110,5 +110,5 @@ function readPage(value: string | readonly string[] | undefined): number {
 }
 
 function ratingLabel(averageRating: number | null, reviewCount: number): string {
-  return averageRating === null ? "No community ratings yet." : `${(Math.trunc(averageRating * 100) / 100).toFixed(2)}/10 from ${reviewCount} reviews`;
+  return averageRating === null ? "No community ratings yet." : `${(Math.trunc(averageRating * 10) / 10).toFixed(1)}/10 from ${reviewCount} reviews`;
 }

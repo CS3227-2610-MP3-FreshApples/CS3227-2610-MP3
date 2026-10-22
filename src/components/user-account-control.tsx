@@ -33,7 +33,7 @@ export function UserAccountControl() {
     setMessage(result.message);
   }
 
-  if (account?.role === "ADMIN") return <AdminHeaderAccountControl displayName={account.displayName} />;
+  if (account?.role === "ADMIN") return <AdminHeaderAccountControl displayName={account.displayName} onSignedOut={clearAccount} />;
 
   const accountOverviewActive = pathname === "/app" || pathname === "/app/reviews" || pathname === "/app/reports";
 

@@ -11,6 +11,7 @@ export const logoutAdmin = adminLogout;
 export function AdminAccountControl() {
   const router = useRouter();
   const [account, setAccount] = useState<AdminAccount | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -29,5 +30,6 @@ export function AdminAccountControl() {
     return () => { active = false; };
   }, [router]);
 
-  return <AdminHeaderAccountControl displayName={account?.displayName ?? "Loading account…"} />;
+  if (signedOut) return null;
+  return <AdminHeaderAccountControl displayName={account?.displayName ?? "Loading account…"} onSignedOut={() => { setSignedOut(true); }} />;
 }
