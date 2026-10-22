@@ -13,7 +13,7 @@ void missingFieldChild;
 describe("rating and form contracts", () => {
   it("exposes AggregateRating only through the approved rating primitive API", () => {
     const populated = renderToStaticMarkup(createElement(AggregateRating, {
-      average: 8.3,
+      average: 8.367,
       count: 12,
       emptyLabel: "No ratings yet",
     }));
@@ -24,7 +24,7 @@ describe("rating and form contracts", () => {
     }));
 
     expect(formPrimitives).not.toHaveProperty("AggregateRating");
-    expect(populated).toContain("8.3/10");
+    expect(populated).toContain("8.36/10");
     expect(empty).toContain("No ratings yet");
   });
 });

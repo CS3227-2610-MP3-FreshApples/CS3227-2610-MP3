@@ -86,6 +86,6 @@ describe("K12 UI primitives", () => {
 
   it("formats direct and aggregate ratings according to the product examples", () => {
     expect(html(createElement(RatingInput, { id: "rating", value: 8 }))).toContain("8/10");
-    expect(html(createElement(AggregateRating, { average: 8.3, count: 12, emptyLabel: "No ratings yet" }))).toContain("8.3/10");
+    expect(html(createElement(AggregateRating, { average: 8.367, count: 12, emptyLabel: "No ratings yet" }))).toContain("8.36/10");
   });
 });
