@@ -10,6 +10,14 @@ body {
 }
 
 @layer base {
+  button {
+    transition: filter 150ms ease;
+  }
+
+  button:enabled:not([aria-disabled="true"]):hover {
+    filter: brightness(0.92);
+  }
+
   :where(a[href], button, summary, select, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], [role="button"]):not(:disabled):not([aria-disabled="true"]) {
     cursor: pointer;
   }

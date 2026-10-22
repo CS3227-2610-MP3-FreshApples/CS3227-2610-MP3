@@ -55,7 +55,7 @@ const MESSAGES: Record<AdminFailureKind, string> = {
   unauthenticated: "Your session has ended. Sign in again to continue.",
   forbidden: "Only active Admins can use this page.",
   rate_limited: "Too many requests. Please wait a moment and try again.",
-  unavailable: "The service is temporarily unavailable. Nothing was saved; please try again.",
+  unavailable: "The service is temporarily unavailable. Refresh the page to check the current state before trying again.",
 };
 
 const CSRF_FAILED_MESSAGE = "Your security check expired. Reload the page and try again.";

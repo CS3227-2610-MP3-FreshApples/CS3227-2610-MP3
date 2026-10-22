@@ -31,8 +31,16 @@ export function listUsers(page: number, filters: UserFilters, fetcher: Fetcher =
   return adminRead(`${BASE}?${pageQuery(page)}&${filtersQuery(filters)}`, (body): body is ListPage<AdminUser> => isListPage(body, isAdminUser), fetcher);
 }
 
-export function updateUserStatus(id: string, version: number, input: UserStatusInput, fetcher: Fetcher = fetch): Promise<AdminResult<AdminUser>> {
-  return adminWrite({ path: `${BASE}/${encodeURIComponent(id)}/status`, method: "PATCH", version, body: { status: input.status, reason: input.reason.trim() } }, jsonBody(isAdminUser), fetcher);
+export async function updateUserStatus(id: string, version: number, input: UserStatusInput, fetcher: Fetcher = fetch): Promise<AdminResult<AdminUser>> {
+  const result = await adminWrite({ path: `${BASE}/${encodeURIComponent(id)}/status`, method: "PATCH", version, body: { status: input.status, reason: input.reason.trim() } }, jsonBody(isAdminUser), fetcher);
+  if (result.ok || result.kind !== "unavailable") return result;
+
+  // A lost or malformed response does not undo a committed status change. Read back the safe
+  // projection before suggesting a retry; never replay the mutation or accept stale/other-user data.
+  const current = await adminRead(`${BASE}/${encodeURIComponent(id)}`, isAdminUser, fetcher);
+  return current.ok && current.value.id === id && current.value.status === input.status && current.value.version > version
+    ? current
+    : result;
 }
 
 export function validateUserReason(reason: string): string {

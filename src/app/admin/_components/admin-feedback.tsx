@@ -4,9 +4,9 @@ import { StatusMessage } from "../../../components/status-primitives";
 import type { AdminFailure } from "../_lib/admin-http";
 
 export const primaryButtonClass =
-  "rounded-md bg-blue-700 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-60";
+  "rounded-md bg-blue-700 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-60 disabled:hover:bg-blue-700";
 export const secondaryButtonClass =
-  "rounded-md border border-slate-400 px-3 py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-60";
+  "rounded-md border border-slate-400 bg-white px-3 py-1 transition-colors enabled:hover:border-blue-700 enabled:hover:bg-blue-50 enabled:hover:text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 disabled:opacity-60";
 export const linkClass = "text-blue-700 underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700";
 
 type LoadFailureProps = Readonly<{
