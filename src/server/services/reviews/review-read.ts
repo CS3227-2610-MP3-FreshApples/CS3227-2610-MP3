@@ -15,6 +15,8 @@ export interface PublicReview {
 
 export interface OwnReview extends PublicReview {
   readonly moderationState: ModerationState;
+  /** Safe optimistic-concurrency token needed for the owner's PATCH/DELETE actions. */
+  readonly version: number;
 }
 
 /** Public Review projection from api.md 8.1; private moderation and account fields are omitted. */
@@ -32,5 +34,5 @@ export function projectPublicReview(record: ReviewRecord): PublicReview {
 
 /** Own-Review projection adds only the safe moderation state promised by GET /me/reviews. */
 export function projectOwnReview(record: ReviewRecord): OwnReview {
-  return { ...projectPublicReview(record), moderationState: record.moderationState };
+  return { ...projectPublicReview(record), moderationState: record.moderationState, version: record.version };
 }

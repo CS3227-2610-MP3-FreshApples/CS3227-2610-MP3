@@ -12,6 +12,7 @@ export type OwnReviewView = Readonly<{
   createdAt: string;
   updatedAt: string;
   moderationState: "pending" | "flagged" | "cleared";
+  version: number;
 }>;
 
 export type ReviewPage = Readonly<{ items: readonly OwnReviewView[]; page: number; pageSize: number; total: number }>;
@@ -41,6 +42,9 @@ function isOwnReview(value: unknown): value is OwnReviewView {
     && typeof review.body === "string"
     && typeof review.createdAt === "string"
     && typeof review.updatedAt === "string"
+    && typeof review.version === "number"
+    && Number.isSafeInteger(review.version)
+    && review.version >= 1
     && (review.moderationState === "pending" || review.moderationState === "flagged" || review.moderationState === "cleared");
 }
 
@@ -68,6 +72,28 @@ export async function listOwnReviews(page: number, fetcher: Fetcher = fetch): Pr
     return isReviewPage(body) ? { ok: true, value: body } : { ok: false, message: "We could not load your reviews. Please try again." };
   } catch {
     return { ok: false, message: "We could not load your reviews. Please try again." };
+  }
+}
+
+export type OwnReviewMutationInput = Readonly<{ rating?: number; body?: string }>;
+
+export async function updateOwnReview(reviewId: string, version: number, input: OwnReviewMutationInput, fetcher: Fetcher = fetch): Promise<ReviewResult<OwnReviewView>> {
+  try {
+    const csrfResponse = await fetcher("/api/v1/auth/csrf", { cache: "no-store", credentials: "same-origin" });
+    if (!csrfResponse.ok) return { ok: false, message: "Your session has ended. Sign in again to continue." };
+    const csrfBody = record(await csrfResponse.json());
+    if (typeof csrfBody?.csrfToken !== "string") return { ok: false, message: "We could not prepare your review. Please try again." };
+    const response = await fetcher(`/api/v1/reviews/${encodeURIComponent(reviewId)}`, {
+      body: JSON.stringify(input),
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json", "If-Match": `"${version}"`, "X-CSRF-Token": csrfBody.csrfToken },
+      method: "PATCH",
+    });
+    if (!response.ok) return { ok: false, message: response.status === 409 ? "This review changed. Reload it before saving again." : "We could not save your review. Please try again." };
+    const body: unknown = await response.json();
+    return isOwnReview(body) ? { ok: true, value: body } : { ok: false, message: "We could not save your review. Please try again." };
+  } catch {
+    return { ok: false, message: "We could not save your review. Please try again." };
   }
 }
 
