@@ -19,7 +19,7 @@ FreshApples is a moderated movie-review community. Visitors can discover movies,
 3. Select a movie to read its details, reviews, review summary, and the review form.
 4. Select **Register** to create a User account, or **Sign in** if you already have one.
 5. After signing in, select your display name to open the User workspace. **My reviews** shows your review statuses and **My reports** shows reports you submitted.
-6. Admins can use the Admin dashboard to manage movies, announcements, reviews, reports, and User account status.
+6. Admins can use the Admin dashboard to manage movies, announcements, reviews, reports, and User account status. The **Admin Dashboard** link remains available from the public header while signed in.
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -35,7 +35,8 @@ The header provides these links:
 | **Movies** | Search the catalogue and open movie details. |
 | **Announcements** | Read published announcements. |
 | **Sign in** / **Register** | Access account features when signed out. |
-| Your display name | Open the User or Admin workspace when signed in. |
+| Your display name | Open the User workspace when signed in as a User. |
+| **Admin Dashboard** | Open the Admin workspace when signed in as an Admin. |
 
 Use **Back to movies** on a movie page to return to the catalogue. Keyboard users can use **Skip to main content**.
 
@@ -73,6 +74,8 @@ Select **Sign in**, enter your email address and password, and submit the form. 
 Sign-in errors are intentionally general and do not reveal whether an account exists or is suspended. Suspended Users may browse public pages and sign out, but cannot use authenticated features.
 
 Admin accounts are provisioned through a controlled operator process and cannot be created through public registration. Self-service password recovery is not available in this release.
+
+When signed in as an Admin, the display name and **Sign out** control remain available in the site header, including on public Home, Movies, Announcements, and authentication pages. Signing out returns you to the signed-out public navigation.
 
 ### 4. User reviews
 
@@ -143,7 +146,7 @@ The public **Announcements** page lists published announcements by publication t
 
 ### 8. Admin workspace
 
-Only Admin accounts can use the Admin dashboard. Admin actions require a reason where stated and are recorded in the private audit history.
+Only Admin accounts can use the Admin dashboard. Admin actions require a reason where stated and are recorded in the private audit history. Admin subpages provide **Back to admin dashboard** so you can return to the workspace overview.
 
 #### 8.1 Manage movies
 
@@ -260,6 +263,9 @@ All user-generated text is treated as plain text. Do not paste HTML or scripts i
 
 **Q: Can I register as an Admin?**<br>
 **A:** No. Public registration always creates a User account.
+
+**Q: Where can I sign out as an Admin?**<br>
+**A:** The Admin display name and red **Sign out** control are available in the site header on both public pages and Admin pages.
 
 **Q: What happens when an Admin suspends my account?**<br>
 **A:** Existing sessions are revoked and authenticated actions are blocked. Public browsing and sign-out remain available. Reinstatement permits a fresh login but does not restore old sessions.
