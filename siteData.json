@@ -25,6 +25,13 @@
       "title": "Developer Guide",
       "headings": {
         "developer-guide": "Developer Guide",
+        "release-setup-and-operator-runbook-b-11-r-04": "Release setup and operator runbook (B#11 / R-04)",
+        "manual-vercel-configuration": "Manual Vercel configuration",
+        "manual-supabase-configuration-and-first-admin": "Manual Supabase configuration and first Admin",
+        "encrypted-backups-and-guarded-migrations": "Encrypted backups and guarded migrations",
+        "isolated-restore-and-rollback": "Isolated restore and rollback",
+        "synthetic-local-demonstration-data": "Synthetic local demonstration data",
+        "release-evidence-checklist": "Release evidence checklist",
         "admin-review-api-a-04": "Admin Review API (A-04)",
         "database-roles-operator-step": "Database roles (operator step)"
       },
