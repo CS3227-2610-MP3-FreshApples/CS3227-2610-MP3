@@ -83,6 +83,7 @@ describe("Review safe projections", () => {
     expect(projectOwnReview(RECORD)).toEqual({
       ...projectPublicReview(RECORD),
       moderationState: "cleared",
+      version: RECORD.version,
     });
     expect(projectOwnReview(RECORD)).not.toHaveProperty("hiddenAt");
     expect(projectOwnReview(RECORD)).not.toHaveProperty("deletedAt");

@@ -9,6 +9,24 @@ body {
   background: #f8fafc;
 }
 
+@layer base {
+  button {
+    transition: filter 150ms ease;
+  }
+
+  button:enabled:not([aria-disabled="true"]):hover {
+    filter: brightness(0.92);
+  }
+
+  :where(a[href], button, summary, select, input[type="button"], input[type="submit"], input[type="reset"], input[type="checkbox"], input[type="radio"], [role="button"]):not(:disabled):not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  :where(button, select, input, [role="button"], a[href]):is(:disabled, [aria-disabled="true"]) {
+    cursor: not-allowed;
+  }
+}
+
 label {
   display: block;
   color: #0f172a;

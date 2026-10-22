@@ -240,6 +240,14 @@ Admin: sign in, open the separate dashboard, manage catalogue/announcements, ins
 
 ### 5.2 UI Requirements
 
+Persistent Admin header controls (requester-approved, 22 October 2026): while signed in as an Admin, show the display name and red Sign out button at the right of every site header, including Home and public browsing/authentication pages. Public pages remain available to anonymous visitors without an authentication redirect; do not duplicate controls in the Admin workspace. Retain CSRF-protected sign-out, sign-in redirection on successful logout and inline feedback on failure.
+
+Committed catalogue/editorial mutation recovery (requester-approved, 22 October 2026): after an uncertain movie edit/archive/restore or announcement edit/publish/unpublish response, read the resource without caching. Report success only when the same resource has a newer version and all requested normalized fields or lifecycle state match; otherwise retain accurate failure feedback and draft text. Do not replay mutations or suppress validation, authorization or stale-write failures. Creation without a returned resource ID remains uncertain rather than risking duplicate records.
+
+Popup and feedback refinements (requester-approved, 22 October 2026): confirmation dialogs have clearly separated, styled Cancel and Confirm controls, a modal backdrop, constrained scrolling on small screens, keyboard focus containment and restoration. All enabled buttons provide visible hover feedback. Admin mutation failures must not claim "Nothing was saved" when a response is lost or cannot be validated after dispatch; users must be able to refresh state before retrying. Successful user suspension/reinstatement updates the visible list without a manual browser refresh.
+
+Admin navigation refinements (requester-approved, 22 October 2026): the authenticated Admin header link next to Announcements reads "Admin Dashboard". The dashboard links to movie, announcement, review, report (B#9), and user (B#10) management. Every Admin subpage, including create/edit/detail views, provides a "Back to admin dashboard" link. The Admin sign-out button is red with visible hover and keyboard-focus states. Enabled clickable controls show a pointer cursor; disabled controls retain a disabled cursor.
+
 Use a simple responsive text-first layout. Label rating inputs and displayed ratings as out of 10 (for example, 8/10); show aggregate ratings to one decimal (for example, 8.3/10). Separate /app and /admin navigation, with public pages served at the root (D-21); shared inputs, validation messages and tables use common components. Include loading, empty, error, stale and success states. Preserve form text after a recoverable failure. Confirm archive and moderation actions. AI output must be labelled, distinguishable from source reviews and accompanied by limitations. A visible "All reports" reset prevents filters from concealing pending work.
 
 ### 5.3 Accessibility Requirements

@@ -15,5 +15,5 @@ export function publicNavigationForAccount(account: PublicAccountIdentity | null
     { href: "/announcements", label: "Announcements" },
   ];
   if (account === null) return [...baseLinks, { href: "/sign-in", label: "Sign in" }, { href: "/register", label: "Register" }];
-  return [...baseLinks, { href: account.role === "ADMIN" ? "/admin" : "/app", label: account.displayName }];
+  return [...baseLinks, { href: account.role === "ADMIN" ? "/admin" : "/app", label: account.role === "ADMIN" ? "Admin Dashboard" : account.displayName }];
 }

@@ -7,7 +7,7 @@
 - Branch/start revision: `feat/admin-catalogue`, `73c81ed`.
 - Human requester: Developer B (thegrimbee). Developer A (Lim-ZY) approval is recorded only as reported by Developer B.
 - Roles: single agent session acting as reviewer and document editor. No subagents.
-- Verification status: **awaiting human verification**.
+- Verification status: **reviewed**.
 
 ## Requests and actions
 
@@ -37,7 +37,7 @@
 
 ## Human verification
 
-- [ ] Summary matches actual requests/actions and decision authority.
-- [ ] File list, check evidence and commit scope are accurate.
-- [ ] No secrets, personal/production data or unsupported approval claims.
-- Reviewer/date:
+- [x] Summary matches actual requests/actions and decision authority.
+- [x] File list, check evidence and commit scope are accurate.
+- [x] No secrets, personal/production data or unsupported approval claims.
+- Reviewer/date: Gabriel / 22 Oct 2026

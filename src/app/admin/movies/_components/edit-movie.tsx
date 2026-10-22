@@ -68,7 +68,7 @@ export function EditMovie({ movieId }: EditMovieProps) {
               setSaved("");
               const result = await updateMovie(movieId, state.value.version, changes);
               if (!result.ok) {
-                setStale(result.kind === "stale");
+                setStale(result.kind === "stale" || result.kind === "unavailable");
                 return result;
               }
               setStale(false);

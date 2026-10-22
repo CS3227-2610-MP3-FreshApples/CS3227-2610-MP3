@@ -4,6 +4,8 @@ import {
   isListPage,
   isRecord,
   jsonBody,
+  matchesSavedFields,
+  recoverAdminWrite,
   pageQuery,
   type AdminResult,
   type Fetcher,
@@ -72,17 +74,24 @@ export function createAnnouncement(input: AnnouncementContentWrite, fetcher: Fet
   return adminWrite({ path: BASE, method: "POST", body: input }, jsonBody(isAdminAnnouncement), fetcher);
 }
 
-export function updateAnnouncement(
+export async function updateAnnouncement(
   announcementId: string,
   version: number,
   changes: AnnouncementPatch,
   fetcher: Fetcher = fetch,
 ): Promise<AdminResult<AdminAnnouncementView>> {
-  return adminWrite(
+  const result = await adminWrite(
     { path: announcementPath(announcementId), method: "PATCH", body: changes, version },
     jsonBody(isAdminAnnouncement),
     fetcher,
   );
+  return recoverAdminWrite(result, announcementId, version, () => getAnnouncement(announcementId, fetcher),
+    (current) => current.state !== "deleted" && matchesSavedFields({
+      title: current.title, body: current.body, movieId: current.movieId, state: current.state,
+    }, {
+      ...changes,
+      ...(typeof changes.movieId === "string" ? { movieId: changes.movieId.toLowerCase() } : {}),
+    }, ["title", "body"]));
 }
 
 /** Converts the form's text to content; an empty Movie ID means no reference. */

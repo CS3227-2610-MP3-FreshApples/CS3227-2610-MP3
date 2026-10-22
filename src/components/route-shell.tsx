@@ -34,8 +34,7 @@ export function RouteShell({ authAware = false, children, headerAction, links, t
             {title}
           </Link>
           <div className="flex flex-wrap items-center justify-end gap-4">
-            <RouteNavigation authAware={authAware} label={`${title} navigation`} links={links} />
-            {headerAction}
+            <RouteNavigation authAware={authAware} headerAction={headerAction} label={`${title} navigation`} links={links} />
           </div>
         </div>
       </header>

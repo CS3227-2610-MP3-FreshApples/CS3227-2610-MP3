@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 695" role="img" aria-labelledby="title desc">
+<title id="title">Human Report acceptance transaction</title>
+<desc id="desc">An active Admin submits a reasoned version-checked acceptance. One transaction locks Account, Movie, Review and Report, records the Decision and distinct strike, optionally hides the Review, suspends at threshold, revokes sessions and audits. Dismissal closes without a strike. AI cannot execute these actions.</desc>
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#486176"/></marker></defs>
+<rect width="900" height="695" rx="16" fill="#f5f8fb"/>
+<g font-family="Arial, sans-serif" fill="#17324d">
+<text x="30" y="38" font-size="25" font-weight="700">Human Report acceptance transaction</text>
+<text x="30" y="67" font-size="16">Human intent enters through the API; domain services own the effects.</text>
+<rect x="30" y="90" width="840" height="88" rx="10" fill="white" stroke="#aac1d2" stroke-width="2"/><text x="450" y="116" text-anchor="middle" font-size="19" font-weight="700">Active Admin confirms acceptance</text><text x="450" y="141" text-anchor="middle" font-size="16">Reason + optional hide_review + current Report If-Match</text><text x="450" y="163" text-anchor="middle" font-size="16">Handler validates session, Origin, CSRF and strict request fields</text>
+<path d="M450 178 L450 201" stroke="#486176" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="30" y="205" width="840" height="88" rx="10" fill="white" stroke="#aac1d2" stroke-width="2"/><text x="450" y="231" text-anchor="middle" font-size="19" font-weight="700">Lock and recheck in one transaction</text><text x="450" y="256" text-anchor="middle" font-size="16">Account &#8594; Movie &#8594; Review &#8594; Report</text><text x="450" y="278" text-anchor="middle" font-size="16">Check current Report version and open state; recompute effects</text>
+<path d="M450 293 L450 316" stroke="#486176" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="30" y="320" width="840" height="88" rx="10" fill="white" stroke="#aac1d2" stroke-width="2"/><text x="450" y="346" text-anchor="middle" font-size="19" font-weight="700">Record Decision and apply owned transitions</text><text x="450" y="371" text-anchor="middle" font-size="16">At most one lifetime strike per target User / Review incident</text><text x="450" y="393" text-anchor="middle" font-size="16">Optional hiding through Reviews; suspension and session revocation through Identity</text>
+<path d="M450 408 L450 431" stroke="#486176" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="30" y="435" width="840" height="88" rx="10" fill="white" stroke="#aac1d2" stroke-width="2"/><text x="450" y="461" text-anchor="middle" font-size="19" font-weight="700">Close Report, record audit, commit</text><text x="450" y="486" text-anchor="middle" font-size="16">Threshold uses current-cycle distinct strikes; default is three</text><text x="450" y="508" text-anchor="middle" font-size="16">Any transactional failure rolls back the combined effects</text>
+<path d="M450 523 L450 546" stroke="#486176" stroke-width="2" fill="none" marker-end="url(#a)"/>
+<rect x="30" y="550" width="840" height="88" rx="10" fill="white" stroke="#aac1d2" stroke-width="2"/><text x="450" y="576" text-anchor="middle" font-size="19" font-weight="700">Return stored result and new Report ETag</text><text x="450" y="601" text-anchor="middle" font-size="16">Updated Report + Decision + strikeAdded + accountStatus</text><text x="450" y="623" text-anchor="middle" font-size="16">UI reloads current evidence and state</text>
+<text x="30" y="665" font-size="16">Dismissal closes and audits without a strike. AI never decides Reports or changes accounts.</text>
+</g></svg>

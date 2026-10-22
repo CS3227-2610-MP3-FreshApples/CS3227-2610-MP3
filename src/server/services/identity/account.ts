@@ -13,6 +13,27 @@ import {
 } from "../../repositories/identity";
 import { validatePassword } from "./password-policy";
 
+export const ADMIN_USER_STATUSES = ["active", "suspended"] as const;
+export type AdminUserStatusFilter = (typeof ADMIN_USER_STATUSES)[number];
+
+export interface AdminUserFilters {
+  readonly status: AdminUserStatusFilter | null;
+  readonly q: string | null;
+}
+
+export function parseAdminUserFilters(query: URLSearchParams): Result<AdminUserFilters, FieldErrors> {
+  const errors: Record<string, string[]> = {};
+  const rawStatus = query.get("status");
+  const rawQuery = query.get("q");
+  const status = rawStatus === null ? null : ADMIN_USER_STATUSES.includes(rawStatus as AdminUserStatusFilter) ? rawStatus as AdminUserStatusFilter : null;
+  const q = rawQuery === null ? null : rawQuery.trim();
+
+  if (rawStatus !== null && status === null) errors.status = ["invalid status filter"];
+  if (q !== null && Array.from(q).length > 200) errors.q = ["must be at most 200 characters"];
+  if (Object.keys(errors).length > 0) return { ok: false, error: errors };
+  return { ok: true, value: { status, q: q === null || q.length === 0 ? null : q } };
+}
+
 export { validatePassword };
 
 const ASCII_WHITESPACE = /^[\x09-\x0d\x20]+|[\x09-\x0d\x20]+$/g;
