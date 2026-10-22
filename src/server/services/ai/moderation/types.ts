@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ContentRevision, ReviewId, Tx } from "../../../shared";
+import type { ContentRevision, RequestId, ReviewId, Tx } from "../../../shared";
 
 /**
  * K9 ModerationWork writes (workflow/contracts.md §12, §22 AM-14, §23 AM-17; D-50, D-58).
@@ -35,4 +35,13 @@ export type ScreeningAttempt = "cleared" | "flagged" | "deferred" | "manual_revi
 export interface ModerationDispatcher {
   /** After commit, no Tx open. Bounded by AI_EXECUTION_DEADLINE_MS. Never throws; any fault → "deferred". */
   attemptAfterCommit(reviewId: ReviewId, contentRevision: ContentRevision): Promise<ScreeningAttempt>;
+}
+
+/** B-internal, not part of K9 (contracts §29, AM-27): the review-moderation sweep's attempt (D-101). */
+export interface ModerationRecovery {
+  /**
+   * Same rules as `attemptAfterCommit`, with trigger `scheduler` and no requester (D-64). Call it with no Tx open.
+   * Never throws; any fault → "deferred".
+   */
+  attemptFromSweep(reviewId: ReviewId, contentRevision: ContentRevision, requestId: RequestId): Promise<ScreeningAttempt>;
 }
