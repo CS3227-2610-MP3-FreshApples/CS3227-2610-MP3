@@ -75,7 +75,7 @@ describe("K12 component contract", () => {
   it("renders textual status and approved rating/aggregate empty states", () => {
     expect(html(createElement(StatusBadge, { label: "Awaiting review", tone: "warning" }))).toContain("Awaiting review");
     expect(html(createElement(RatingValue, { value: 8 }))).toContain("8/10");
-    expect(html(createElement(AggregateRating, { average: 8.3, count: 12, emptyLabel: "No ratings yet" }))).toContain("8.3/10");
+    expect(html(createElement(AggregateRating, { average: 8.367, count: 12, emptyLabel: "No ratings yet" }))).toContain("8.3/10");
     expect(html(createElement(AggregateRating, { average: null, count: 0, emptyLabel: "No ratings yet" }))).toContain("No ratings yet");
   });
 

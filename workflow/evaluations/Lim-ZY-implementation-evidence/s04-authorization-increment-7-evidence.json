@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-authorization-increment-7",
+  "iteration_number": 7,
+  "approved_plan_item": "Increment 7 -- make authorization denial prove no mutation",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved checklist is _temp/s04-review-remediation-plan.md; Gate B assigns guessed-report-ID behavior to U-03 and final system AT-01 closure to R-02."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "After the Increment 6 handoff, the human explicitly said: Great proceed with the next iteration."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "Complete working tree copied outside the repository to /tmp/s04-inc7-baseline.6ZkijT/repo excluding only the real .git directory; temporary baseline commit eb1b5f2f96f19624508da4b787f47e532a953dbe."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "TEST_DATABASE_URL=<redacted-loopback> npx vitest run --project integration tests/integration/api/auth/admin-guard-consumer.test.ts exited 1 after sandbox-approved loopback access: active Admin received 200 but the consumer returned only {ok:true} instead of the required observable mutationCount:1, proving the existing Admin test consumer could not demonstrate that only an authorized request mutates. The unauthenticated, active USER and suspended USER denial assertions had already passed."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Extended only the approved PostgreSQL Admin test consumer so its observable counter increments after requireActiveAdmin succeeds and is included in the success response; every denial returns before the mutation point. No production Identity behavior required repair."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "After the focused test was refactored into independent cases, TEST_DATABASE_URL=<redacted-loopback> npx vitest run --project integration tests/integration/api/auth/admin-guard-consumer.test.ts exited 0 (1 file, 5 tests); npx vitest run --project unit tests/unit/identity/authorization-and-status.test.ts exited 0 (1 file, 12 tests). The PostgreSQL consumer proved 401/403 denials leave the counter unchanged, active Admin increments it once, and the same Admin session is denied without another increment after database role and status changes."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit exited 0 (29 files, 413 tests); TEST_DATABASE_URL=<redacted-loopback> npm run test:integration exited 0 after final refactor (17 files, 321 tests); npx tsc --noEmit, npm run lint, and git diff --check each exited 0."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared external baseline commit eb1b5f2f96f19624508da4b787f47e532a953dbe with the refreshed external snapshot worktree and wrote _temp/visual-diff.html; final summary: 7 changed files and 331 unchanged."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "Requirements, raw red/green and validation outputs, external-baseline diff, visual diff and this evidence manifest are complete for a separated semantic self-audit and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "An unauthenticated request to the Admin consumer returns 401 and cannot reach its mutation point.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/integration/api/auth/admin-guard-consumer.test.ts asserts status 401 and adminMutationCount remains 0."
+      ]
+    },
+    {
+      "id": "AC-2",
+      "description": "An active wrong-role USER and a suspended USER receive 403 and leave the observable mutation counter unchanged.",
+      "verdict": "PASS",
+      "evidence": [
+        "The focused PostgreSQL Admin-consumer suite passed independent active-USER and suspended-USER cases, each asserting status 403 and mutationCount 0.",
+        "The existing focused guard unit suite passed its D-47 access.denied assertion for authenticated role/status authorization failure."
+      ]
+    },
+    {
+      "id": "AC-3",
+      "description": "An active ADMIN reaches the same consumer mutation exactly once.",
+      "verdict": "PASS",
+      "evidence": [
+        "The active-ADMIN PostgreSQL case asserts status 200, exact body {ok:true, mutationCount:1}, and the observed counter equals 1."
+      ]
+    },
+    {
+      "id": "AC-4",
+      "description": "K3 re-resolves the same session's current database role and status on every request and never uses a stale authorization projection.",
+      "verdict": "PASS",
+      "evidence": [
+        "One PostgreSQL case first authorizes an ADMIN session, then changes that account to active USER and later suspended ADMIN in the database; both later requests return 403 and leave mutationCount at 1 before the fixture is restored.",
+        "tests/unit/identity/authorization-and-status.test.ts passed 12 tests, including two resolveSession calls that observe active then suspended account state."
+      ]
+    },
+    {
+      "id": "AC-5",
+      "description": "Increment 7 supplies only S-04's available authorization rows; guessed-report-ID behavior remains assigned to U-03/R-02 and AT-01 remains partial.",
+      "verdict": "PASS",
+      "evidence": [
+        "workflow/PLAN.md's approved Gate-B note assigns reporter-filtered guessed-ID 404 behavior to U-03 and the complete matrix/final AT-01 evidence to R-02.",
+        "No Report endpoint was created; external-baseline status contains only the scoped Admin-consumer test, existing session disclosure log and ignored increment evidence before final grading artifacts."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npx vitest run --project unit tests/unit/identity/authorization-and-status.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "1 file, 12 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npx vitest run --project integration tests/integration/api/auth/admin-guard-consumer.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "1 file, 5 tests passed"
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "29 files, 413 tests passed"
+    },
+    {
+      "command": "TEST_DATABASE_URL=<redacted-loopback> npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "17 files, 321 tests passed"
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The external-baseline diff is limited to the existing PostgreSQL Admin test consumer, the existing S-04 session disclosure log and ignored iteration evidence/artifacts. No production service, Report route, dependency, specification or bootstrap migration was changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "All stated test counts and command results match raw output. The handoff will state that the red exposed an acceptance-consumer observability gap and that no production repair was needed; it will keep AT-01 partial."
+  },
+  "artifacts": {
+    "baseline_path": "/tmp/s04-inc7-baseline.6ZkijT/repo",
+    "baseline_digest": "eb1b5f2f96f19624508da4b787f47e532a953dbe",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "eb1b5f2f96f19624508da4b787f47e532a953dbe"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

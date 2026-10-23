@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-auth-ui-iteration-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Increment 2 — sign-in behavior and role routing",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "The Increment 2 item was approved as part of the previously approved S-04 auth UI plan."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human approval in the current conversation: 'Proceed with the next iteration'."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s04-auth-ui-iter2-baseline.5X0pEi at commit e3fc0a71bbebd3811d6abd66aeb319ddd161a484, captured before Increment 2 production edits."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "npx vitest run --project unit tests/unit/auth/auth-client.test.ts failed because src/components/auth-client did not exist."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implementation agent began after the intended red test; scope was limited to the client helper, sign-in page wiring, and focused test."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused auth-client test passed: 1 file, 3 tests."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit: 43 files and 690 tests passed; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html generated from the captured external baseline; generator reported 4 changed files."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence manifest completed for deterministic iterative-TDD grading."}
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Sign-in obtains a CSRF token with no-store/same-origin credentials and posts only email/password with the required CSRF header and same-origin credentials.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/auth-client.test.ts", "src/components/auth-client.ts"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Sign-in maps authentication failures to safe generic feedback and handles unavailable responses without exposing account state.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/auth-client.test.ts", "src/components/auth-client.ts"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Only active server-authoritative USER and ADMIN projections route to /app and /admin; inactive accounts do not route.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/auth/auth-client.test.ts", "src/components/auth-client.ts", "src/app/(public)/sign-in/page.tsx"]
+    },
+    {
+      "id": "AC-4",
+      "description": "The sign-in UI prevents duplicate submissions and exposes loading/error feedback through the existing polite live region without starting registration behavior or changing server code.",
+      "verdict": "PASS",
+      "evidence": ["src/app/(public)/sign-in/page.tsx", "logs/2026-10-20-s04-auth-ui-increment-2.md"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/auth/auth-client.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Increment 2 changes are limited to the client auth helper, sign-in page wiring, focused tests, and the required session log; registration submission and server/auth API code were untouched."},
+  "claims_review": {"verdict": "PASS", "evidence": "The implementation log records exact behavior, validation results, and remaining browser/E2E/manual gaps without claiming them complete."},
+  "artifacts": {
+    "baseline_path": "/tmp/s04-auth-ui-iter2-baseline.5X0pEi",
+    "baseline_digest": "e3fc0a71bbebd3811d6abd66aeb319ddd161a484",
+    "visual_diff_path": "/home/klzy/Documents/NUS/Y3S1/CS3227/MP3/CS3227-2610-MP3/_temp/visual-diff.html",
+    "visual_diff_baseline_digest": "e3fc0a71bbebd3811d6abd66aeb319ddd161a484"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

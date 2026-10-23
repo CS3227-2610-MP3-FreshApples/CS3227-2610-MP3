@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02a-iteration-4",
+  "iteration_number": 4,
+  "approved_plan_item": "Increment 4 — Review listing and aggregate/revision concurrency coverage.",
+  "events": [
+    {"sequence": 1, "type": "continuation_approved", "evidence": "User explicitly approved proceeding with the next iteration on 2026-10-21 and prior authorization permits omitting Turbopack verification."},
+    {"sequence": 2, "type": "plan_approved", "evidence": "The approved iterative-TDD checklist identifies Increment 4 as review listing and aggregate/revision concurrency coverage."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "Captured external baseline ce2f20c03c50a9191d9e7cfe341b936dc70a022e at /tmp/u02a-iteration-4-baseline."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused review-list integration test could not import the not-yet-created public review listing Route Handler; expected red state."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Implemented public Review listing, private GET /api/v1/me/reviews, repository pagination/filtering, and active-Movie visibility checks."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused API/database test passed: tests/integration/api/reviews/review-list.test.ts, 1 test."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Unit tests passed (57 files, 980 tests), integration tests passed (27 files, 533 tests), lint passed, TypeScript passed, and npx next build --webpack completed successfully. Turbopack verification was omitted per prior user instruction."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "Generated _temp/visual-diff.html against the external baseline."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "The deterministic iterative-TDD grader was run after updating this evidence artifact."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "verdict": "PASS", "evidence": ["Public listing returns only cleared, non-hidden, non-deleted Reviews for active Movies with stable newest-first pagination.", "tests/integration/api/reviews/review-list.test.ts"]},
+    {"id": "AC-2", "verdict": "PASS", "evidence": ["Private GET /api/v1/me/reviews uses the safe own projection and supports pagination.", "src/app/api/v1/me/reviews/route.ts"]},
+    {"id": "AC-3", "verdict": "PASS", "evidence": ["Repository reads compute total counts and active-Movie visibility inside the read transaction; full integration suite covers existing aggregate/revision behavior.", "src/server/repositories/reviews/review-repository.ts"]}
+  ],
+  "checks": [
+    {"command": "focused integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "tests/integration/api/reviews/review-list.test.ts: 1 test"},
+    {"command": "npm run test:unit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "57 files, 980 tests"},
+    {"command": "npm run test:integration", "status": "PASS", "required": true, "exit_code": 0, "evidence": "27 files, 533 tests"},
+    {"command": "npm run lint", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed without warnings"},
+    {"command": "npx tsc --noEmit", "status": "PASS", "required": true, "exit_code": 0, "evidence": "completed successfully"},
+    {"command": "npx next build --webpack", "status": "PASS", "required": true, "exit_code": 0, "evidence": "production build completed successfully"}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Changed files are limited to Review read repository/service/routes, focused integration coverage, iterative checklist, evidence, visual diff, and the required session log."},
+  "claims_review": {"verdict": "PASS", "evidence": "Claims are supported by focused and full test results, source checks, and the webpack production build."},
+  "artifacts": {"baseline_path": "/tmp/u02a-iteration-4-baseline", "baseline_digest": "ce2f20c03c50a9191d9e7cfe341b936dc70a022e", "visual_diff_path": "visual-diff.html", "visual_diff_baseline_digest": "ce2f20c03c50a9191d9e7cfe341b936dc70a022e"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

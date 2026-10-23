@@ -44,6 +44,7 @@ describe("S-07 route shells", () => {
     const admin = markup(AdminLayout);
 
     expect(root).toContain("Shell content");
+    expect(markup(PublicLayout)).toContain(">FreshApples</a>");
     expect(user).toContain('href="/app"');
     expect(user).toContain('href="/app/reviews"');
     expect(user).toContain('href="/app/reports"');

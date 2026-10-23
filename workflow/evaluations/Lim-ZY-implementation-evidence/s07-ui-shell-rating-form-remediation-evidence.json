@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s07-ui-shell-rating-form-remediation",
+  "iteration_number": 6,
+  "approved_plan_item": "Remove the duplicate aggregate-rating API and require a FormField ReactElement child.",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human explicitly approved this scoped remediation in the task request."},
+    {"sequence": 2, "type": "continuation_approved", "evidence": "Human explicitly requested continuation after the preceding remediation handoff."},
+    {"sequence": 3, "type": "baseline_captured", "evidence": "/tmp/s07-ui-shell-rating-form-baseline.JhPwDF/repo committed as 52fa6868ac0e37823f1742f756e85cb02d1da844; complete working tree copied excluding only the real .git directory."},
+    {"sequence": 4, "type": "red_test_failed", "evidence": "Focused contract test exited 1 because form-primitives exported AggregateRating; npx tsc --noEmit exited 2 because the missing-child @ts-expect-error was unused."},
+    {"sequence": 5, "type": "implementation_started", "evidence": "Removed aggregate/rating re-exports from form-primitives, retained only rating-primitives as the K12 rating source, and made FormField children required ReactElement."},
+    {"sequence": 6, "type": "green_test_passed", "evidence": "Focused test command exited 0: 3 files, 12 tests passed; npx tsc --noEmit exited 0 after the typed FormField test consumer update."},
+    {"sequence": 7, "type": "validation_completed", "evidence": "Full unit suite 14 files/201 tests, lint, type-check, server-import audit, and reviewer-name audit passed. Bounded build failed only due to the sandbox process/port restriction and is unverified."},
+    {"sequence": 8, "type": "visual_diff_created", "evidence": "_temp/visual-diff.html generated against committed external baseline 52fa6868ac0e37823f1742f756e85cb02d1da844; 6 changed files reported."},
+    {"sequence": 9, "type": "grade_requested", "evidence": "Evidence bundle complete for deterministic grading."}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "AggregateRating is exposed only by the approved rating-primitives API using average, count, and emptyLabel.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/rating-form-contract.test.ts", "tests/unit/ui-shell/k12-primitives.test.ts", "src/components/rating-primitives.tsx", "src/components/form-primitives.tsx"]},
+    {"id": "AC-2", "description": "FormField requires a ReactElement child and retains its label/error accessibility wiring.", "verdict": "PASS", "evidence": ["tests/unit/ui-shell/rating-form-contract.test.ts", "tests/unit/ui-shell/k12-components-and-shell.test.ts", "src/components/form-primitives.tsx", "npx tsc --noEmit"]},
+    {"id": "AC-3", "description": "UI scope remains server-free and source/test code and filenames contain no reviewer names.", "verdict": "PASS", "evidence": ["scope/import audit", "agent-name audit"]}
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/ui-shell/rating-form-contract.test.ts", "required": true, "status": "PASS", "exit_code": 0, "result": "1 test passed"},
+    {"command": "npx vitest run --project unit tests/unit/ui-shell/rating-form-contract.test.ts tests/unit/ui-shell/k12-primitives.test.ts tests/unit/ui-shell/k12-components-and-shell.test.ts", "required": true, "status": "PASS", "exit_code": 0, "result": "3 files, 12 tests passed"},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0, "result": "14 files, 201 tests passed"},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "scope/import audit", "required": true, "status": "PASS", "exit_code": 0, "result": "No src/server, @/server, or server/ imports in src/components"},
+    {"command": "agent-name audit", "required": true, "status": "PASS", "exit_code": 0, "result": "No reviewer names in source/test code or filenames"},
+    {"command": "timeout 60s npm run build", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted; Next/Turbopack failed immediately while processing globals.css because sandbox policy denied subprocess port binding (Operation not permitted). Build is unverified, not passed."},
+    {"command": "visual diff", "required": true, "status": "PASS", "exit_code": 0, "result": "_temp/visual-diff.html generated"},
+    {"command": "python3 /home/klzy/.codex/skills/iterative-tdd/scripts/grade_iteration.py _temp/s07-ui-shell-rating-form-remediation-evidence.json", "required": true, "status": "PASS", "exit_code": 0, "result": "Final two-dimension grade PASS"}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "This remediation changed only approved UI component/test files, ignored evidence, and the required session log. Existing governance and workflow changes were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The handoff will report only passing tests/checks and explicitly mark the sandbox-blocked build and browser runtime as unverified."},
+  "artifacts": {"baseline_path": "/tmp/s07-ui-shell-rating-form-baseline.JhPwDF/repo", "baseline_digest": "52fa6868ac0e37823f1742f756e85cb02d1da844", "visual_diff_path": "visual-diff.html", "visual_diff_baseline_digest": "52fa6868ac0e37823f1742f756e85cb02d1da844"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

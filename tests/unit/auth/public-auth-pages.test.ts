@@ -22,6 +22,7 @@ describe("public authentication UI — increment 1", () => {
     expect(rendered).toContain("border-slate-200");
     expect(rendered).toContain("min-h-11");
     expect(rendered).toContain('href="/register"');
+    expect(rendered).not.toContain("Signing in…");
   });
 
   it("renders registration guidance and a sign-in link without role controls", () => {
@@ -60,14 +61,13 @@ describe("public authentication UI — increment 1", () => {
     }
   });
 
-  it("replaces public auth links with the signed-in display name", () => {
+  it("removes public auth links for signed-in users because account actions use the dropdown", () => {
     const rendered = publicNavigationForAccount({ displayName: "Person", role: "USER" });
 
     expect(rendered).toEqual([
       { href: "/", label: "Home" },
       { href: "/movies", label: "Movies" },
       { href: "/announcements", label: "Announcements" },
-      { href: "/app", label: "Person" },
     ]);
   });
 });

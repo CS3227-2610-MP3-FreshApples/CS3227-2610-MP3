@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "iteration_id": "ui-design-increment-2",
+  "iteration_number": 2,
+  "approved_plan_item": "Implement public discovery and authentication pages",
+  "task": "Developer A UI design implementation",
+  "branch": "feat/ui-design",
+  "events": [
+    { "sequence": 1, "type": "plan_approved", "evidence": "Human approval was recorded before Increment 1 application edits." },
+    { "sequence": 2, "type": "continuation_approved", "evidence": "User approved continuation with: Great. Proceed with the next iteration" },
+    { "sequence": 3, "type": "baseline_captured", "evidence": "/tmp/ui-design-increment-2-baseline; commit 4615be2d4a18e1788b30469eff863939890f59c8" },
+    { "sequence": 4, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-pages.test.ts tests/unit/auth/public-auth-pages.test.ts; exit 1 with 7 intended presentation assertion failures before production edits" },
+    { "sequence": 5, "type": "implementation_started", "evidence": "First production edit was src/app/page.tsx after the red test." },
+    { "sequence": 6, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-pages.test.ts tests/unit/auth/public-auth-pages.test.ts; exit 0; 2 files and 10 tests passed" },
+    { "sequence": 7, "type": "validation_completed", "evidence": "npm run test:unit exit 0 (66 files, 1441 tests); npm run lint exit 0; npx tsc --noEmit exit 0; build skipped at user request" },
+    { "sequence": 8, "type": "visual_diff_created", "evidence": "_temp/ui-design-increment-2-visual-diff.html compared against 4615be2d4a18e1788b30469eff863939890f59c8" },
+    { "sequence": 9, "type": "grade_requested", "evidence": "Bundle complete; deterministic grader requested." }
+  ],
+  "acceptance_criteria": [
+    { "id": "AC-1", "description": "Home has a clear responsive hierarchy and calls to action.", "verdict": "PASS", "evidence": ["src/app/page.tsx", "focused public page tests"] },
+    { "id": "AC-2", "description": "Catalogue and movie detail pages have styled search, empty, metadata, aggregate, and honest availability states.", "verdict": "PASS", "evidence": ["src/app/(public)/movies/page.tsx", "src/app/(public)/movies/[id]/page.tsx", "tests/unit/catalogue/public-pages.test.ts"] },
+    { "id": "AC-3", "description": "Announcements have readable cards and related content links.", "verdict": "PASS", "evidence": ["src/app/(public)/announcements/page.tsx", "full unit suite"] },
+    { "id": "AC-4", "description": "Sign in and Register preserve existing form/API behaviour with accessible styled feedback.", "verdict": "PASS", "evidence": ["src/app/(public)/sign-in/page.tsx", "src/app/(public)/register/page.tsx", "tests/unit/auth/public-auth-pages.test.ts"] },
+    { "id": "AC-5", "description": "Loading, temporary-unavailable, and recoverable-error states are visually coherent.", "verdict": "PASS", "evidence": ["loading route files", "src/components/public-read-error.tsx", "src/components/public-read-unavailable.tsx", "visual diff"] }
+  ],
+  "checks": [
+    { "command": "npm run test:unit -- tests/unit/catalogue/public-pages.test.ts tests/unit/auth/public-auth-pages.test.ts", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0 },
+    { "command": "npm run build", "required": false, "status": "SKIPPED", "reason": "User explicitly allowed skipping the Turbopack check for remaining iterations." }
+  ],
+  "scope_review": { "verdict": "PASS", "evidence": "Diff is limited to approved public discovery/auth presentation, shared styling already in Increment 1, related tests, and workflow evidence." },
+  "claims_review": { "verdict": "PASS", "evidence": "Handoff reports the same commands, results, skipped build, known gaps, and no commit as this manifest." },
+  "artifacts": {
+    "baseline_path": "/tmp/ui-design-increment-2-baseline",
+    "baseline_digest": "4615be2d4a18e1788b30469eff863939890f59c8",
+    "visual_diff_path": "../_temp/ui-design-increment-2-visual-diff.html",
+    "visual_diff_baseline_digest": "4615be2d4a18e1788b30469eff863939890f59c8"
+  },
+  "git": { "commit_authorized": false, "commit_created": false },
+  "checklist_item_completed": true
+}

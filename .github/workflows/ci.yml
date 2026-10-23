@@ -104,6 +104,15 @@ jobs:
       - name: Install from lockfile
         run: npm ci
 
+      # DEP-08 archive round trips need pg_dump/pg_restore >= the PostgreSQL 17 service.
+      # Use PostgreSQL's signed apt repository rather than the runner's changing default client.
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
       - name: Integration tests
         run: npm run test:integration
 

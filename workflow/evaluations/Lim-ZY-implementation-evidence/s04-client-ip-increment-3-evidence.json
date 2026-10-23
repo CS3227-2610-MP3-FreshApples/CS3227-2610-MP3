@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "iteration_id": "s04-client-ip-increment-3",
+  "iteration_number": 3,
+  "approved_plan_item": "Increment 3 -- conform client-IP derivation to D-44",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "The human-approved checklist is _temp/s04-review-remediation-plan.md."
+    },
+    {
+      "sequence": 2,
+      "type": "continuation_approved",
+      "evidence": "On 18 October 2026, after the Increment 2 handoff, the human said: Great proceed with the next iteration."
+    },
+    {
+      "sequence": 3,
+      "type": "baseline_captured",
+      "evidence": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-increment3-client-ip-baseline at c8e144865d4880d8613ec6c9d724e79378610b64; 23,863 files; complete working tree excluding only the real .git directory."
+    },
+    {
+      "sequence": 4,
+      "type": "red_test_failed",
+      "evidence": "npm run test:unit -- tests/unit/http/client-ip.test.ts exited 1: 1 file failed, 7/7 tests failed because clientIpFromVercelHeaders, placeholderClientIp and composition.clientIpResolver did not exist. This is the intended missing D-44 behavior."
+    },
+    {
+      "sequence": 5,
+      "type": "implementation_started",
+      "evidence": "Added src/server/http/client-ip.ts and wired the selected ClientIpResolver through src/server/composition.ts into the login route after the recorded red failure."
+    },
+    {
+      "sequence": 6,
+      "type": "green_test_passed",
+      "evidence": "npm run test:unit -- tests/unit/http/client-ip.test.ts tests/unit/auth/api-routes.test.ts exited 0: 2 files and 18 tests passed."
+    },
+    {
+      "sequence": 7,
+      "type": "validation_completed",
+      "evidence": "Final focused unit exited 0 (2 files/18 tests); focused PostgreSQL auth journey exited 0 (1 file/1 test); full unit exited 0 (29 files/411 tests); full PostgreSQL integration exited 0 (14 files/304 tests); npx tsc --noEmit, npm run lint, git diff --check, and the legacy mode-flag/forwarded-header source check exited 0. Earlier database attempts that hit EPERM/ECONNRESET before the disposable PostgreSQL network was aligned are not claimed as validation."
+    },
+    {
+      "sequence": 8,
+      "type": "visual_diff_created",
+      "evidence": "The present-changes-visually generator compared temporary baseline commit c8e144865d4880d8613ec6c9d724e79378610b64 with its refreshed worktree and wrote _temp/visual-diff.html; generator summary: 11 changed files and 23,855 unchanged files."
+    },
+    {
+      "sequence": 9,
+      "type": "grade_requested",
+      "evidence": "The approved D-44 requirements, red/green trace, final checks, baseline-derived visual diff, scope review and claims review are complete for semantic and deterministic grading."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "D44-HOSTED-RESOLVER",
+      "description": "The hosted resolver trims x-real-ip, maps missing or empty values to unknown, and ignores x-forwarded-for and every other header.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/http/client-ip.test.ts covers trimming, absent/empty values and spoofable alternative headers.",
+        "src/server/http/client-ip.ts reads only Headers.get(\"x-real-ip\")."
+      ]
+    },
+    {
+      "id": "D44-PLACEHOLDER-RESOLVER",
+      "description": "The local/test resolver always returns the fixed placeholder unknown regardless of request headers.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/http/client-ip.test.ts supplies x-real-ip to placeholderClientIp and observes unknown.",
+        "The focused helper test passed."
+      ]
+    },
+    {
+      "id": "D44-COMPOSITION-SELECTION",
+      "description": "The composition root selects the placeholder resolver for local/test and the hosted resolver for development/production once per server instance.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/http/client-ip.test.ts imports the composition root under all four valid APP_ENV values and verifies resolver behavior.",
+        "src/server/composition.ts exports one ClientIpResolver selected immediately after configuration parsing."
+      ]
+    },
+    {
+      "id": "D44-LOGIN-INJECTION",
+      "description": "The login route passes request headers to the injected resolver and passes its result to AuthService without a per-request environment/mode flag.",
+      "verdict": "PASS",
+      "evidence": [
+        "tests/unit/auth/api-routes.test.ts verifies the composition resolver receives Headers and AuthService receives its returned client IP.",
+        "The final source check found no clientIp(request, appEnv), clientIp(...appEnv), or x-forwarded-for use in src/app or src/server."
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": "npm run test:unit -- tests/unit/http/client-ip.test.ts tests/unit/auth/api-routes.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "2 files, 18 tests passed after implementation and final cleanup."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration -- tests/integration/api/auth/auth-journey.test.ts",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "1 file, 1 database-backed authentication journey passed."
+    },
+    {
+      "command": "npm run test:unit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "29 files, 411 tests passed."
+    },
+    {
+      "command": "set -a; . ./.env; set +a; npm run test:integration",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "14 files, 304 tests passed against the disposable loopback PostgreSQL database."
+    },
+    {
+      "command": "npx tsc --noEmit",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "npm run lint",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0
+    },
+    {
+      "command": "rg legacy clientIp mode-flag and x-forwarded-for patterns under src/app and src/server",
+      "required": true,
+      "status": "PASS",
+      "exit_code": 0,
+      "result": "No legacy mode flag or forwarded-header use found."
+    }
+  ],
+  "scope_review": {
+    "verdict": "PASS",
+    "evidence": "The baseline-derived diff contains only D-44 helper/composition/login-route work, matching unit tests, the current disclosure log and ignored iteration evidence, plus test/type-check cache updates. No bootstrap migration, Increment 4 behavior, dependency, lockfile or unrelated service was changed."
+  },
+  "claims_review": {
+    "verdict": "PASS",
+    "evidence": "Pass counts match raw command results. The initial inaccessible database attempts are disclosed and not counted; only the later focused and full PostgreSQL passes are claimed."
+  },
+  "artifacts": {
+    "baseline_path": "/home/klzy/.codex/visualizations/2026/10/17/01a149b5-84c8-7402-aedc-ede4c359d9f4/s04-increment3-client-ip-baseline",
+    "baseline_digest": "c8e144865d4880d8613ec6c9d724e79378610b64",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "c8e144865d4880d8613ec6c9d724e79378610b64"
+  },
+  "git": {
+    "commit_authorized": false,
+    "commit_created": false
+  },
+  "checklist_item_completed": true
+}

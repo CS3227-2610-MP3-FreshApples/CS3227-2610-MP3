@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u02b-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Increment 1 — K8 lock/read boundary and fail-closed fake",
+  "events": [
+    {
+      "sequence": 1,
+      "type": "plan_approved",
+      "evidence": "User explicitly approved the U-02b iterative-TDD checklist in chat before application edits."
+    },
+    {
+      "sequence": 2,
+      "type": "baseline_captured",
+      "evidence": "/tmp/u02b-iteration-1-baseline-JM0jVg; temporary Git baseline commit 9497799038b52fd318ea7e044c83070db7a7e70a"
+    },
+    {
+      "sequence": 3,
+      "type": "red_test_failed",
+      "evidence": "npx vitest run --project unit tests/unit/reviews/review-transitions-fake.test.ts exited 1 because the expected K8 fake module was absent."
+    },
+    {
+      "sequence": 4,
+      "type": "implementation_started",
+      "evidence": "First production edit added the K8 exports and review lock/read boundary in src/server/services/reviews/index.ts and review-transitions.ts."
+    },
+    {
+      "sequence": 5,
+      "type": "green_test_passed",
+      "evidence": "Focused K8 tests passed: 2 files / 5 tests; the final rerun exited 0."
+    },
+    {
+      "sequence": 6,
+      "type": "validation_completed",
+      "evidence": "npm run test:unit passed (60 files / 988 tests); PostgreSQL integration passed (28 files / 536 tests); npx tsc --noEmit, npm run lint, git diff --check and npx next build --webpack all exited 0. npm run build (Turbopack) was attempted but blocked by Operation not permitted; skipped under explicit user authorization."
+    },
+    {
+      "sequence": 7,
+      "type": "visual_diff_created",
+      "evidence": "_temp/u02b-iteration-1-visual-diff.html generated from baseline 9497799038b52fd318ea7e044c83070db7a7e70a; 10 changed files and 577 unchanged files reported."
+    },
+    {
+      "sequence": 8,
+      "type": "grade_requested",
+      "evidence": "Evidence manifest is complete for the first approved increment; no real repository commit was authorized or created."
+    }
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "The default K8 fake fails closed for unseeded locks/reads and unscripted automatic/Admin transitions.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions-fake.test.ts: 3 passing tests"]
+    },
+    {
+      "id": "AC-2",
+      "description": "The real K8 lock adapter reads the relationship, locks Movie before Review, and returns a typed ReviewUpdateLock.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions.test.ts: Movie→Review call-order and typed-handle assertion"]
+    },
+    {
+      "id": "AC-3",
+      "description": "The screening read projects only bounded review text/state and archive/deletion/hidden flags.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions.test.ts: screening projection assertion", "src/server/services/reviews/review-transitions.ts"]
+    },
+    {
+      "id": "AC-4",
+      "description": "The archive/restore boundary can delegate locking all Movie Reviews to the repository in deterministic ID order.",
+      "verdict": "PASS",
+      "evidence": ["tests/unit/reviews/review-transitions.test.ts: lockReviewsOfMovie delegation assertion", "src/server/repositories/reviews/review-repository.ts"]
+    }
+  ],
+  "checks": [
+    {"command": "npx vitest run --project unit tests/unit/reviews/review-transitions-fake.test.ts tests/unit/reviews/review-transitions.test.ts", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "TEST_DATABASE_URL=postgresql://postgres:[redacted]@127.0.0.1:5432/postgres npm run test:integration", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx next build --webpack", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (Turbopack)", "required": false, "status": "SKIPPED", "reason": "User explicitly authorized skipping the Turbopack check; the attempt failed on an OS permission error while binding a process port."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Iteration changes are limited to the Reviews repository/service boundary, K8 test fake, and focused tests; unrelated pre-existing user files were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "The manifest records the initial red test, final green tests, actual validation results, the unavailable/authorized Turbopack check, and the generated visual diff without claiming a commit."},
+  "artifacts": {
+    "baseline_path": "/tmp/u02b-iteration-1-baseline-JM0jVg",
+    "baseline_digest": "9497799038b52fd318ea7e044c83070db7a7e70a",
+    "visual_diff_path": "u02b-iteration-1-visual-diff.html",
+    "visual_diff_baseline_digest": "9497799038b52fd318ea7e044c83070db7a7e70a"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

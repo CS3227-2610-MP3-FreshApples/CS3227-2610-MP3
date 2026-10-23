@@ -173,6 +173,22 @@ describe("adminWrite", () => {
       kind: "unavailable",
     });
   });
+
+  it.each(["POST", "PATCH", "DELETE"] as const)("does not promise rollback after an interrupted %s response", async (method) => {
+    let writes = 0;
+    const fetcher: Fetcher = async (input) => {
+      if (String(input).endsWith("/csrf")) return json({ csrfToken: "csrf.synthetic" });
+      writes += 1;
+      throw new TypeError("Synthetic lost response after commit");
+    };
+    const result = await adminWrite({ path: "/x", method }, async () => null, fetcher);
+    expect(result).toMatchObject({ ok: false, kind: "unavailable" });
+    if (!result.ok) {
+      expect(result.message).not.toContain("Nothing was saved");
+      expect(result.message).toContain("check the current state");
+    }
+    expect(writes).toBe(1);
+  });
 });
 
 describe("helpers", () => {

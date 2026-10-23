@@ -11,6 +11,10 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "node tests/setup/e2e-run.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
+    "db:backup": "node scripts/db-backup.mjs",
+    "db:restore": "node scripts/db-restore.mjs",
+    "db:release": "node scripts/db-release.mjs",
+    "db:seed": "node scripts/db-seed.mjs",
     "db:verify-first-admin": "node scripts/verify-first-admin.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "sandbox": "node scripts/sandbox.mjs"

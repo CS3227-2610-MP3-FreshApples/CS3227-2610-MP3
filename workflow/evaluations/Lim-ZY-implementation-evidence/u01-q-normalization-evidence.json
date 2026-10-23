@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-q-normalization",
+  "iteration_number": 1,
+  "approved_plan_item": "Normalize public catalogue q values",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approval in the current conversation for the smallest U-01 Increment 1 q-normalization slice"},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/u01-iteration-1-baseline-icPWm1 at a7ac6a0aa6d85509bad9be2f6767fe038584eb2d, supplied by the human"},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/catalogue/query-normalization.test.ts; exit 1; missing helper module; 0 tests"},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added src/server/services/catalogue/query-normalization.ts after the red run"},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/catalogue/query-normalization.test.ts; exit 0; 1 file and 3 tests passed"},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npx tsc --noEmit, npm run lint, and git diff --check each exited 0"},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "UNAVAILABLE: supplied baseline commit is not present in the real repository object database; generator exited 1"},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Scoped evidence bundle completed; no commit authorized"}
+  ],
+  "acceptance_criteria": [
+    {"id": "AC-1", "description": "q is trimmed and omitted, empty, or whitespace-only q returns no filter", "verdict": "PASS", "evidence": ["query-normalization.test.ts first test"]},
+    {"id": "AC-2", "description": "Non-empty q is limited to 200 Unicode code points", "verdict": "PASS", "evidence": ["query-normalization.test.ts second test with 200 and 201 emoji values"]},
+    {"id": "AC-3", "description": "Normalization returns a safe typed validation result", "verdict": "PASS", "evidence": ["CatalogueQueryNormalizationResult and expectTypeOf assertion"]}
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/catalogue/query-normalization.test.ts (green)", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "GIT_ALTERNATE_OBJECT_DIRECTORIES=/tmp/u01-iteration-1-baseline-icPWm1/.git/objects python3 /home/klzy/.codex/skills/present-changes-visually/scripts/generate-split-view-diff.py . a7ac6a0aa6d85509bad9be2f6767fe038584eb2d WORKTREE _temp/u01-q-normalization-visual-diff.html", "required": false, "status": "PASS", "exit_code": 0}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Only the focused test/helper plus required disclosure and handoff files were added; existing broader changes were preserved"},
+  "claims_review": {"verdict": "PASS", "evidence": "Red, green, and check results match recorded command output"},
+  "artifacts": {"baseline_path": "/tmp/u01-iteration-1-baseline-icPWm1", "baseline_digest": "a7ac6a0aa6d85509bad9be2f6767fe038584eb2d", "visual_diff_path": "_temp/u01-q-normalization-visual-diff.html", "visual_diff_baseline_digest": "a7ac6a0aa6d85509bad9be2f6767fe038584eb2d"},
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}

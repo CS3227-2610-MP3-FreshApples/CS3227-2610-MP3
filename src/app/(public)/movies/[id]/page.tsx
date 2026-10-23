@@ -24,7 +24,7 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
 
   return (
     <article className="max-w-4xl space-y-8" aria-labelledby="movie-title">
-      <Link className="inline-flex min-h-11 items-center font-semibold text-blue-700 underline underline-offset-4 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2" href="/movies">← Back to movies</Link>
+      <Link className="inline-flex min-h-11 items-center rounded-md border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-800 hover:border-blue-700 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700 focus-visible:ring-offset-2" href="/movies">← Back to movies</Link>
       <header className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-700">Movie details</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl" id="movie-title">{movie.title}</h1>
@@ -53,5 +53,5 @@ export default async function MovieDetailsPage({ params }: MovieDetailsPageProps
 }
 
 function ratingLabel(averageRating: number | null, reviewCount: number): string {
-  return averageRating === null ? "No community ratings yet." : `${averageRating}/10 from ${reviewCount} reviews`;
+  return averageRating === null ? "No community ratings yet." : `${(Math.trunc(averageRating * 10) / 10).toFixed(1)}/10 from ${reviewCount} reviews`;
 }

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "iteration_id": "u01-iteration-1",
+  "iteration_number": 1,
+  "approved_plan_item": "Define public read DTOs, validation, and repository/service contracts",
+  "events": [
+    {"sequence": 1, "type": "plan_approved", "evidence": "Human approval recorded in the current conversation for exactly U-01 Increment 1 from _temp/u01-plan.md"},
+    {"sequence": 2, "type": "baseline_captured", "evidence": "/tmp/u01-iteration-1-baseline-icPWm1 at a7ac6a0aa6d85509bad9be2f6767fe038584eb2d, supplied and identified by the human before edits"},
+    {"sequence": 3, "type": "red_test_failed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-read-contracts.test.ts; exit 1; expected missing-contract failure: Cannot find module /src/server/services/announcements; 1 failed suite"},
+    {"sequence": 4, "type": "implementation_started", "evidence": "Added U-01-only public read DTO, normalization, projection, repository interface and service interface files after the red run"},
+    {"sequence": 5, "type": "green_test_passed", "evidence": "npm run test:unit -- tests/unit/catalogue/public-read-contracts.test.ts; exit 0; 1 file and 9 tests passed"},
+    {"sequence": 6, "type": "validation_completed", "evidence": "npm run test:unit: exit 0, 45 files/703 tests; npm run lint: exit 0; npx tsc --noEmit: exit 0; git diff --check: exit 0. npm run build failed twice (normal and escalated) because Turbopack worker port binding returned EPERM; npx next build --webpack failed before compilation parsing TypeScript --showConfig. Integration tests were not applicable because no SQL implementation changed."},
+    {"sequence": 7, "type": "visual_diff_created", "evidence": "present-changes-visually generated _temp/visual-diff.html from baseline a7ac6a0aa6d85509bad9be2f6767fe038584eb2d; final refresh reported 16 changed files (including ignored iteration evidence artifacts tracked by the supplied baseline) and 428 unchanged files"},
+    {"sequence": 8, "type": "grade_requested", "evidence": "Evidence bundle completed for explicit semantic second-pass audit and deterministic grading; no independent evaluator was used"}
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "q is trimmed; omitted, null, empty and whitespace-only values mean no filter; non-empty values are capped at 200 Unicode code points.",
+      "verdict": "PASS",
+      "evidence": ["U-01 public movie query contract test: absent/blank normalization and 200/201 emoji boundary"]
+    },
+    {
+      "id": "AC-2",
+      "description": "Movie read inputs expose release_desc with null releases last and ascending ID, and title_asc case-insensitively with ascending ID.",
+      "verdict": "PASS",
+      "evidence": ["U-01 stable ordering contract assertion against MOVIE_LIST_ORDER"]
+    },
+    {
+      "id": "AC-3",
+      "description": "Public movie list/detail DTOs contain metadata and visible-review aggregates but no review listing or image fields.",
+      "verdict": "PASS",
+      "evidence": ["Exact public movie summary and detail projection assertions"]
+    },
+    {
+      "id": "AC-4",
+      "description": "Public announcement DTO is exactly id, publishedAt, title, body and nullable active Movie reference.",
+      "verdict": "PASS",
+      "evidence": ["Exact null and active-movie public announcement projection assertions"]
+    },
+    {
+      "id": "AC-5",
+      "description": "Separate repository and service interfaces define active movie list/detail and published announcement reads.",
+      "verdict": "PASS",
+      "evidence": ["Compile-time Vitest expectTypeOf contract assertions; npx tsc --noEmit exit 0"]
+    }
+  ],
+  "checks": [
+    {"command": "npm run test:unit -- tests/unit/catalogue/public-read-contracts.test.ts (green)", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run test:unit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run lint", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npx tsc --noEmit", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "git diff --check", "required": true, "status": "PASS", "exit_code": 0},
+    {"command": "npm run build (normal and escalated)", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted twice; Turbopack was blocked by environment process/port EPERM. Build is unverified, not passed."},
+    {"command": "npx next build --webpack", "required": false, "status": "SKIPPED", "exit_code": 1, "reason": "Attempted fallback failed before application compilation while parsing TypeScript --showConfig. Build is unverified, not passed."},
+    {"command": "npm run test:integration", "required": false, "status": "SKIPPED", "reason": "Increment 1 defines contracts and pure projections only; PostgreSQL implementations and integration tests are Increment 2."}
+  ],
+  "scope_review": {"verdict": "PASS", "evidence": "Implementation changes are limited to U-01 catalogue/announcement read contracts, matching unit tests, required workflow handoff and one session disclosure; pre-existing approved specification edits were preserved."},
+  "claims_review": {"verdict": "PASS", "evidence": "Recorded red/green and validation results match command output; failed builds are explicitly unverified and no commit is claimed."},
+  "artifacts": {
+    "baseline_path": "/tmp/u01-iteration-1-baseline-icPWm1",
+    "baseline_digest": "a7ac6a0aa6d85509bad9be2f6767fe038584eb2d",
+    "visual_diff_path": "visual-diff.html",
+    "visual_diff_baseline_digest": "a7ac6a0aa6d85509bad9be2f6767fe038584eb2d"
+  },
+  "git": {"commit_authorized": false, "commit_created": false},
+  "checklist_item_completed": true
+}
