@@ -10,6 +10,7 @@ import { getMovie, updateMovie } from "../../_lib/movie-client";
 import { movieFormFromMovie } from "../../_lib/movie-form";
 import { useAdminResource } from "../../_lib/use-admin-resource";
 import { MovieForm } from "./movie-form";
+import { SummaryRegeneration } from "./summary-regeneration";
 
 type EditMovieProps = Readonly<{ movieId: string }>;
 
@@ -60,6 +61,7 @@ export function EditMovie({ movieId }: EditMovieProps) {
               <button className={secondaryButtonClass} onClick={loadLatest} type="button">Load latest version</button>
             </div>
           ) : null}
+          {state.value.archivedAt === null ? <SummaryRegeneration movieId={state.value.id} /> : null}
           <MovieForm
             initialValues={movieFormFromMovie(state.value)}
             // A saved change has a new version; remounting shows the stored, trimmed values.

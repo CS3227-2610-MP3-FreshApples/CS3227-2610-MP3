@@ -40,6 +40,10 @@ export type MovieWrite = Readonly<{
   runtimeMinutes: number | null;
 }>;
 
+export type SummaryRegenerationResult = Readonly<{
+  status: "generated" | "pending" | "insufficient_reviews";
+}>;
+
 const BASE = "/api/v1/admin/movies";
 
 function isStringList(value: unknown): value is readonly string[] {
@@ -70,12 +74,30 @@ function moviePath(movieId: string): string {
   return `${BASE}/${encodeURIComponent(movieId)}`;
 }
 
+function isSummaryRegenerationResult(value: unknown): value is SummaryRegenerationResult {
+  return isRecord(value)
+    && Object.keys(value).length === 1
+    && (value.status === "generated" || value.status === "pending" || value.status === "insufficient_reviews");
+}
+
 export function listMovies(page: number, fetcher: Fetcher = fetch): Promise<AdminResult<ListPage<AdminMovieView>>> {
   return adminRead(`${BASE}?${pageQuery(page)}`, isMoviePage, fetcher);
 }
 
 export function getMovie(movieId: string, fetcher: Fetcher = fetch): Promise<AdminResult<AdminMovieView>> {
   return adminRead(moviePath(movieId), isAdminMovie, fetcher);
+}
+
+/** Starts one explicit Admin regeneration attempt. The server owns invalidation and any deferred work. */
+export function regenerateMovieSummary(
+  movieId: string,
+  fetcher: Fetcher = fetch,
+): Promise<AdminResult<SummaryRegenerationResult>> {
+  return adminWrite(
+    { path: `${moviePath(movieId)}/summary/regenerate`, method: "POST", body: {} },
+    jsonBody(isSummaryRegenerationResult),
+    fetcher,
+  );
 }
 
 export function createMovie(input: MovieWrite, fetcher: Fetcher = fetch): Promise<AdminResult<AdminMovieView>> {
