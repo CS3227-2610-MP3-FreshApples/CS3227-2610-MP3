@@ -38,7 +38,9 @@ import {
 } from "./services/ai/runtime";
 import {
   createConsolePublicSummaryReadLog,
+  createConsoleAdminSummaryRegenerationLog,
   createConsoleSummarySweepLog,
+  createAdminSummaryRegenerationService,
   createDisabledSummarySweep,
   createPublicSummaryReadService,
   createSummaryGeneration,
@@ -46,6 +48,8 @@ import {
   createSummaryPublisher,
   createSummarySweep,
   systemSeedSource,
+  type AdminSummaryGeneration,
+  type AdminSummaryRegenerationService,
   type PublicSummaryReadService,
   type SummaryGeneration,
   type SummarySweep,
@@ -241,7 +245,7 @@ export const schedulerLeases: SchedulerLeases | null = aiRuntime.schedulerLeases
  * U-04 summary generation (D-89, D-93): built only with the real controller's `summaryLimits` and a database;
  * otherwise `null`, and the sweep does nothing.
  */
-export const summaryGeneration: SummaryGeneration | null =
+export const summaryGeneration: (SummaryGeneration & AdminSummaryGeneration) | null =
   database === null || movieLocks === null || summarySchedule === null || aiRuntime.summaryLimits === null
     ? null
     : createSummaryGeneration({
@@ -257,6 +261,29 @@ export const summaryGeneration: SummaryGeneration | null =
           schedule: summarySchedule,
           summaries: createReviewSummaryRepository({ sql: database }),
         }),
+      });
+
+/** Explicit Admin summary invalidation and bounded generation; durable invalidation also works with AI disabled. */
+export const adminSummaryRegenerationService: AdminSummaryRegenerationService | null =
+  database === null
+    || rateLimiter === null
+    || rateLimitKeys === null
+    || movieLocks === null
+    || reviewsChangedMarker === null
+    || summarySchedule === null
+    || auditLog === null
+    ? null
+    : createAdminSummaryRegenerationService({
+        database,
+        rateLimiter,
+        rateLimitKeys,
+        movieLocks,
+        marker: reviewsChangedMarker,
+        schedule: summarySchedule,
+        clock: createSummarySelectionRepository({ sql: database }),
+        auditLog,
+        generation: summaryGeneration,
+        log: createConsoleAdminSummaryRegenerationLog(),
       });
 
 /**

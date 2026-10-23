@@ -1,5 +1,7 @@
 # Project Specification — Architecture
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 6. Technical Architecture
 
 ### 6.1 System Context

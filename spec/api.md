@@ -1,5 +1,7 @@
 # Project Specification — Interfaces and Contracts
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 8. Interfaces and Contracts
 
 ### 8.1 HTTP APIs

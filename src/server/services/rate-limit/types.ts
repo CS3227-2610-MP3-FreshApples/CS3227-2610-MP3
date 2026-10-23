@@ -3,7 +3,13 @@ import "server-only";
 import type { AccountId, Brand } from "../../shared";
 
 /** K6 limit names (workflow/contracts.md §9, §20 AM-11). Adding a value is a contract PR. */
-export type RateLimitName = "login_failure_email" | "login_failure_ip" | "review_mutation" | "report_create" | "soc_requests";
+export type RateLimitName =
+  | "login_failure_email"
+  | "login_failure_ip"
+  | "review_mutation"
+  | "report_create"
+  | "summary_regeneration"
+  | "soc_requests";
 
 /** A RateLimitWindow `bucket_key` (D-44). Built only by `RateLimitKeys`; never logged (D-47). */
 export type RateLimitKey = Brand<string, "RateLimitKey">;

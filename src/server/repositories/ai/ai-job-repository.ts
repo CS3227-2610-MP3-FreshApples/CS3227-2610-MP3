@@ -6,7 +6,7 @@ import type { Tx } from "../../shared";
 /** The D-64 column values of a new running AIJob. */
 export interface NewAiJob {
   readonly type: "summary" | "review_moderation";
-  readonly trigger: "scheduler" | "review_write";
+  readonly trigger: "scheduler" | "review_write" | "admin_request";
   readonly requesterId: string | null;
   readonly subjectId: string;
   readonly inputRevision: number;

@@ -20,6 +20,8 @@ export type AiJobDescriptor =
       readonly type: "summary";
       readonly movieId: MovieId;
       readonly reviewsRevision: ReviewsRevision;
+      /** Present only for an explicit Admin request; omitted for the scheduler. */
+      readonly requesterId?: AccountId;
       readonly promptVersion: string;
     }
   | {
