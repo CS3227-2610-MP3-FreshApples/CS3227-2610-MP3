@@ -1,5 +1,7 @@
 # Project Specification — Product
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 1. Product Overview
 
 ### 1.1 Problem / Purpose

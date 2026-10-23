@@ -1,5 +1,7 @@
 # Project Specification — Data Model
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 7. Data Model
 
 Use PostgreSQL hosted in Supabase, with separate development and production projects and versioned migrations. All application tables live in the `app` schema and SQL uses schema-qualified names (D-27). Supabase is used as a database host; its Auth/Storage/Realtime services are outside the initial selection. IDs are opaque UUIDs; timestamps are UTC; release_date is a calendar date. Mutable records have integer version fields for optimistic concurrency. Text is stored as plain text, never trusted HTML. Character limits count Unicode code points after trimming.

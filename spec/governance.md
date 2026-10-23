@@ -1,5 +1,7 @@
 # Project Specification — Constraints and Decisions
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 12. Constraints
 
 ### 12.1 Technical

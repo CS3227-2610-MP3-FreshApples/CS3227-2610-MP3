@@ -1,5 +1,7 @@
 # Project Specification - AI Behaviour
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 This expands FR-08 and FR-09. Both runtime AI features use SoC LLM; no other runtime model fallback is authorized.
 
 ## AI-01: Scheduled public review summary
