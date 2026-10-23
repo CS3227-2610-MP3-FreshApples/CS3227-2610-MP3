@@ -77,13 +77,6 @@ Admin accounts are provisioned through a controlled operator process and cannot 
 
 When signed in as an Admin, the display name and **Sign out** control remain available in the site header, including on public Home, Movies, Announcements, and authentication pages. Signing out returns you to the signed-out public navigation.
 
-#### 3.3 Grader testing access
-
-The following account is reserved for grading and testing only:
-
-* **Admin email:** `admin@example.com`
-* **Admin password:** `Password!123`
-
 ### 4. User reviews
 
 #### 4.1 Submit a review
@@ -147,7 +140,7 @@ Other states are:
 * **A review summary is awaiting its scheduled update** — review changes are waiting for the scheduled process.
 * **The review summary is temporarily unavailable** — the service could not be read.
 
-Summaries are read-only. There is no generate, retry, or regenerate button.
+Public movie pages are read-only: Users and visitors cannot start or retry summary generation. Admins can request regeneration from an active movie's edit page; see [Manage movies](#81-manage-movies).
 
 ### 7. Announcements
 
@@ -171,7 +164,7 @@ Open **Admin > Movies** to:
 
 Archiving hides a movie from public pages but retains its reviews and history. Editing an archived movie does not restore it; restore it from the movie list when ready.
 
-On an active movie's edit page, select **Regenerate AI summary** to request a fresh summary, even if its reviews have not changed. The current summary becomes pending immediately. Wait for the result; generation may take over a minute. At least three eligible reviews are required. If generation is deferred or fails, the summary stays pending for a scheduled update, which may take several days depending on configuration. Each Admin can request regeneration once every five minutes. Movie metadata and any text in the edit form are preserved.
+On an active movie's edit page, select **Regenerate AI summary** to invalidate the current result and request a fresh one, even if its reviews have not changed. The current summary becomes pending immediately. The control reports whether the summary was generated, remains pending, or cannot be generated because there are fewer than three eligible reviews. When generation remains pending, the scheduled process will continue recovery; there is no immediate retry guarantee, so it may take several days depending on the schedule. Each Admin can make one request every five minutes. The control is unavailable for archived movies. Regeneration does not save or discard movie metadata or text in the edit form.
 
 #### 8.2 Manage announcements
 
@@ -297,6 +290,7 @@ All user-generated text is treated as plain text. Do not paste HTML or scripts i
 | Public reviews | Read published reviews and report another User | Movie details |
 | User reports | View submitted report status | **My reports** |
 | Public summaries | Read the scheduled AI summary and disclosure | Movie details |
+| Admin summary regeneration | Request a fresh summary for an active movie | **Admin > Movies**, edit a movie |
 | Accounts | Register, sign in, and sign out | **Register**, **Sign in**, account control |
 | Announcements | Read published announcements | **Announcements** |
 | Admin catalogue | Create, edit, archive, and restore movies | **Admin > Movies** |
