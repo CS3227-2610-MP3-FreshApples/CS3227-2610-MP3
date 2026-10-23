@@ -12,6 +12,7 @@ export const AUDIT_ACTIONS = [
   "movie.update",
   "movie.archive",
   "movie.restore",
+  "movie.summary_regenerate",
   "review.approve",
   "review.hide",
   "review.restore",

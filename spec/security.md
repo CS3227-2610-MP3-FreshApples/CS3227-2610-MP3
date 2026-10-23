@@ -1,5 +1,7 @@
 # Project Specification — Security and Privacy
 
+> Admin summary requests: the [23 October 2026 amendment](admin-summary-regeneration.md) supersedes the earlier scheduled-only restrictions and defines the approved manual regeneration contract.
+
 ## 9.3 Security
 
 ### Trust boundaries and threats

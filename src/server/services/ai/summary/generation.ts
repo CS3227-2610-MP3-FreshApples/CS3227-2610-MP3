@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { MovieId } from "../../../shared";
+import type { AccountId, MovieId } from "../../../shared";
 import type { AiExecutionController, AiExecutionOutcome } from "../runtime";
 import type { SummaryInputPreparation, SummaryPreparation } from "./input-preparation";
 import { parseSummaryOutput, type SummaryOutput } from "./output-schema";
@@ -21,27 +21,40 @@ export interface SummaryGeneration {
   generate(movieId: MovieId): Promise<SummaryGenerationOutcome>;
 }
 
+export interface AdminSummaryGeneration {
+  /** Explicit Admin generation. The requester is persisted in the private AI job provenance. */
+  generateForAdmin(movieId: MovieId, requesterId: AccountId): Promise<SummaryGenerationOutcome>;
+}
+
 export function createSummaryGeneration(deps: {
   readonly preparation: SummaryInputPreparation;
   readonly controller: AiExecutionController;
   readonly publisher: SummaryPublisher;
-}): SummaryGeneration {
+}): SummaryGeneration & AdminSummaryGeneration {
+  async function generateWithDescriptor(movieId: MovieId, requesterId?: AccountId): Promise<SummaryGenerationOutcome> {
+    const prepared = await deps.preparation.prepare(movieId);
+    if (prepared.kind !== "ready") {
+      return prepared;
+    }
+    const { reviewsRevision, eligibleCount, sample, labels, input } = prepared;
+    const publication: SummaryPublication = { movieId, reviewsRevision, eligibleCount, sample };
+    return deps.controller.run<SummaryOutput>({
+      job: {
+        type: "summary",
+        movieId,
+        reviewsRevision,
+        ...(requesterId === undefined ? {} : { requesterId }),
+        promptVersion: SUMMARY_PROMPT_VERSION,
+      },
+      input,
+      maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
+      validate: (content) => parseSummaryOutput(content, labels),
+      publish: (tx, output, job) => deps.publisher.publish(tx, publication, output, job.jobId),
+    });
+  }
+
   return {
-    async generate(movieId) {
-      const prepared = await deps.preparation.prepare(movieId);
-      if (prepared.kind !== "ready") {
-        return prepared;
-      }
-      const { reviewsRevision, eligibleCount, sample, labels, input } = prepared;
-      const publication: SummaryPublication = { movieId, reviewsRevision, eligibleCount, sample };
-      // K10 deduplicates a running job for the same Movie, revision, model and prompt version (D-88).
-      return deps.controller.run<SummaryOutput>({
-        job: { type: "summary", movieId, reviewsRevision, promptVersion: SUMMARY_PROMPT_VERSION },
-        input,
-        maxOutputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
-        validate: (content) => parseSummaryOutput(content, labels),
-        publish: (tx, output, job) => deps.publisher.publish(tx, publication, output, job.jobId),
-      });
-    },
+    generate: (movieId) => generateWithDescriptor(movieId),
+    generateForAdmin: (movieId, requesterId) => generateWithDescriptor(movieId, requesterId),
   };
 }

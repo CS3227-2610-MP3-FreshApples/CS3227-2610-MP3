@@ -171,6 +171,8 @@ Open **Admin > Movies** to:
 
 Archiving hides a movie from public pages but retains its reviews and history. Editing an archived movie does not restore it; restore it from the movie list when ready.
 
+On an active movie's edit page, select **Regenerate AI summary** to request a fresh summary, even if its reviews have not changed. The current summary becomes pending immediately. Wait for the result; generation may take over a minute. At least three eligible reviews are required. If generation is deferred or fails, the summary stays pending for a scheduled update, which may take several days depending on configuration. Each Admin can request regeneration once every five minutes. Movie metadata and any text in the edit form are preserved.
+
 #### 8.2 Manage announcements
 
 Open **Admin > Announcements** to create, edit, publish, and unpublish announcements.

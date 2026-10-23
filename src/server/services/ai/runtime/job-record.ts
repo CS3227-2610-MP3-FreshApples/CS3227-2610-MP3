@@ -29,8 +29,8 @@ export function newAiJob(
       return {
         ...common,
         type: "summary",
-        trigger: "scheduler",
-        requesterId: null,
+        trigger: job.requesterId === undefined ? "scheduler" : "admin_request",
+        requesterId: job.requesterId ?? null,
         subjectId: job.movieId,
         inputRevision: job.reviewsRevision,
         policyVersion: null,

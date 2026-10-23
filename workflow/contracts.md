@@ -982,3 +982,7 @@ These amendments came from the A-03 (B#7) decisions D-99–D-102, recorded by De
 | AM-27 | K9 `attemptAfterCommit` keeps its signature. The real dispatcher also implements a B-internal `ModerationRecovery.attemptFromSweep(reviewId, contentRevision, requestId)` used only by the review-moderation sweep; it is not part of K9 and no Developer A module consumes it | D-101 |
 | AM-28 | The K9 claim, publish and settlement transactions take K8 `lockReviewForTransition` and then the Review's ModerationWork rows of one content revision in ascending ID order, and never write K10 bookkeeping rows (§3.3, D-58). An expired `running` claim is recovered as one failed execution (D-77) | D-101 |
 | AM-29 | `GET /ai/jobs/:id` returns the D-102 projection only; summary jobs are 404 | D-102 |
+
+## Admin summary regeneration amendment - 23 October 2026
+
+The governing [specification amendment](../spec/admin-summary-regeneration.md) extends K5 with movie.summary_regenerate, K6 with summary_regeneration (per account, 1 per 300 seconds), K7 revision invalidation with explicit Admin requests, and the K10 summary descriptor with optional requesterId: AccountId. Manual summary jobs use admin_request and requester ID; scheduler summary jobs remain unchanged. Earlier scheduled-only restrictions are superseded within this scope.

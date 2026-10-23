@@ -17,6 +17,7 @@ export const RATE_LIMIT_POLICIES: Readonly<Record<FixedRateLimitName, RateLimitP
   login_failure_ip: policy(5, 900),
   review_mutation: policy(10, 60),
   report_create: policy(5, 3_600),
+  summary_regeneration: policy(1, 300),
 });
 
 /** D-45: rows whose window started this long ago have ended, because no fixed window is longer. */

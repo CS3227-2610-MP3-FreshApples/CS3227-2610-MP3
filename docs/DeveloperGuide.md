@@ -157,7 +157,7 @@ Admin catalogue and announcement updates distinguish uncertain post-dispatch fai
 
 ## 3. Runtime AI
 
-Both features use SoC LLM through a server-only adapter. No other runtime model fallback is authorized. Public readers benefit from the User-facing summary; Admins use screening assessments to find content needing human attention. Neither interface provides an AI generate/retry button.
+Both features use SoC LLM through a server-only adapter. No other runtime model fallback is authorized. Public readers benefit from the User-facing summary; Admins use screening assessments to find content needing human attention. Active Admins may also regenerate movie summaries using the control on the Admin movie edit page.
 
 ### 3.1 Public review summaries (FR-08, AI-01)
 
@@ -168,6 +168,8 @@ Output contains bounded overall text, strengths, criticisms and mixed opinions. 
 GET `/api/v1/movies/:id/summary` reads stored output without a provider call. The UI shows generation time, included/eligible counts, truncation information and “AI summary of a sample; may miss opinions or make mistakes”. Missing/stale output shows awaiting scheduled update; fewer than three eligible Reviews shows insufficient reviews.
 
 Implementation: `src/server/services/ai/summary/`, `src/server/repositories/summary/`, the public summary GET and `/api/v1/internal/cron/summaries`. **Incomplete:** controlled live-model evaluation, full User browser journey and deployed scheduling/capacity evidence.
+
+The [Admin regeneration amendment](../spec/admin-summary-regeneration.md) defines `POST /api/v1/admin/movies/:id/summary/regenerate` with a strict empty JSON object, active-Admin authorization and Origin/CSRF checks. The service throttles each Admin to one request per five minutes, invalidates under the Movie lock and audits atomically, then awaits AI outside the transaction. It preserves the Movie edit version and existing AI budgets/leases. Manual AI jobs record `admin_request` and the requester ID; apply the new trigger-constraint migration through the controlled release process before using this endpoint. Pending outcomes recover through the existing daily sweep, subject to its interval and backoff. No immediate retry is promised.
 
 ### 3.2 Automatic profanity screening (FR-09, AI-02)
 

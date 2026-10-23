@@ -115,6 +115,7 @@ describe("RATE_LIMIT_POLICIES (D-44)", () => {
       login_failure_ip: { limit: 5, windowSeconds: 900 },
       review_mutation: { limit: 10, windowSeconds: 60 },
       report_create: { limit: 5, windowSeconds: 3_600 },
+      summary_regeneration: { limit: 1, windowSeconds: 300 },
     } satisfies Partial<Record<RateLimitName, unknown>>);
   });
 
