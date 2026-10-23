@@ -124,7 +124,22 @@
     {
       "src": "thegrimbee_Reflection.md",
       "title": "Gabriel's Reflections",
-      "headings": {},
+      "headings": {
+        "gabriel-s-reflection": "Gabriel's Reflection",
+        "ai-security": "AI Security",
+        "what-attack-surfaces-did-i-consider": "What attack surfaces did I consider?",
+        "what-protections-did-i-implement-and-how-were-they-tested": "What protections did I implement, and how were they tested?",
+        "what-limits-and-human-oversight-did-i-use": "What limits and human oversight did I use?",
+        "spec-driven-development": "Spec-Driven Development",
+        "what-should-be-clear-before-implementation-starts": "What should be clear before implementation starts?",
+        "how-did-changes-flow-through-the-project": "How did changes flow through the project?",
+        "how-did-tests-check-intent-rather-than-wording": "How did tests check intent rather than wording?",
+        "basic-multi-agent-software-engineering": "Basic Multi-Agent Software Engineering",
+        "where-did-specialised-agents-help": "Where did specialised agents help?",
+        "how-should-agents-be-built-tested-and-handed-work": "How should agents be built, tested, and handed work?",
+        "where-could-errors-or-malicious-instructions-slip-through": "Where could errors or malicious instructions slip through?",
+        "writing-assistance": "Writing assistance"
+      },
       "headingKeywords": {}
     }
   ]
