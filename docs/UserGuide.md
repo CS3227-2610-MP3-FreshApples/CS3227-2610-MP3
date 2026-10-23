@@ -77,6 +77,13 @@ Admin accounts are provisioned through a controlled operator process and cannot 
 
 When signed in as an Admin, the display name and **Sign out** control remain available in the site header, including on public Home, Movies, Announcements, and authentication pages. Signing out returns you to the signed-out public navigation.
 
+#### 3.3 Grader testing access
+
+The following account is reserved for grading and testing only:
+
+* **Admin email:** `admin@example.com`
+* **Admin password:** `Password!123`
+
 ### 4. User reviews
 
 #### 4.1 Submit a review
@@ -130,6 +137,8 @@ Report recipients cannot see received reports, reporter identity, evidence, coun
 
 ### 6. Review summaries
 
+The LLM feature provided for the user role is the AI review summary.
+
 Movie pages may show a scheduled AI-generated review summary labelled **AI summary of a sample; may miss opinions or make mistakes**. A ready summary includes an overall view, strengths, criticisms, mixed opinions, the number of reviews included, and the generation time.
 
 Other states are:
@@ -147,6 +156,8 @@ The public **Announcements** page lists published announcements by publication t
 ### 8. Admin workspace
 
 Only Admin accounts can use the Admin dashboard. Admin actions require a reason where stated and are recorded in the private audit history. Admin subpages provide **Back to admin dashboard** so you can return to the workspace overview.
+
+The LLM feature provided for the admin role is the automatic assessment of reviews in the moderation workspace.
 
 #### 8.1 Manage movies
 
